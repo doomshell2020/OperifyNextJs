@@ -38,6 +38,10 @@ const upload = multer({ storage });
 router.post('/upload-logo', upload.single('logo'), (req, res, next) => ctrl.uploadLogo(req, res, next));
 router.get('/logo', (req, res, next) => ctrl.getLogo(req, res, next));
 
+// Profile settings
+router.get('/profile', (req, res, next) => ctrl.getProfile(req, res, next));
+router.put('/profile', (req, res, next) => ctrl.updateProfile(req, res, next));
+
 // Categories
 router.get('/categories', (req, res, next) => ctrl.listCategories(req, res, next));
 router.get('/categories/:id', (req, res, next) => ctrl.getCategory(req, res, next));

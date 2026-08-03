@@ -39,6 +39,100 @@ class SettingsController {
     }
   }
 
+  async getProfile(req, res, next) {
+    let connection;
+    try {
+      const dbName = req.user?.db || 'default';
+      connection = await db.getConnection(dbName);
+      
+      const [settings] = await connection.query(`
+        SELECT 
+          s.id,
+          s.first_name,
+          s.last_name,
+          s.mobile,
+          s.contact_email,
+          sd.address1,
+          sd.address2,
+          sd.phone,
+          sd.fax,
+          sd.website,
+          sd.status,
+          sd.company_name,
+          sd.pan_number,
+          sd.gst_no,
+          sd.tin_date,
+          sd.account_number,
+          sd.ifsc,
+          sd.address,
+          sd.alias,
+          sd.affiliation_no
+        FROM sitesettings s
+        LEFT JOIN sitesettings_details sd ON s.id = sd.sitesettings_id
+        WHERE s.id = 1
+      `);
+      
+      if (!settings || settings.length === 0) {
+        return res.json({ success: true, profile: null });
+      }
+      
+      return res.json({ success: true, profile: settings[0] });
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      next(error);
+    } finally {
+      if (connection) connection.release();
+    }
+  }
+
+  async updateProfile(req, res, next) {
+    let connection;
+    try {
+      const dbName = req.user?.db || 'default';
+      connection = await db.getConnection(dbName);
+      
+      const {
+        first_name, last_name, mobile, contact_email,
+        address1, address2, phone, fax, website, status,
+        company_name, pan_number, gst_no, tin_date, account_number, ifsc, address,
+        company_number, alias
+      } = req.body;
+
+      await connection.beginTransaction();
+
+      // Update sitesettings
+      await connection.query(`
+        UPDATE sitesettings 
+        SET first_name = ?, last_name = ?, mobile = ?, contact_email = ?
+        WHERE id = 1
+      `, [first_name || '', last_name || '', mobile || '', contact_email || '']);
+
+      // Update sitesettings_details
+      // Map company_number from frontend to affiliation_no in DB as per user requirement (no new columns)
+      await connection.query(`
+        UPDATE sitesettings_details 
+        SET address1 = ?, address2 = ?, phone = ?, fax = ?, website = ?, status = ?,
+            company_name = ?, pan_number = ?, gst_no = ?, tin_date = ?, account_number = ?, 
+            ifsc = ?, address = ?, alias = ?, affiliation_no = ?
+        WHERE sitesettings_id = 1
+      `, [
+        address1 || '', address2 || '', phone || '', fax || '', website || '', status || 'Y',
+        company_name || '', pan_number || '', gst_no || '', tin_date || null, account_number || '', 
+        ifsc || '', address || '', alias || '', company_number || ''
+      ]);
+
+      await connection.commit();
+      
+      return res.json({ success: true, message: 'Profile updated successfully' });
+    } catch (error) {
+      if (connection) await connection.rollback();
+      console.error('Error updating profile:', error);
+      next(error);
+    } finally {
+      if (connection) connection.release();
+    }
+  }
+
   // ─── CATEGORIES ─────────────────────────────────────────
   async listCategories(req, res, next) {
     try {

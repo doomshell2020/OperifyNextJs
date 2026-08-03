@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { UploadCloud, CheckCircle2, AlertCircle } from 'lucide-react';
+import { UploadCloud, CheckCircle2, AlertCircle, Save } from 'lucide-react';
 import apiClient from '../../../../services/apiClient';
 
 export default function AdminProfilePage() {
@@ -11,6 +11,27 @@ export default function AdminProfilePage() {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   
+  const [profileData, setProfileData] = useState({
+    first_name: '',
+    last_name: '',
+    phone: '',
+    email: '',
+    address1: '',
+    address2: '',
+    fax: '',
+    website: '',
+    status: 'Y',
+    company_name: '',
+    pan_number: '',
+    gst_no: '',
+    tin_date: '',
+    account_number: '',
+    ifsc: '',
+    address: '',
+    company_number: '',
+    alias: ''
+  });
+
   useEffect(() => {
     // Fetch current logo
     apiClient.get('/settings/logo')
@@ -24,6 +45,35 @@ export default function AdminProfilePage() {
         }
       })
       .catch(err => console.error('Failed to load logo:', err));
+
+    // Fetch full profile data
+    apiClient.get('/settings/profile')
+      .then(res => {
+        if (res.data.success && res.data.profile) {
+          const p = res.data.profile;
+          setProfileData({
+            first_name: p.first_name || '',
+            last_name: p.last_name || '',
+            phone: p.phone || '',
+            email: p.contact_email || p.email || '',
+            address1: p.address1 || '',
+            address2: p.address2 || '',
+            fax: p.fax || '',
+            website: p.website || '',
+            status: p.status || 'Y',
+            company_name: p.company_name || '',
+            pan_number: p.pan_number || '',
+            gst_no: p.gst_no || '',
+            tin_date: p.tin_date ? new Date(p.tin_date).toISOString().split('T')[0] : '',
+            account_number: p.account_number || '',
+            ifsc: p.ifsc || '',
+            address: p.address || '',
+            company_number: p.affiliation_no || '', // mapped from affiliation_no
+            alias: p.alias || ''
+          });
+        }
+      })
+      .catch(err => console.error('Failed to load profile details:', err));
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,102 +86,221 @@ export default function AdminProfilePage() {
     }
   };
 
-  const handleUpload = async () => {
-    if (!file) return;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setProfileData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleUploadAndSave = async () => {
     setLoading(true);
     setSuccess('');
     setError('');
 
-    const formData = new FormData();
-    formData.append('logo', file);
-
     try {
-      const response = await apiClient.post('/settings/upload-logo', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      // 1. Save Text Profile Data
+      await apiClient.put('/settings/profile', {
+        ...profileData,
+        contact_email: profileData.email // map frontend field to backend if needed
       });
 
-      if (response.data.success) {
-        setSuccess('Logo updated successfully! The sidebar and PDFs will now use this logo.');
-        window.location.reload(); // Reload to refresh sidebar state if not using global state
-      } else {
-        setError(response.data.message || 'Failed to upload logo');
+      // 2. Upload Logo if selected
+      if (file) {
+        const formData = new FormData();
+        formData.append('logo', file);
+        await apiClient.post('/settings/upload-logo', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      }
+
+      setSuccess('Profile updated successfully!');
+      
+      // Reload page only if logo changed to update sidebar/cache
+      if (file) {
+        setTimeout(() => window.location.reload(), 1000);
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'An error occurred during upload.');
+      setError(err.response?.data?.message || 'An error occurred during update.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto py-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Admin Profile</h1>
-        <p className="text-slate-500 mt-1 text-sm">Manage your company profile and application settings.</p>
+    <div className="max-w-7xl mx-auto py-6">
+      <div className="mb-6 flex justify-between items-end">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Profile Manager</h1>
+          <p className="text-slate-500 mt-1 text-sm">Manage your company profile and application settings.</p>
+        </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
-          <h2 className="text-lg font-semibold text-slate-800">Company Logo</h2>
-          <p className="text-slate-500 text-sm mt-0.5">This logo appears on the dashboard sidebar and all generated contract PDFs.</p>
-        </div>
-        
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-6">
         <div className="p-6">
-          <div className="flex flex-col md:flex-row gap-8 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* Logo Preview Area */}
-            <div className="w-full md:w-1/3">
-              <p className="text-sm font-medium text-slate-700 mb-3">Current Logo Preview</p>
-              <div className="aspect-[3/1] bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center p-4">
-                {preview ? (
-                  <img src={preview} alt="Logo Preview" className="max-w-full max-h-full object-contain mix-blend-multiply" />
-                ) : (
-                  <span className="text-slate-400 text-sm">No logo</span>
-                )}
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">First Name</label>
+              <input type="text" name="first_name" value={profileData.first_name} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all" />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Last Name</label>
+              <input type="text" name="last_name" value={profileData.last_name} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all" placeholder="Last Name" />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
+              <input type="text" name="phone" value={profileData.phone} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all" />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+              <input type="email" name="email" value={profileData.email} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all" />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Address Line 1</label>
+              <input type="text" name="address1" value={profileData.address1} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all" />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Address Line 2</label>
+              <input type="text" name="address2" value={profileData.address2} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all" placeholder="Address" />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Fax</label>
+              <input type="text" name="fax" value={profileData.fax} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all" placeholder="Fax" />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Web Site</label>
+              <input type="text" name="website" value={profileData.website} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all" />
             </div>
 
-            {/* Upload Area */}
-            <div className="flex-1 w-full">
-              <p className="text-sm font-medium text-slate-700 mb-3">Upload New Logo</p>
-              
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors group">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <UploadCloud className="w-8 h-8 text-slate-400 group-hover:text-cyan-500 mb-2 transition-colors" />
-                  <p className="mb-1 text-sm text-slate-600"><span className="font-semibold text-cyan-600">Click to upload</span> or drag and drop</p>
-                  <p className="text-xs text-slate-500">PNG, JPG or JPEG (Recommended: 300x100px)</p>
+            {/* Logo and Stock Update */}
+            <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Small Logo</label>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center justify-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg cursor-pointer border border-slate-300 transition-colors">
+                    Choose File
+                    <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                  </label>
+                  <span className="text-sm text-slate-500 truncate max-w-[200px]">
+                    {file ? file.name : 'No file chosen'}
+                  </span>
                 </div>
-                <input type="file" className="hidden" accept="image/png, image/jpeg, image/jpg" onChange={handleFileChange} />
-              </label>
+                <p className="text-xs text-rose-500 mt-2 font-medium">Note:- Please select image size 100*100px</p>
+                {preview && (
+                  <div className="mt-3 w-16 h-16 rounded border border-slate-200 overflow-hidden bg-slate-50 flex items-center justify-center">
+                    <img src={preview} alt="Logo Preview" className="max-w-full max-h-full object-contain" />
+                  </div>
+                )}
+              </div>
 
-              {success && (
-                <div className="mt-4 p-3 bg-emerald-50 text-emerald-700 text-sm rounded-lg flex items-start gap-2 border border-emerald-100">
-                  <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
-                  <p>{success}</p>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-3">Stock Update</label>
+                <div className="flex items-center gap-6">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="status" value="Y" checked={profileData.status === 'Y'} onChange={handleInputChange} className="w-4 h-4 text-cyan-600 focus:ring-cyan-500 border-slate-300" />
+                    <span className="text-sm text-slate-700">Y</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="status" value="N" checked={profileData.status === 'N'} onChange={handleInputChange} className="w-4 h-4 text-cyan-600 focus:ring-cyan-500 border-slate-300" />
+                    <span className="text-sm text-slate-700">N</span>
+                  </label>
                 </div>
-              )}
-              
-              {error && (
-                <div className="mt-4 p-3 bg-rose-50 text-rose-700 text-sm rounded-lg flex items-start gap-2 border border-rose-100">
-                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                  <p>{error}</p>
-                </div>
-              )}
-
-              <div className="mt-6 flex justify-end">
-                <button
-                  onClick={handleUpload}
-                  disabled={!file || loading}
-                  className="bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm"
-                >
-                  {loading ? 'Uploading...' : 'Save Logo'}
-                </button>
               </div>
             </div>
 
           </div>
         </div>
       </div>
+
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+          <h2 className="text-lg font-medium text-slate-800">Taxsection</h2>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Company Name</label>
+              <input type="text" name="company_name" value={profileData.company_name} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Pan No</label>
+              <input type="text" name="pan_number" value={profileData.pan_number} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all" />
+            </div>
+
+            <div className="md:col-start-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1">GST No</label>
+              <input type="text" name="gst_no" value={profileData.gst_no} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all" />
+            </div>
+
+            <div className="md:col-start-1 md:row-start-3">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Tin Date</label>
+              <input type="date" name="tin_date" value={profileData.tin_date} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all text-slate-700" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Account No</label>
+              <input type="text" name="account_number" value={profileData.account_number} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">IFSC Code</label>
+              <input type="text" name="ifsc" value={profileData.ifsc} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
+              <input type="text" name="address" value={profileData.address} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all" placeholder="Address" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Company Number</label>
+              <input type="text" name="company_number" value={profileData.company_number} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all" placeholder="Company Number" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Alias</label>
+              <input type="text" name="alias" value={profileData.alias} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all" />
+            </div>
+            
+          </div>
+        </div>
+      </div>
+
+      {success && (
+        <div className="mb-6 p-4 bg-emerald-50 text-emerald-700 text-sm rounded-xl flex items-start gap-2 border border-emerald-100 shadow-sm">
+          <CheckCircle2 className="w-5 h-5 mt-0.5 shrink-0" />
+          <p>{success}</p>
+        </div>
+      )}
+      
+      {error && (
+        <div className="mb-6 p-4 bg-rose-50 text-rose-700 text-sm rounded-xl flex items-start gap-2 border border-rose-100 shadow-sm">
+          <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
+          <p>{error}</p>
+        </div>
+      )}
+
+      <div className="flex justify-between items-center mb-10">
+        <button className="px-6 py-2.5 bg-cyan-500 hover:bg-cyan-600 text-white font-medium rounded-lg shadow-sm transition-colors">
+          Cancel
+        </button>
+        <button
+          onClick={handleUploadAndSave}
+          disabled={loading}
+          className="px-8 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg shadow-sm transition-colors flex items-center gap-2 disabled:opacity-50"
+        >
+          {loading ? 'Saving...' : 'Update'}
+        </button>
+      </div>
+
     </div>
   );
 }
