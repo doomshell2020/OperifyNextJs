@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import contractService, { ContractFilters } from '../../../services/contract.service';
-import { DashboardFilters } from '../../../components/dashboard/DashboardFilters';
 import { ContractDetailsModal } from '../../../components/dashboard/ContractDetailsModal';
 import { 
   FileText, 
@@ -74,9 +73,7 @@ export default function ContractsPage() {
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
       
       {/* Top Tenant Context Filters */}
-      <DashboardFilters />
-
-      {/* Header and Title */}
+{/* Header and Title */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">

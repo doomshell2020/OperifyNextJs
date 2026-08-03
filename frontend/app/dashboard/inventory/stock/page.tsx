@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { useAuth } from '../../../../contexts/AuthContext';
-import { DashboardFilters } from '../../../../components/dashboard/DashboardFilters';
 import { AlertCircle, RefreshCw, Layers } from 'lucide-react';
 
 export default function PlaceHolderPage() {
@@ -12,9 +11,7 @@ export default function PlaceHolderPage() {
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
       
       {/* Dynamic Filters Context */}
-      <DashboardFilters />
-
-      {/* Module Card Shell */}
+{/* Module Card Shell */}
       <div className="bg-white border border-slate-200/80 rounded-xl p-8 shadow-sm flex flex-col space-y-6">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-cyan-50 text-cyan-600 rounded-lg">

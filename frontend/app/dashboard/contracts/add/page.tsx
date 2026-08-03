@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import contractService, { CreateContractPayload, FinishedProductInput } from '../../../../services/contract.service';
-import { DashboardFilters } from '../../../../components/dashboard/DashboardFilters';
 import { Briefcase, Loader, Trash2, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -139,9 +138,7 @@ export default function AddContractPage() {
 
   return (
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
-      <DashboardFilters />
-
-      <div>
+<div>
         <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
           Add Contract
         </h1>

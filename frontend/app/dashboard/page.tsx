@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { useDashboard } from '../../hooks/useDashboard';
-import { DashboardFilters } from '../../components/dashboard/DashboardFilters';
 import { SummaryCard } from '../../components/dashboard/SummaryCard';
 import { AnalyticsCard } from '../../components/dashboard/AnalyticsCard';
 import { RecentPurchaseTable } from '../../components/dashboard/RecentPurchaseTable';
@@ -74,9 +73,7 @@ export default function DashboardPage() {
       {/* Connection Context Filters */}
         
         {/* Connection Context Filters */}
-        <DashboardFilters />
-        
-        {/* Row 1: Summary Cards */}
+{/* Row 1: Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           <SummaryCard
             title="Total Contracts"

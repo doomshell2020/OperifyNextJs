@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { designsheetService, DesignSheetFilter } from '../../../services/designsheet.service';
-import { DashboardFilters } from '../../../components/dashboard/DashboardFilters';
 import { 
   FileText, Search, RefreshCw, Eye, Loader, AlertCircle, Briefcase, Plus, X, Edit, Trash2, Printer
 } from 'lucide-react';
@@ -75,9 +74,7 @@ export default function DesignSheetsPage() {
 
   return (
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
-      <DashboardFilters />
-
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
             <FileText className="w-5 h-5 text-cyan-600" />
