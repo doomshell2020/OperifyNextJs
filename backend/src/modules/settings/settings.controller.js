@@ -1,0 +1,188 @@
+const repo = require('./settings.repository');
+const fs = require('fs');
+const path = require('path');
+
+class SettingsController {
+  // ─── LOGO SETTINGS ─────────────────────────────────────────
+  async uploadLogo(req, res, next) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No file uploaded' });
+      }
+      
+      const dbName = req.user?.db || 'default';
+      const logoUrl = `/public/uploads/logos/${req.file.filename}`;
+      
+      res.json({ success: true, message: 'Logo uploaded successfully', logoUrl });
+    } catch (e) {
+      next(e);
+    }
+  }
+
+  async getLogo(req, res, next) {
+    try {
+      const dbName = req.user?.db || 'default';
+      const dirPath = path.join(__dirname, '../../../public/uploads/logos');
+      
+      if (fs.existsSync(dirPath)) {
+        const files = fs.readdirSync(dirPath);
+        const logoFile = files.find(f => f.startsWith(`${dbName}_logo.`));
+        if (logoFile) {
+          return res.json({ success: true, logoUrl: `/public/uploads/logos/${logoFile}?t=${Date.now()}` });
+        }
+      }
+      
+      // Fallback to default
+      res.json({ success: true, logoUrl: 'https://staging.operify.in/image/logo.png' });
+    } catch (e) {
+      next(e);
+    }
+  }
+
+  // ─── CATEGORIES ─────────────────────────────────────────
+  async listCategories(req, res, next) {
+    try {
+      const data = await repo.getCategories(req.dbPool, { search: req.query.search });
+      res.json({ success: true, data });
+    } catch (e) { next(e); }
+  }
+  async getCategory(req, res, next) {
+    try {
+      const data = await repo.getCategoryById(req.dbPool, req.params.id);
+      if (!data) return res.status(404).json({ success: false, message: 'Not found' });
+      res.json({ success: true, data });
+    } catch (e) { next(e); }
+  }
+  async createCategory(req, res, next) {
+    try {
+      const { category_name, description } = req.body;
+      if (!category_name?.trim()) return res.status(400).json({ success: false, message: 'Category name is required' });
+      const id = await repo.createCategory(req.dbPool, { category_name: category_name.trim(), description });
+      res.json({ success: true, id, message: 'Category created successfully' });
+    } catch (e) { next(e); }
+  }
+  async updateCategory(req, res, next) {
+    try {
+      const { category_name, description } = req.body;
+      if (!category_name?.trim()) return res.status(400).json({ success: false, message: 'Category name is required' });
+      await repo.updateCategory(req.dbPool, req.params.id, { category_name: category_name.trim(), description });
+      res.json({ success: true, message: 'Category updated successfully' });
+    } catch (e) { next(e); }
+  }
+  async toggleCategoryStatus(req, res, next) {
+    try {
+      const { status } = req.body;
+      await repo.toggleCategoryStatus(req.dbPool, req.params.id, status);
+      res.json({ success: true, message: 'Status updated' });
+    } catch (e) { next(e); }
+  }
+  async deleteCategory(req, res, next) {
+    try {
+      await repo.deleteCategory(req.dbPool, req.params.id);
+      res.json({ success: true, message: 'Category deleted' });
+    } catch (e) { next(e); }
+  }
+
+  // ─── PRODUCTS ───────────────────────────────────────────
+  async listProducts(req, res, next) {
+    try {
+      const { search, category_id, status, itemtype } = req.query;
+      const data = await repo.getProducts(req.dbPool, {
+        search, status,
+        category_id: category_id ? parseInt(category_id) : undefined,
+        itemtype,
+      });
+      res.json({ success: true, data });
+    } catch (e) { next(e); }
+  }
+  async getProduct(req, res, next) {
+    try {
+      const data = await repo.getProductById(req.dbPool, req.params.id);
+      if (!data) return res.status(404).json({ success: false, message: 'Not found' });
+      res.json({ success: true, data });
+    } catch (e) { next(e); }
+  }
+  async toggleProductStatus(req, res, next) {
+    try {
+      const { status } = req.body;
+      await repo.toggleProductStatus(req.dbPool, req.params.id, status);
+      res.json({ success: true, message: 'Status updated' });
+    } catch (e) { next(e); }
+  }
+  async getCategoryList(req, res, next) {
+    try {
+      const data = await repo.getCategoryList(req.dbPool);
+      res.json({ success: true, data });
+    } catch (e) { next(e); }
+  }
+  async getUomList(req, res, next) {
+    try {
+      const data = await repo.getUomList(req.dbPool);
+      res.json({ success: true, data });
+    } catch (e) { next(e); }
+  }
+
+  // ─── SUPPLIERS ──────────────────────────────────────────
+  async listSuppliers(req, res, next) {
+    try {
+      const { search, status, type } = req.query;
+      const data = await repo.getSuppliers(req.dbPool, { search, status, type });
+      res.json({ success: true, data });
+    } catch (e) { next(e); }
+  }
+  async getSupplier(req, res, next) {
+    try {
+      const data = await repo.getSupplierById(req.dbPool, req.params.id);
+      if (!data) return res.status(404).json({ success: false, message: 'Not found' });
+      res.json({ success: true, data });
+    } catch (e) { next(e); }
+  }
+  async createSupplier(req, res, next) {
+    try {
+      const { name } = req.body;
+      if (!name?.trim()) return res.status(400).json({ success: false, message: 'Supplier name is required' });
+      const id = await repo.createSupplier(req.dbPool, req.body);
+      res.json({ success: true, id, message: 'Supplier created successfully' });
+    } catch (e) { next(e); }
+  }
+  async updateSupplier(req, res, next) {
+    try {
+      const { name } = req.body;
+      if (!name?.trim()) return res.status(400).json({ success: false, message: 'Supplier name is required' });
+      await repo.updateSupplier(req.dbPool, req.params.id, req.body);
+      res.json({ success: true, message: 'Supplier updated successfully' });
+    } catch (e) { next(e); }
+  }
+  async toggleSupplierStatus(req, res, next) {
+    try {
+      const { status } = req.body;
+      await repo.toggleSupplierStatus(req.dbPool, req.params.id, status);
+      res.json({ success: true, message: 'Status updated' });
+    } catch (e) { next(e); }
+  }
+
+  // ─── USERS ──────────────────────────────────────────────
+  async listUsers(req, res, next) {
+    try {
+      const { search, is_status } = req.query;
+      const data = await repo.getUsers(req.dbPool, { search, is_status });
+      res.json({ success: true, data });
+    } catch (e) { next(e); }
+  }
+  async getUser(req, res, next) {
+    try {
+      const data = await repo.getUserById(req.dbPool, req.params.id);
+      if (!data) return res.status(404).json({ success: false, message: 'Not found' });
+      res.json({ success: true, data });
+    } catch (e) { next(e); }
+  }
+  async toggleUserStatus(req, res, next) {
+    try {
+      const { status } = req.body;
+      await repo.toggleUserStatus(req.dbPool, req.params.id, status);
+      res.json({ success: true, message: 'Status updated' });
+    } catch (e) { next(e); }
+  }
+}
+
+module.exports = new SettingsController();
