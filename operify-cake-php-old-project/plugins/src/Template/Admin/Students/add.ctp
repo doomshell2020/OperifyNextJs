@@ -1,0 +1,349 @@
+<!-- Content Wrapper. Contains page content -->
+
+  <div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+	    <section class="content-header">
+		      <h1>
+			Student Manager
+		      </h1>
+<ol class="breadcrumb">
+		<li><a href="#"><i class="fa fa-home"></i>Home</a></li>
+<li><a href="#">Student</a></li>
+<li><a href="#">Manage Student</a></li>
+<li class="active">Create New Student</li>
+	      </ol>
+	    </section>
+
+    <!-- Main content -->
+    <section class="content">
+      <div class="row">
+       
+        <!-- right column -->
+        <div class="col-md-12">
+          <!-- Horizontal Form -->
+          <div class="box box-info">
+		    <div class="box-header with-border">
+		      <h3 class="box-title"><i class="fa fa-plus-square" aria-hidden="true"></i> <?php if(isset($students['id'])){ echo 'Edit Student'; }else{ echo 'Add Student';} ?></h3>
+		    </div>
+            <!-- /.box-header -->
+            <!-- form start -->
+
+		<?php echo $this->Flash->render(); ?>
+
+ 
+          
+		<?php echo $this->Form->create($students, array(
+                       
+                       'class'=>'form-horizontal',
+			'id' => 'student_form',
+                       'enctype' => 'multipart/form-data',
+                       'novalidate'
+                     	)); ?>
+
+  
+  
+  
+    <div class="box-body">
+  
+  <div class="form-group">
+    
+    <div class="col-sm-4">
+    <label for="inputEmail3" class="control-label">First Name<span style="color:red;">*</span></label>
+    <?php echo $this->Form->input('fname',array('class'=>'form-control','placeholder'=>'First Name', 'id'=>'title','label' =>false)); ?>
+    </div>
+    
+ <div class="col-sm-4">
+ <label for="inputEmail3" class="control-label">Middle Name</label>
+      <?php echo $this->Form->input('middlename',array('class'=>'form-control','placeholder'=>'Middle Name', 'id'=>'title','label' =>false)); ?>
+    </div>
+    
+    
+ <div class="col-sm-4">
+ <label for="inputEmail3" class="control-label">Last Name<span style="color:red;">*</span></label>
+      <?php echo $this->Form->input('lname',array('class'=>'form-control','placeholder'=>'Last Name', 'id'=>'title','label' =>false)); ?>
+    </div>   
+       
+    
+    
+  </div>
+  
+  
+  
+  <div class="form-group">
+    
+    <div class="col-sm-4">
+    <div><label for="inputEmail3" class="control-label">Gender</label></div>
+      <label class="radio-inline">
+  <input type="radio" name="gender" id="inlineRadio1" checked value="Male"> Male
+</label>
+<label  for="inputEmail3" class="radio-inline">
+  <input type="radio" name="gender" id="inlineRadio2" value="Female"> Female
+</label>
+    </div>
+   
+    
+ <div class="col-sm-4">
+ <label for="inputEmail3" class="control-label">Email/Login Id<span style="color:red;">*</span></label>
+      <?php echo $this->Form->input('username',array('class'=>'form-control','placeholder'=>'Email', 'id'=>'emli','label' =>false)); ?>
+     
+    </div>
+    
+    
+ <div class="col-sm-4">
+ <label for="inputEmail3" class="control-label">Mobile No<span style="color:red;">*</span></label>
+ 
+     <div class="input-group">
+                  <div class="input-group-addon">
+                    <i class="fa fa-phone"></i>
+                  </div>
+                  <input type="text" class="form-control" name="mobile" maxlength="10">
+                </div>
+                <!-- /.input group -->  
+       
+    
+    
+  </div>  </div>
+  
+  <?php /* ?>
+ <div class="form-group">
+    
+    <div class="col-sm-4">
+    <label for="inputEmail3" class="control-label">Cast</label>
+<select class="form-control select2" name="cast" style="width: 100%;">
+                 
+                  <option  value="GEN" <?php  if ($students['cast']=='GEN') { ?> selected="selected" <?php } ?>>GEN</option>
+              
+                  <option value="OBC" <?php  if ($students['cast']=='OBC') { ?> selected="selected" <?php } ?>>OBC</option>
+
+   <option value="SC/ST" <?php  if ($students['cast']=='SC/ST') { ?> selected="selected" <?php } ?>>SC/ST</option>
+
+  <option value="Others" <?php  if ($students['cast']=='Others') { ?> selected="selected" <?php } ?>>Others</option>
+                 
+
+                </select>
+    </div>
+
+
+
+
+
+ <div class="col-sm-4">
+ <label for="inputEmail3" class="control-label">Bloodgroup</label>
+   <select class="form-control select2" name="bloodgroup" style="width: 100%;">
+                 <option  value=""  >--Select--</option>
+                  <option  value="A" <?php  if ($students['bloodgroup']=='A') { ?> selected="selected" <?php } ?>>A</option>
+              
+                  <option value="B" <?php  if ($students['bloodgroup']=='B') { ?> selected="selected" <?php } ?>>B</option>
+
+   <option value="O" <?php  if ($students['bloodgroup']=='O') { ?> selected="selected" <?php } ?>>O</option>
+
+  <option value="AB" <?php  if ($students['bloodgroup']=='AB') { ?> selected="selected" <?php } ?>>AB</option>
+                 
+
+                </select>
+    </div>  
+
+
+ <div class="col-sm-4">
+ <label for="inputEmail3" class="control-label">Form No</label>
+<?php echo $this->Form->input('formno',array('class'=>'form-control','placeholder'=>'Form No.', 'id'=>'formno','label' =>false)); ?>
+    </div>   
+
+</div>
+
+ <div class="form-group">
+    
+    <div class="col-sm-4">
+    <label for="inputEmail3" class="control-label">Address</label>
+  <textarea class="form-control" rows="3" placeholder="Enter ..." name="address"></textarea>
+    </div>
+
+
+ <div class="col-sm-4">
+ <label for="inputEmail3" class="control-label">City</label>
+       <select class="form-control select2" name="city" style="width: 100%;">
+		      <option value="" selected="selected">-Select-</option>
+                  <option value="Jaipur">Jaipur</option>
+                  <option value="Jodhpur">Jodhpur</option>
+                  <option value="Sikar">Sikar</option>
+                  <option value="Ajmer">Ajmer</option>
+                
+                </select>
+    </div>   
+
+ <div class="col-sm-4">
+ <label for="inputEmail3" class="control-label">Photo</label>
+      	<?php echo $this->Form->input('photo',array('type'=>'file', 'id'=>'image','label' =>false)); ?>
+    </div>   
+
+
+
+
+</div>
+  <?php
+  */ 
+  ?>
+
+     <div class="form-group">
+    <div class="col-sm-4">
+    <label for="inputEmail3" class="control-label">Date of Birth<span style="color:red;">*</span></label>
+    <div class="input-group">
+                  <div class="input-group-addon">
+                    <i class="fa fa-calendar"></i>
+                  </div>
+                  <input type="text" id="stuecdetail-secd_date" class="form-control" name="dob" >
+                </div>
+    </div>
+    
+ <div class="col-sm-4">
+ <div><label>Admission Category</label></div>
+       <label class="radio-inline">
+  <input type="radio" name="category" id="inlineRadio1" value="RTE"> RTE
+</label>
+<label class="radio-inline">
+  <input type="radio" name="category" id="inlineRadio2" value="NORMAL"> NORMAL
+</label>
+    </div>
+    
+    
+ <div class="col-sm-4">
+ <label for="inputEmail3" class="control-label">Nationality</label>
+    <select class="form-control " name="nationality" style="width: 100%;">
+                 
+                  <option  value="INDIAN" <?php  if ($students['nationality']=='INDIAN') { ?> selected="selected" <?php } ?>>INDIAN</option>
+              
+                  <option value="AMERICAN" <?php  if ($students['nationality']=='AMERICAN') { ?> selected="selected" <?php } ?>>AMERICAN</option>
+                 
+
+                </select>
+    </div>   
+       
+    
+    
+  </div>
+  
+     <div class="box-header with-border">
+	    <h4><i class="fa fa-info-circle" aria-hidden="true"></i>
+Academic Details</h4>
+		    </div>
+
+
+
+         <div class="form-group">
+    <div class="col-sm-4">
+ <label for="inputEmail3" class="control-label">Enrollnment No.</label>
+
+
+
+ <?php if(isset($students['id'])){ ?>
+
+
+    <?php echo $this->Form->input('enroll',array('class'=>'form-control','placeholder'=>'Enrollnment', 'id'=>'enroll','label' =>false)); ?>
+
+<?php }else{ ?>
+       <?php echo $this->Form->input('enroll',array('class'=>'form-control','placeholder'=>'Enrollnment', 'id'=>'enroll','value'=>$studentsid[0]['id']+1,'label' =>false,'readonly')); } ?>
+    </div>   
+    
+ <div class="col-sm-4">
+ <label for="inputEmail3" class="control-label">Admission Year<span style="color:red;">*</span></label>
+      <select class="form-control" name="admissionyear">
+  <option value="">--- Select Admission Year ---</option>
+ <?= $year=date("Y"); echo $year; $exyear=$year+4; ?>
+
+  <?php for ($i = $year; $i <= $exyear; $i++) :  $rt=$i+1; $rt= substr($rt,2);?> 
+        <option value="<?php echo $i; ?>-<?php echo  $rt;?>"><?php echo $i; ?>-<?php echo  $rt;?></option>
+    <?php endfor; ?>
+</select>
+    </div>
+    
+    
+ <div class="col-sm-4">
+ <label for="inputEmail3" class="control-label">Academic Year<span style="color:red;">*</span></label>
+      <select class="form-control" name="acedmicyear">
+
+<?= $year=date("Y"); echo $year; $exyear=$year+4; ?>
+  <option value="">--- Select Academic Year ---</option>
+  <?php for ($i = $year; $i <= $exyear; $i++) :  $rt=$i+1; $rt= substr($rt,2);?> 
+        <option value="<?php echo $i; ?>-<?php echo  $rt;?>"><?php echo $i; ?>-<?php echo  $rt;?></option>
+    <?php endfor; ?>
+ 
+</select>
+    </div>   
+       
+    
+       </div>   
+     <div class="form-group">
+    
+    <div class="col-sm-4">
+    <label for="inputEmail3" class="control-label">Class<span style="color:red;">*</span></label>
+      <select class="form-control" name="class_id">
+  <option value="">----Select Class----</option>
+ <?php  foreach($classes as $esr=>$es) { ?>
+  <option value="<?php echo $es['id']; ?>"><?php echo $es['title']; ?></option>
+  <?php } ?>
+</select>
+    </div>
+    
+ <div class="col-sm-4">
+ <label for="inputEmail3" class="control-label">Section<span style="color:red;">*</span></label>
+      <select class="form-control" name="section_id">
+
+ <option value=""> ---Select Section--- </option>
+<?php  foreach($sections as $er=>$e) { ?>
+  <option value="<?php echo $e['id']; ?>"><?php echo $e['title']; ?></option>
+  <?php } ?>
+</select>
+    </div>
+    
+    
+    <div class="col-sm-4">
+    <label for="inputEmail3" class="control-label">Adahar No.<span style="color:red;">*</span></label>
+
+                 
+                  <input type="text"  class="form-control" placeholder="Adahar Number"  name="adaharnumber" >
+                </div>
+ 
+       
+    
+       </div>   
+ 
+  
+ 
+
+  <!-- /.box-body -->
+		      <div class="box-footer">
+			<?php
+			echo $this->Html->link('Back', [
+			    'action' => 'index'
+			   
+			],['class'=>'btn btn-default']); ?>
+		      
+			<?php
+				if(isset($students['id'])){
+				echo $this->Form->submit(
+				    'Update', 
+				    array('class' => 'btn btn-info pull-right', 'title' => 'Update')
+				); }else{ 
+				echo $this->Form->submit(
+				    'Add', 
+				    array('class' => 'btn btn-info pull-right', 'title' => 'Add')
+				);
+				}
+		       ?>
+		      </div>
+		      <!-- /.box-footer -->
+ <?php echo $this->Form->end(); ?>
+          </div>
+         
+        </div>
+        <!--/.col (right) -->
+      </div>
+      <!-- /.row -->
+    </section>
+    <!-- /.content -->
+  </div>
+
+
+
+
+

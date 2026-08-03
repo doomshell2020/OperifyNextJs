@@ -1,0 +1,229 @@
+<?php
+
+namespace App\Controller\Admin;
+use App\Controller\AppController;
+use Cake\Core\Configure; 
+use Cake\Network\Exception\ForbiddenException;
+use Cake\Network\Exception\NotFoundException;
+use Cake\View\Exception\MissingTemplateException;
+
+
+class StudentsController extends AppController
+{	public $helpers = ['CakeJs.Js'];
+		public function initialize(){	
+		//load all models
+		$this->loadModel('Sections');
+		$this->loadModel('Classes');
+	$this->loadModel('Houses');
+	
+
+	
+		parent::initialize();
+	}
+	
+	
+	// show all data in listing with pagination
+	public function index(){ 
+		$this->viewBuilder()->layout('admin');
+		//show all data in listing page
+
+
+$sections = $this->Sections->find('all')->select(['id', 'title'])->where(['status' => 1])->order(['title' => 'ASC'])->toArray();
+
+
+
+$classes = $this->Classes->find('all')->select(['id', 'title'])->where(['status' => 1])->order(['id' => 'ASC'])->toArray();
+
+
+
+
+
+$houses = $this->Houses->find('all')->select(['id', 'name'])->where(['status' => 1])->order(['id' => 'ASC'])->toArray();
+
+$this->set(compact('sections','classes','houses'));
+
+
+		$student_data = $this->Students->find('all')->contain(['Classes','Sections'])->toarray();
+		$this->set('students',$student_data);
+	}
+	// create view functionality
+	public function view($id){    
+		$this->viewBuilder()->layout('admin');
+		//get all data particular id
+		$subjects = $this->Subjects->get($id);
+		$this->set(compact('subjects'));
+	}
+	// create delete functionality
+	public function delete($id){
+	    	$contact = $this->Subjects->get($id);
+		//delete particular entry
+	    if ($this->Subjects->delete($contact)) {
+		$this->Flash->success(__('The subject with id: {0} has been deleted.', h($id)));
+		return $this->redirect(['action' => 'index']);
+	    }
+	}
+//add students
+	public function add($id=null){ 
+		$this->viewBuilder()->layout('admin');
+		if(isset($id) && !empty($id)){
+			$students = $this->Students->get($id);
+		}else{
+			
+$studentsid = $this->Students->find('all')->order(['id' => 'DESC'])->toArray();
+
+
+
+
+$sections = $this->Sections->find('all')->select(['id', 'title'])->where(['status' => 1])->order(['title' => 'ASC'])->toArray();
+
+
+
+$classes = $this->Classes->find('all')->select(['id', 'title'])->where(['status' => 1])->order(['id' => 'ASC'])->toArray();
+
+
+
+
+
+$houses = $this->Houses->find('all')->select(['id', 'name'])->where(['status' => 1])->order(['id' => 'ASC'])->toArray();
+
+
+$this->set(compact('studentsid','sections','classes','houses'));
+			$students = $this->Students->newEntity();
+			$this->request->data['status'] = '1';
+		}
+		if ($this->request->is(['post', 'put'])) {
+ 		
+				// save all data in database
+				 $students = $this->Students->patchEntity($students, $this->request->data);
+				if ($this->Students->save($students)) {
+					$this->Flash->success(__('Your student has been saved.'));
+					return $this->redirect(['action' => 'index']);	
+				  }else{    //check validation error
+					if($work->errors()){
+					         $error_msg = [];
+						foreach( $students->errors() as $errors){
+						    if(is_array($errors)){
+							foreach($errors as $error){
+							    $error_msg[]    =   $error;
+							}
+						    }else{
+							$error_msg[]    =   $errors;
+						    }
+						}
+					if(!empty($error_msg)){
+					    $this->Flash->error(
+						__("Please fix the following error(s): ".implode("\n \r", $error_msg))
+					    );
+					}
+				    }
+				}
+                 }
+		$this->set('students', $students);
+	}
+
+
+
+
+// search functionality
+public function search(){ 
+		$this->viewBuilder()->layout('admin');
+		//show all data in listing page
+
+
+
+$year=$this->request->data['acedmicyear']; 
+$class=$this->request->data['class_id'];
+$admission=$this->request->data['admissionyear'];
+$section=$this->request->data['section_id']; 
+$enroll=$this->request->data['enroll'];
+$fname=$this->request->data['fname']; 
+
+	$students = $this->Students->newEntity();
+ $students = $this->Students->patchEntity($students, $this->request->data)->toarray();
+   
+$apk=array();
+if(!empty($year))
+{
+ 
+$ctt=['acedmicyear' =>$year];
+$apk[]=$ctt;
+}
+ 
+ 
+if(!empty($class))
+{
+ 
+$class=['class_id' =>$class];
+$apk[]=$class;
+}
+
+
+if(!empty($year))
+{
+ 
+$ctt=['acedmicyear' =>$year];
+$apk[]=$ctt;
+}
+ 
+ 
+if(!empty($class))
+{
+ 
+$class=['class_id' =>$class];
+$apk[]=$class;
+}
+
+  
+
+ foreach($students as $key=>$value){
+if(!empty($value)){
+$a.="'Students.".$key."'=>".$value.",";
+}
+}
+
+
+
+$a=rtrim($a,',');
+echo $a;
+$articlesByStatuss = $this->Students->find()->where([$a])->toarray();
+	pr($articlesByStatuss);	 die;
+	}
+
+	//status update functionality
+	public function status($id,$status){
+
+		$statusquery = $this->Subjects->find('all')->where(['Subjects.status' => 1])->count();
+		if(isset($id) && !empty($id)){
+		if($status == 1 ){
+			
+				$status = 0;
+			//status update
+				$classes = $this->Subjects->get($id);
+				$classes->status = $status;
+				if ($this->Subjects->save($classes)) {
+					$this->Flash->success(__('Your subject status has been updated.'));
+					return $this->redirect(['action' => 'index']);	
+				}
+		}else{
+			if($statusquery < 8 ){
+				$status = 1;
+			//status update
+			$classes = $this->Subjects->get($id);
+			$classes->status = $status;
+			if ($this->Subjects->save($classes)) {
+				$this->Flash->success(__('Your subject status has been updated.'));
+				return $this->redirect(['action' => 'index']);	
+			}
+			
+			}else{
+				$this->Flash->error(__('8 Entries all ready activate. Please deactivate one of activate'));
+				return $this->redirect(['action' => 'index']);	
+	 		}
+		}
+
+	}
+		
+	}
+
+		
+}

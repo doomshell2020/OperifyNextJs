@@ -1,0 +1,196 @@
+<div class="content-wrapper">
+    <section class="content-header">
+        <h1>
+            Stock Movement
+        </h1>
+        <ol class="breadcrumb">
+            <li><a href="#"><i class="fa fa-home"></i>Home</a></li>
+            <li><a href="<?php echo SITE_URL; ?>admin/Sales/customerorder">Stock Movement</a></li>
+        </ol>
+    </section>
+
+    <section class="content">
+        <div class="row">
+            <div class="col-xs-12">
+                <div class="box">
+                    <div id="Sale_invoice">
+                        <div class="sl_inc_inr">
+                            <div style="width: 25%;" class="top_row">
+
+                                <h3>Stock Movement</h3>
+
+                                <button>Filter</button>
+
+                                <div class="btn-group" role="group" aria-label="Button group with nested dropdown">
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                            Print
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="#">Dropdown link</a></li>
+                                            <li><a class="dropdown-item" href="#">Dropdown link</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+
+
+                                <!-- <div class="dropdown-center">
+                                    <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Edit
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#">Sort by name</a></li>
+                                        <li><a class="dropdown-item" href="#">Sort by SKU</a></li>
+                                        <li><a class="dropdown-item" href="#"><input type="checkbox">In an order of folders</a></li>
+                                    </ul>
+                                </div>
+                                <div class="dropdown-center">
+                                    <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Status
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#">Sort by name</a></li>
+                                        <li><a class="dropdown-item" href="#">Sort by SKU</a></li>
+                                        <li><a class="dropdown-item" href="#"><input type="checkbox">In an order of folders</a></li>
+                                    </ul>
+                                </div>
+                                <div class="dropdown-center">
+                                    <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Print
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#">Sort by name</a></li>
+                                        <li><a class="dropdown-item" href="#">Sort by SKU</a></li>
+                                        <li><a class="dropdown-item" href="#"><input type="checkbox">In an order of folders</a></li>
+                                    </ul>
+                                </div> -->
+
+
+                            </div>
+                            <div class="btm_row">
+
+                                <table class="table">
+
+                                    <thead>
+
+                                        <tr>
+
+                                            <td colspan="4"> <a href=""> </a></td>
+
+                                            <td colspan="2"> <a href="">Opening Stock </a></td>
+
+                                            <td colspan="2"> <a href=""> Stock In</a></td>
+                                            <td colspan="2"> <a href=""> Stock Out</a></td>
+
+
+                                            <td colspan="2"> <a href=""> Closing Stock</a></td>
+                                            <td> <a href=""> </a></td>
+                                        </tr>
+
+
+                                        <tr>
+                                            <th scope="col">Name</th>
+                                            <th scope="col">SKU</th>
+                                            <th scope="col">Supplier Code</th>
+                                            <th scope="col">UOM</th>
+
+                                            <th scope="col">Qty</th>
+                                            <th scope="col">Amount</th>
+
+                                            <th scope="col">Qty</th>
+                                            <th scope="col">Amount</th>
+
+                                            <th scope="col">Qty</th>
+                                            <th scope="col">Amount</th>
+
+                                            <th scope="col">Qty</th>
+                                            <th scope="col">Amount</th>
+
+                                            <th scope="col">
+                                                <div class="dropdown-center">
+
+                                                    <button style="color: white; width:18px !important ; height:18px !important;display: flex;
+    align-items: center; justify-content: space-between; " class="btn btn-white dropdown-toggle tbl_btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        <i class="fas fa-cog"></i>
+                                                    </button>
+                                                    <ul style="padding: 10px;" class="dropdown-menu">
+                                                        <li><a href="#">Image<input type="checkbox"></a></li>
+                                                        <li><a href="#">UOM<input type="checkbox"></a></li>
+                                                        <li><a href="#">Shipped<input type="checkbox"></a></li>
+                                                        <li><a href="#">Available<input type="checkbox"></a></li>
+                                                        <li><a href="#">On Hand<input type="checkbox"></a></li>
+                                                        <li><a href="#">Committed<input type="checkbox"></a></li>
+                                                        <li><a href="#">In Transit<input type="checkbox"></a></li>
+                                                        <li><a href="#">Weight<input type="checkbox"></a></li>
+                                                        <li><a href="#">Volume<input type="checkbox"></a></li>
+                                                        <li><a href="#">Tax sum<input type="checkbox"></a></li>
+
+                                                    </ul>
+                                                </div>
+                                            </th>
+
+                                        </tr>
+                                    </thead>
+                                    <tbody class="table-group-divider">
+                                        <tr>
+                                            <td> <a href=""> <input type="checkbox"> Cap</a></td>
+                                            <td> <a href="">00001 </a></td>
+                                            <td> <a href="">111 </a></td>
+                                            <td> <a href="">pcs </a></td>
+                                            <td> <a href="">0 </a></td>
+                                            <td> <a href="">0.00 </a></td>
+
+                                            <td> <a href="">11 </a></td>
+                                            <td> <a href="">2410.00 </a></td>
+
+                                            <td> <a href="">1 </a></td>
+                                            <td> <a href="">50.00 </a></td>
+
+                                            <td> <a href="">10 </a></td>
+                                            <td> <a href="">2360.00 </a></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+
+
+                                <!-- <table>
+                                    <tr>
+                                        <th> <input type="checkbox"> Name</th>
+                                        <th>Phone</th>
+                                        <th>Email</th>
+                                        <th>Customer aboutc...</th>
+                                        <th>Groups</th>
+                                        <th>Place/Source of Supply </th>
+                                        <th>Last Sale</th>
+                                        <th>Sale N..</th>
+                                        <th><i class="fa fa-cog" aria-hidden="true"></i> </th>
+                                    </tr>
+
+                                    <tr>
+                                        <td> <input type="checkbox"> <a href=""> Customer</a></td>
+                                        <td> <a href=""> </a></td>
+                                        <td> <a href=""> </a></td>
+                                        <td> <a href=""> </a></td>
+                                        <td> <a href=""> </a></td>
+                                        <td> <a href=""> Karnataka</a></td>
+                                        <td> <a href=""> </a></td>
+                                        <td> <a href="">0 </a></td>
+                                        <td> <a href=""> </a></td>
+
+
+                                    </tr>
+                                </table> -->
+                            </div>
+
+                        </div>
+
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>

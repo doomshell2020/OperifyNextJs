@@ -1,0 +1,17 @@
+{
+	"name": "oldskool/cakephp-js",
+	"type": "cakephp-plugin",
+	"version": "1.0.1",
+	"description": "JsHelper for CakePHP 3.x",
+	"homepage": "http://github.com/oldskool/cakephp-js",
+	"license": "MIT",
+	"require": {
+		"php": ">=5.4.16",
+		"cakephp/cakephp": ">=3.0"
+	},
+	"autoload": {
+		"psr-4": {
+			"CakeJs\\": "src"
+		}
+	}
+}
