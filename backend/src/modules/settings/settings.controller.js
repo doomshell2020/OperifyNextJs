@@ -1,6 +1,7 @@
 const repo = require('./settings.repository');
 const fs = require('fs');
 const path = require('path');
+const db = require('../../config/db');
 
 class SettingsController {
   // ─── LOGO SETTINGS ─────────────────────────────────────────
@@ -42,8 +43,7 @@ class SettingsController {
   async getProfile(req, res, next) {
     let connection;
     try {
-      const dbName = req.user?.db || 'default';
-      connection = await db.getConnection(dbName);
+      connection = await req.dbPool.getConnection();
       
       const [settings] = await connection.query(`
         SELECT 
@@ -88,8 +88,7 @@ class SettingsController {
   async updateProfile(req, res, next) {
     let connection;
     try {
-      const dbName = req.user?.db || 'default';
-      connection = await db.getConnection(dbName);
+      connection = await req.dbPool.getConnection();
       
       const {
         first_name, last_name, mobile, contact_email,
