@@ -27,7 +27,7 @@ export const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps>
   if (!isOpen) return null;
 
   const handlePrint = () => {
-    window.print();
+    window.open(`/dashboard/purchase/inspections/print-po/${id}`, '_blank');
   };
 
   const formatDate = (dateStr?: string) => {
@@ -133,7 +133,7 @@ export const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps>
                 Products Ordered
               </span>
               
-              <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+              <div className="border border-slate-200 rounded-xl overflow-x-auto shadow-sm">
                 <table className="w-full text-left border-collapse text-[11px] font-medium text-slate-700">
                   <thead>
                     <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200">
@@ -192,6 +192,92 @@ export const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps>
                 </table>
               </div>
             </div>
+
+            {/* Goods Received Data */}
+            {data.grns && data.grns.length > 0 && (
+              <div className="space-y-3 mt-6">
+                <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider block">
+                  Goods Received Data
+                </span>
+                
+                {data.grns.map((grn: any, index: number) => (
+                  <div key={grn.id} className="border border-slate-200 rounded-xl overflow-hidden shadow-sm mb-4">
+                    <div className="bg-slate-50 border-b border-slate-200 p-3 grid grid-cols-4 gap-4 text-[11px]">
+                      <div>
+                        <span className="text-slate-400 font-bold uppercase block mb-0.5">GRN No. / ID</span>
+                        <span className="font-semibold text-slate-900">{grn.grn_number || grn.id}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 font-bold uppercase block mb-0.5">Inward Date</span>
+                        <span className="font-semibold text-slate-900">{formatDate(grn.inward_date)}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 font-bold uppercase block mb-0.5">Bill No.</span>
+                        <span className="font-semibold text-slate-900">{grn.bill_no}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 font-bold uppercase block mb-0.5">Bill Date</span>
+                        <span className="font-semibold text-slate-900">{formatDate(grn.bill_date)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-[11px] font-medium text-slate-700">
+                        <thead>
+                          <tr className="bg-white text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                          <th className="px-4 py-2.5 text-center w-12">S.No.</th>
+                          <th className="px-4 py-2.5">Item Description</th>
+                          <th className="px-4 py-2.5 text-right">Rec Qty.</th>
+                          <th className="px-4 py-2.5 text-right">Rate/Unit</th>
+                          <th className="px-4 py-2.5 text-center">Tax</th>
+                          <th className="px-4 py-2.5 text-right">Tax Amt</th>
+                          <th className="px-4 py-2.5 text-right">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50 bg-white">
+                        {grn.items && grn.items.map((item: any, idx: number) => (
+                          <tr key={item.id} className="hover:bg-slate-50/50 transition">
+                            <td className="px-4 py-2 text-center text-slate-400 font-bold">{idx + 1}.</td>
+                            <td className="px-4 py-2 text-slate-900 font-bold">
+                              {item.item_name}
+                            </td>
+                            <td className="px-4 py-2 text-right font-semibold">
+                              {Number(item.item_qty).toLocaleString()} {item.uom}
+                            </td>
+                            <td className="px-4 py-2 text-right font-semibold">
+                              ₹{Number(item.price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="px-4 py-2 text-center font-bold text-slate-500">
+                              {item.tax_percentage}%
+                            </td>
+                            <td className="px-4 py-2 text-right font-semibold text-slate-500">
+                              ₹{Number(item.tax_amt).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="px-4 py-2 text-right font-bold text-slate-950">
+                              ₹{Number(item.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-slate-50/70 border-t border-slate-100 text-[11px] font-bold text-slate-900">
+                          <td colSpan={2} className="px-4 py-2 text-left uppercase text-slate-400">
+                            GRN Totals
+                          </td>
+                          <td className="px-4 py-2 text-right text-slate-700">
+                            Qty: {Number(grn.total_qty).toLocaleString()}
+                          </td>
+                          <td colSpan={4} className="px-4 py-2 text-right text-emerald-700">
+                            Total: ₹{Number(grn.total_amt).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+                ))}
+              </div>
+            )}
 
           </div>
         )}
