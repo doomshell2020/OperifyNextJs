@@ -90,7 +90,7 @@ export default function LoginPage() {
                 <input
                   id="mobile"
                   type="text"
-                  autoComplete="tel"
+                  autoComplete="username"
                   {...register('mobile')}
                   className={`w-full bg-white border ${errors.mobile ? 'border-rose-400 focus:border-rose-400 focus:ring-rose-400' : 'border-slate-200 focus:border-cyan-500 focus:ring-cyan-500'} focus:ring-1 rounded-xl py-3 pl-11 pr-4 text-slate-900 placeholder-slate-400 text-sm outline-none transition duration-200`}
                   placeholder="Enter registered mobile"
