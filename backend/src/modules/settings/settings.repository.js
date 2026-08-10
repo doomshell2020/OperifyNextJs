@@ -68,6 +68,12 @@ class SettingsRepository {
     await dbPool.execute(`UPDATE st_additem SET status = ? WHERE id = ?`, [status, id]);
   }
 
+  // ─── TAXES ──────────────────────────────────────────────────────────────────
+  async getTaxes(dbPool) {
+    const [rows] = await dbPool.query(`SELECT id, tax FROM st_taxmaster WHERE status = 'Y' AND parent = '0' ORDER BY id ASC`);
+    return rows;
+  }
+
   // ─── SUPPLIERS (vendors) ────────────────────────────────────────────────────
   async getSuppliers(dbPool, { search, status, type } = {}) {
     let q = `SELECT id, name, address, contact_no, email, gst_number, pancard_number,

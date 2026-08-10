@@ -57,6 +57,9 @@ router.get('/products/uom', (req, res, next) => ctrl.getUomList(req, res, next))
 router.get('/products/:id', (req, res, next) => ctrl.getProduct(req, res, next));
 router.patch('/products/:id/status', (req, res, next) => ctrl.toggleProductStatus(req, res, next));
 
+// Taxes
+router.get('/taxes', (req, res, next) => ctrl.listTaxes(req, res, next));
+
 // Suppliers
 router.get('/suppliers', (req, res, next) => ctrl.listSuppliers(req, res, next));
 router.get('/suppliers/:id', (req, res, next) => ctrl.getSupplier(req, res, next));

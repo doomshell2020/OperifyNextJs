@@ -215,6 +215,14 @@ class SettingsController {
     } catch (e) { next(e); }
   }
 
+  // ─── TAXES ──────────────────────────────────────────────
+  async listTaxes(req, res, next) {
+    try {
+      const data = await repo.getTaxes(req.dbPool);
+      res.json({ success: true, data });
+    } catch (e) { next(e); }
+  }
+
   // ─── SUPPLIERS ──────────────────────────────────────────
   async listSuppliers(req, res, next) {
     try {

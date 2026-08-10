@@ -96,6 +96,12 @@ export const settingsService = {
     await apiClient.patch(`/settings/products/${id}/status`, { status });
   },
 
+  // Taxes
+  async getTaxes(): Promise<{ id: number; tax: number }[]> {
+    const res = await apiClient.get('/settings/taxes');
+    return res.data.data;
+  },
+
   // Suppliers
   async getSuppliers(filters: { search?: string; status?: string; type?: string } = {}): Promise<Supplier[]> {
     const params = Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== undefined && v !== ''));
