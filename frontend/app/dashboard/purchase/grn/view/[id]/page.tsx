@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { grnService } from '@/services/grn.service';
 import { ArrowLeft, Printer, Loader2, AlertCircle } from 'lucide-react';
+import { formatQty, formatAmt } from '@/utils/formatters';
 
 export default function ViewGrnPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -41,6 +42,11 @@ export default function ViewGrnPage({ params }: { params: Promise<{ id: string }
   }
 
   const { grn, items } = data.data;
+
+  const taxExcludedAmount = (items || []).reduce((sum: number, item: any) => sum + ((Number(item.quantity) || 0) * (Number(item.rate) || 0)), 0);
+  const totalTax = (items || []).reduce((sum: number, item: any) => sum + (Number(item.tax) || 0), 0);
+  const freightCharges = Number(grn.freight) || 0; 
+  const totalAmount = taxExcludedAmount + totalTax + freightCharges;
 
   return (
     <main className="max-w-5xl w-full mx-auto px-6 py-8 space-y-6 font-sans pb-24">
@@ -104,12 +110,12 @@ export default function ViewGrnPage({ params }: { params: Promise<{ id: string }
                 <tr key={item.id} className="border-b border-slate-100 last:border-0">
                   <td className="p-3 text-slate-600">{index + 1}</td>
                   <td className="p-3 font-medium text-slate-800">{item.item_name}</td>
-                  <td className="p-3 text-right font-medium text-slate-800">{item.quantity}</td>
+                  <td className="p-3 text-right font-medium text-slate-800">{formatQty(item.quantity)}</td>
                   <td className="p-3 text-slate-600">{item.uom}</td>
-                  <td className="p-3 text-right text-slate-600">{parseFloat(item.rate).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
-                  <td className="p-3 text-right text-slate-600">{parseFloat(item.tax).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                  <td className="p-3 text-right text-slate-600">{formatAmt(item.rate)}</td>
+                  <td className="p-3 text-right text-slate-600">{formatAmt(item.tax)}</td>
                   <td className="p-3 text-right font-medium text-slate-800">
-                    {(parseFloat(item.amount) + parseFloat(item.tax)).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                    {formatAmt(parseFloat(item.amount) + parseFloat(item.tax))}
                   </td>
                 </tr>
               )) : (
@@ -125,19 +131,25 @@ export default function ViewGrnPage({ params }: { params: Promise<{ id: string }
           <div className="w-full max-w-sm space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-500">Total Quantity:</span>
-              <span className="font-semibold text-slate-800">{grn.total_qty}</span>
+              <span className="font-semibold text-slate-800">{formatQty(grn.total_qty)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Amount (Pre-tax):</span>
-              <span className="font-semibold text-slate-800">₹ {parseFloat(grn.total_amt).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+              <span className="font-semibold text-slate-800">₹ {formatAmt(taxExcludedAmount)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Total Tax:</span>
-              <span className="font-semibold text-slate-800">₹ {parseFloat(grn.total_tax).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+              <span className="font-semibold text-slate-800">₹ {formatAmt(totalTax)}</span>
             </div>
+            {freightCharges > 0 && (
+              <div className="flex justify-between">
+                <span className="text-slate-500">Freight Charges:</span>
+                <span className="font-semibold text-slate-800">₹ {formatAmt(freightCharges)}</span>
+              </div>
+            )}
             <div className="flex justify-between pt-3 border-t border-slate-200 text-base">
               <span className="font-bold text-slate-800">Net Amount:</span>
-              <span className="font-extrabold text-cyan-600">₹ {(parseFloat(grn.total_amt) + parseFloat(grn.total_tax)).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+              <span className="font-extrabold text-cyan-600">₹ {formatAmt(totalAmount)}</span>
             </div>
           </div>
         </div>

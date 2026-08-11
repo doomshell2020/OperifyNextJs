@@ -4,6 +4,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import contractService from '../../services/contract.service';
 import { Loader, AlertCircle, X, Printer } from 'lucide-react';
+import { formatQty, formatAmt } from '@/utils/formatters';
 
 interface ContractDetailsModalProps {
   contractId: number;
@@ -73,13 +74,13 @@ export function ContractDetailsModal({ contractId, onClose }: ContractDetailsMod
                 <p>Title:- {details.contract.title}</p>
                 <p>Contract Start Date:- {formatDate(details.contract.contract_start_date)}</p>
                 <p>Supplier Name:- {details.contract.vendor_name}</p>
-                <p>Labour Cost:- {Number(details.contract.labour_cost || 0).toLocaleString('en-IN')}</p>
+                <p>Labour Cost:- {formatAmt(details.contract.labour_cost)}</p>
               </div>
               <div>
                 <p>Issue Date:- {formatDate(details.contract.issuedate)}</p>
                 <p>Contract End Date:- {formatDate(details.contract.contract_end_date)}</p>
-                <p>Cost:- {Number(details.contract.cost || 0).toLocaleString('en-IN')}</p>
-                <p>Operational Cost:- {Number(details.contract.operation_cost || 0).toLocaleString('en-IN')}</p>
+                <p>Cost:- {formatAmt(details.contract.cost)}</p>
+                <p>Operational Cost:- {formatAmt(details.contract.operation_cost)}</p>
               </div>
             </div>
 
@@ -91,10 +92,10 @@ export function ContractDetailsModal({ contractId, onClose }: ContractDetailsMod
                 <div key={item.id} className="space-y-2">
                   <div className="flex justify-between items-center text-xs text-black font-bold border-b border-gray-300 pb-1">
                     <span>Product:- {item.item_name}</span>
-                    <span>Quantity:- {Number(item.quantity).toLocaleString()} {item.uom.toUpperCase()}</span>
-                    <span>Planned Qty:- {Number(item.planned_qty || 0).toLocaleString()} {item.uom.toUpperCase()}</span>
-                    <span>Prepared Qty:- {Number(item.prepared_qty || 0).toLocaleString()} {item.uom.toUpperCase()}</span>
-                    <span>Price:- {Number(item.price).toLocaleString('en-IN')}</span>
+                    <span>Quantity:- {formatQty(item.quantity)} {item.uom.toUpperCase()}</span>
+                    <span>Planned Qty:- {formatQty(item.planned_qty)} {item.uom.toUpperCase()}</span>
+                    <span>Prepared Qty:- {formatQty(item.prepared_qty)} {item.uom.toUpperCase()}</span>
+                    <span>Price:- {formatAmt(item.price)}</span>
                   </div>
                   
                   <p className="text-center text-xs text-gray-500 font-semibold italic">Production Not Started Yet.</p>
@@ -117,16 +118,16 @@ export function ContractDetailsModal({ contractId, onClose }: ContractDetailsMod
                             <tr className="border-b border-gray-200">
                               <td className="px-2 py-1.5 border-r border-gray-300">{idx + 1}.</td>
                               <td className="px-2 py-1.5 border-r border-gray-300">{rm.item_name}</td>
-                              <td className="px-2 py-1.5 border-r border-gray-300 text-right">{Number(rm.as_per_design).toFixed(2)}</td>
-                              <td className="px-2 py-1.5 border-r border-gray-300 text-right">{Number(rm.total_issued).toFixed(2)}</td>
-                              <td className="px-2 py-1.5 text-right">{Number(rm.pending_qty).toFixed(2)}</td>
+                              <td className="px-2 py-1.5 border-r border-gray-300 text-right">{formatQty(rm.as_per_design)}</td>
+                              <td className="px-2 py-1.5 border-r border-gray-300 text-right">{formatQty(rm.total_issued)}</td>
+                              <td className="px-2 py-1.5 text-right">{formatQty(rm.pending_qty)}</td>
                             </tr>
                             {rm.issued_items?.map((issued: any, iIdx: number) => (
                               <tr key={`${rm.id}-issued-${iIdx}`} className="border-b border-gray-200 text-gray-600 text-[11px]">
                                 <td className="px-2 py-1.5 border-r border-gray-300"></td>
                                 <td className="px-2 py-1.5 border-r border-gray-300">{issued.item_name}</td>
                                 <td className="px-2 py-1.5 border-r border-gray-300 text-right"></td>
-                                <td className="px-2 py-1.5 border-r border-gray-300 text-right">{Number(issued.issued_qty).toFixed(2)}</td>
+                                <td className="px-2 py-1.5 border-r border-gray-300 text-right">{formatQty(issued.issued_qty)}</td>
                                 <td className="px-2 py-1.5 text-right"></td>
                               </tr>
                             ))}
@@ -166,8 +167,8 @@ export function ContractDetailsModal({ contractId, onClose }: ContractDetailsMod
                         <td className="px-2 py-1.5 border-r border-gray-300">{po.po_id}</td>
                         <td className="px-2 py-1.5 border-r border-gray-300">{formatDate(po.issuedate)}</td>
                         <td className="px-2 py-1.5 border-r border-gray-300">{po.product_name}</td>
-                        <td className="px-2 py-1.5 border-r border-gray-300 text-right">{Number(po.plannedqty || 0).toFixed(2)}</td>
-                        <td className="px-2 py-1.5 border-r border-gray-300 text-right">{Number(po.prepared_qty || 0).toFixed(2)}</td>
+                        <td className="px-2 py-1.5 border-r border-gray-300 text-right">{formatQty(po.plannedqty)}</td>
+                        <td className="px-2 py-1.5 border-r border-gray-300 text-right">{formatQty(po.prepared_qty)}</td>
                         <td className="px-2 py-1.5 border-r border-gray-300">{formatDate(po.startdate)}</td>
                         <td className="px-2 py-1.5 border-r border-gray-300">{formatDate(po.enddate)}</td>
                         <td className="px-2 py-1.5">{po.status === 'O' ? 'Open' : 'Closed'}</td>

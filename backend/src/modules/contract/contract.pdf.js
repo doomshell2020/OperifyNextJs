@@ -1,11 +1,7 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const path = require('path');
-
-function formatCurrency(amount) {
-  if (amount == null) return '0.00';
-  return Number(amount).toFixed(2);
-}
+const { formatQty, formatAmt } = require('../../utils/formatters');
 
 function formatDate(dateString) {
   if (!dateString) return '';
@@ -128,11 +124,11 @@ async function generateContractPDF(contractData, tenantDb = 'default') {
       </tr>
       <tr>
         <td><b>Supplier Name:-</b> ${contract.vendor_name || ''}</td>
-        <td><b>Cost:-</b> ${formatCurrency(contract.cost)}</td>
+        <td><b>Cost:-</b> ${formatAmt(contract.cost)}</td>
       </tr>
       <tr>
-        <td><b>Labour Cost:-</b> ${formatCurrency(contract.labour_cost)}</td>
-        <td><b>Operational Cost:-</b> ${formatCurrency(contract.operation_cost)}</td>
+        <td><b>Labour Cost:-</b> ${formatAmt(contract.labour_cost)}</td>
+        <td><b>Operational Cost:-</b> ${formatAmt(contract.operation_cost)}</td>
       </tr>
     </table>
 
@@ -146,10 +142,10 @@ async function generateContractPDF(contractData, tenantDb = 'default') {
       <table>
         <tr>
           <td><b>Product:-</b> ${item.item_name || ''}</td>
-          <td><b>Quantity:-</b> ${formatCurrency(item.quantity)} ${item.uom || ''}</td>
-          <td><b>Planned Qty:-</b> ${formatCurrency(item.planned_qty)} ${item.uom || ''}</td>
-          <td><b>Prep Qty:-</b> ${formatCurrency(item.prepared_qty)} ${item.uom || ''}</td>
-          <td><b>Price:-</b> ${formatCurrency(item.price)}</td>
+          <td><b>Quantity:-</b> ${formatQty(item.quantity)} ${item.uom || ''}</td>
+          <td><b>Planned Qty:-</b> ${formatQty(item.planned_qty)} ${item.uom || ''}</td>
+          <td><b>Prep Qty:-</b> ${formatQty(item.prepared_qty)} ${item.uom || ''}</td>
+          <td><b>Price:-</b> ${formatAmt(item.price)}</td>
         </tr>
       </table>
       `;
@@ -177,8 +173,8 @@ async function generateContractPDF(contractData, tenantDb = 'default') {
             <tr>
               <td>${idx + 1}.</td>
               <td>${rm.item_name}</td>
-              <td style="text-align: right;">${formatCurrency(rm.as_per_design)}</td>
-              <td style="text-align: right;">${formatCurrency(rm.pending_qty)}</td>
+              <td style="text-align: right;">${formatQty(rm.as_per_design)}</td>
+              <td style="text-align: right;">${formatQty(rm.pending_qty)}</td>
             </tr>
           `;
         });
@@ -219,8 +215,8 @@ async function generateContractPDF(contractData, tenantDb = 'default') {
           <td>${po.po_id || ''}</td>
           <td>${formatDate(po.issuedate)}</td>
           <td>${po.product_name || ''}</td>
-          <td style="text-align: right;">${formatCurrency(po.plannedqty)}</td>
-          <td style="text-align: right;">${formatCurrency(po.prepared_qty)}</td>
+          <td style="text-align: right;">${formatQty(po.plannedqty)}</td>
+          <td style="text-align: right;">${formatQty(po.prepared_qty)}</td>
           <td>${formatDate(po.startdate)}</td>
           <td>${formatDate(po.enddate)}</td>
           <td>${po.status || ''}</td>

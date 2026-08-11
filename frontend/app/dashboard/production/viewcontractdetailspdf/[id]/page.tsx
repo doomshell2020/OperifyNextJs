@@ -6,6 +6,7 @@ import { designsheetService } from '@/services/designsheet.service';
 import { Loader } from 'lucide-react';
 import React from 'react';
 import { useParams } from 'next/navigation';
+import { formatQty, formatAmt } from '@/utils/formatters';
 
 export default function ContractDetailsPrintPage() {
   const { id } = useParams();
@@ -67,9 +68,9 @@ export default function ContractDetailsPrintPage() {
           <div><span className="font-bold">Contract Start Date:- </span>{formatDate(contractData.contract.contract_start_date)}</div>
           <div><span className="font-bold">Contract End Date:- </span>{formatDate(contractData.contract.contract_end_date)}</div>
           <div><span className="font-bold">Supplier Name:- </span>{contractData.contract.supplier_name}</div>
-          <div><span className="font-bold">Cost:- </span>{Number(contractData.contract.cost).toLocaleString()}</div>
-          <div><span className="font-bold">Labour Cost:- </span>{contractData.contract.labour_cost}</div>
-          <div><span className="font-bold">Operational Cost:- </span>{parseFloat(contractData.contract.operational_cost).toFixed(2)}</div>
+          <div><span className="font-bold">Cost:- </span>{formatAmt(contractData.contract.cost)}</div>
+          <div><span className="font-bold">Labour Cost:- </span>{formatAmt(contractData.contract.labour_cost)}</div>
+          <div><span className="font-bold">Operational Cost:- </span>{formatAmt(contractData.contract.operational_cost)}</div>
       </div>
 
       <h3 className="text-base font-extrabold text-center mb-6">Finished Products</h3>
@@ -81,10 +82,10 @@ export default function ContractDetailsPrintPage() {
                       <thead className="bg-slate-50 border-b border-slate-300 font-bold">
                           <tr>
                               <td className="px-3 py-2 border-r border-slate-300">Product:- {fp.item_name}</td>
-                              <td className="px-3 py-2 border-r border-slate-300">Quantity:- {parseFloat(fp.quantity).toFixed(2)} KM</td>
-                              <td className="px-3 py-2 border-r border-slate-300">Planned Qty:- {parseFloat(fp.planned_qty).toFixed(2)} KM</td>
-                              <td className="px-3 py-2 border-r border-slate-300">Prepared Qty:- {parseFloat(fp.prepared_qty).toFixed(2)} KM</td>
-                              <td className="px-3 py-2">Price:- {Number(fp.price).toLocaleString()}</td>
+                              <td className="px-3 py-2 border-r border-slate-300">Quantity:- {formatQty(fp.quantity)} KM</td>
+                              <td className="px-3 py-2 border-r border-slate-300">Planned Qty:- {formatQty(fp.planned_qty)} KM</td>
+                              <td className="px-3 py-2 border-r border-slate-300">Prepared Qty:- {formatQty(fp.prepared_qty)} KM</td>
+                              <td className="px-3 py-2">Price:- {formatAmt(fp.price)}</td>
                           </tr>
                       </thead>
                   </table>
@@ -111,16 +112,16 @@ export default function ContractDetailsPrintPage() {
                                       <tr>
                                           <td className="px-3 py-2 border-r border-slate-300">{rIdx + 1}.</td>
                                           <td className="px-3 py-2 border-r border-slate-300 uppercase">{rm.display_name}</td>
-                                          <td className="px-3 py-2 border-r border-slate-300 text-right">{parseFloat(rm.qty_as_per_design).toFixed(2)}</td>
-                                          <td className="px-3 py-2 border-r border-slate-300 text-right">{parseFloat(rm.issued_qty).toFixed(2)}</td>
-                                          <td className="px-3 py-2 text-right">{parseFloat(rm.pending_qty).toFixed(2)}</td>
+                                          <td className="px-3 py-2 border-r border-slate-300 text-right">{formatQty(rm.qty_as_per_design)}</td>
+                                          <td className="px-3 py-2 border-r border-slate-300 text-right">{formatQty(rm.issued_qty)}</td>
+                                          <td className="px-3 py-2 text-right">{formatQty(rm.pending_qty)}</td>
                                       </tr>
                                       {rm.subItems && rm.subItems.map((subItem: any, sIdx: number) => (
                                           <tr key={`sub-${sIdx}`}>
                                               <td className="px-3 py-2 border-r border-slate-300"></td>
                                               <td className="px-3 py-2 border-r border-slate-300 uppercase">{subItem.item_name}</td>
                                               <td className="px-3 py-2 border-r border-slate-300 text-right"></td>
-                                              <td className="px-3 py-2 border-r border-slate-300 text-right">{parseFloat(subItem.issued_qty).toFixed(2)}</td>
+                                              <td className="px-3 py-2 border-r border-slate-300 text-right">{formatQty(subItem.issued_qty)}</td>
                                               <td className="px-3 py-2 text-right"></td>
                                           </tr>
                                       ))}
@@ -156,8 +157,8 @@ export default function ContractDetailsPrintPage() {
                           <td className="px-3 py-2 border-r border-slate-300">{po.po_id}</td>
                           <td className="px-3 py-2 border-r border-slate-300">{formatDate(po.issuedate)}</td>
                           <td className="px-3 py-2 border-r border-slate-300 uppercase">{po.item_name}</td>
-                          <td className="px-3 py-2 border-r border-slate-300 text-right">{parseFloat(po.plannedqty).toFixed(2)}</td>
-                          <td className="px-3 py-2 border-r border-slate-300 text-right">{parseFloat(po.prepared_qty).toFixed(2)}</td>
+                          <td className="px-3 py-2 border-r border-slate-300 text-right">{formatQty(po.plannedqty)}</td>
+                          <td className="px-3 py-2 border-r border-slate-300 text-right">{formatQty(po.prepared_qty)}</td>
                           <td className="px-3 py-2 border-r border-slate-300">{formatDate(po.startdate)}</td>
                           <td className="px-3 py-2 border-r border-slate-300">{formatDate(po.enddate)}</td>
                           <td className="px-3 py-2">{po.status === 'C' ? 'Close' : 'Open'}</td>

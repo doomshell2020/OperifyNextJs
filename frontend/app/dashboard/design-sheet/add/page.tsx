@@ -6,6 +6,7 @@ import { designsheetService } from '../../../../services/designsheet.service';
 import { toast } from 'react-hot-toast';
 import { Save, Plus, Trash2, ArrowLeft, Search, Loader2, Package, FileText } from 'lucide-react';
 import Link from 'next/link';
+import { formatQty, formatAmt } from '@/utils/formatters';
 
 function ContractAutocomplete({
   value,
@@ -259,7 +260,7 @@ export default function AddDesignSheetPage() {
      // Recalculate quantity if km_item_qty changes
      if (field === 'km_item_qty') {
          if (value && formData.quantity) {
-             newDetails[index].pitemquantity = (parseFloat(value) * parseFloat(formData.quantity)).toFixed(2);
+             newDetails[index].pitemquantity = formatQty(parseFloat(value) * parseFloat(formData.quantity));
          } else {
              newDetails[index].pitemquantity = '';
          }

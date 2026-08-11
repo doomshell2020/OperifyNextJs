@@ -6,6 +6,7 @@ import { designsheetService } from '../../../../../services/designsheet.service'
 import { toast } from 'react-hot-toast';
 import { Save, Plus, Trash2, ArrowLeft, Download, Search, Package, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { formatQty, formatAmt } from '@/utils/formatters';
 
 function ItemAutocomplete({
   value,
@@ -184,7 +185,7 @@ export default function EditDesignSheetPage() {
      }
      
      if ((field === 'km_item_qty' || field === 'item_name') && nd[index].km_item_qty && formData.quantity) {
-         nd[index].pitemquantity = (parseFloat(nd[index].km_item_qty) * parseFloat(formData.quantity)).toFixed(2);
+         nd[index].pitemquantity = formatQty(parseFloat(nd[index].km_item_qty) * parseFloat(formData.quantity));
      }
      setNewDetails(nd);
   };

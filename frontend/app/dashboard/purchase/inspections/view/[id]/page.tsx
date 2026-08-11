@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import grnInspectionService from '../../../../../../services/grnInspection.service';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Printer, Box, Loader, AlertCircle } from 'lucide-react';
+import { formatQty, formatAmt } from '@/utils/formatters';
 
 export default function ViewGrnInspectionPage() {
   const params = useParams();
@@ -101,10 +102,10 @@ export default function ViewGrnInspectionPage() {
                 <tr key={idx} className="border-b border-slate-100">
                   <td className="p-3 text-slate-600">{idx + 1}</td>
                   <td className="p-3 font-medium text-slate-800">{item.item_name}</td>
-                  <td className="p-3 text-center text-slate-600">{item.quantity} <span className="text-xs text-slate-400 ml-1">{item.unit_name}</span></td>
-                  <td className="p-3 text-right text-slate-600">{parseFloat(item.rate).toFixed(2)}</td>
-                  <td className="p-3 text-right text-slate-600">{parseFloat(item.tax).toFixed(2)}</td>
-                  <td className="p-3 text-right font-semibold text-slate-800">{parseFloat(item.amount).toFixed(2)}</td>
+                  <td className="p-3 text-center text-slate-600">{formatQty(item.quantity)} <span className="text-xs text-slate-400 ml-1">{item.unit_name}</span></td>
+                  <td className="p-3 text-right text-slate-600">{formatAmt(item.rate)}</td>
+                  <td className="p-3 text-right text-slate-600">{formatAmt(item.tax)}</td>
+                  <td className="p-3 text-right font-semibold text-slate-800">{formatAmt(item.amount)}</td>
                 </tr>
               ))}
             </tbody>
@@ -116,15 +117,15 @@ export default function ViewGrnInspectionPage() {
           <div className="w-72 space-y-3 text-sm">
             <div className="flex justify-between border-b border-slate-200 pb-2">
               <span className="font-semibold text-slate-600">Total Quantity:</span>
-              <span className="font-bold text-slate-800">{data.total_qty}</span>
+              <span className="font-bold text-slate-800">{formatQty(data.total_qty)}</span>
             </div>
             <div className="flex justify-between border-b border-slate-200 pb-2">
               <span className="font-semibold text-slate-600">Total Tax:</span>
-              <span className="font-bold text-slate-800">₹ {parseFloat(data.total_tax).toLocaleString('en-IN')}</span>
+              <span className="font-bold text-slate-800">₹ {formatAmt(data.total_tax)}</span>
             </div>
             <div className="flex justify-between pt-2">
               <span className="text-lg font-black text-slate-800">Grand Total:</span>
-              <span className="text-lg font-black text-cyan-700">₹ {parseFloat(data.total_amt).toLocaleString('en-IN')}</span>
+              <span className="text-lg font-black text-cyan-700">₹ {formatAmt(data.total_amt)}</span>
             </div>
           </div>
         </div>

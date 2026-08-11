@@ -6,6 +6,7 @@ import { indentpoService, IndentpoItem } from "../../../../../services/indentpo.
 import { ArrowLeft, Save, Loader2, Search, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
+import { formatQty } from "@/utils/formatters";
 
 export default function CreateIndentPoPage() {
   const router = useRouter();
@@ -414,13 +415,13 @@ export default function CreateIndentPoPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-center text-slate-700 font-medium">
-                      {item.design_qty !== undefined ? Number(item.design_qty).toFixed(3) : 0}
+                      {item.design_qty !== undefined ? formatQty(item.design_qty) : 0}
                     </td>
                     <td className="px-6 py-4 text-center font-bold text-blue-600">
-                      {item.pending_qty !== undefined ? Number(item.pending_qty).toFixed(3) : 0}
+                      {item.pending_qty !== undefined ? formatQty(item.pending_qty) : 0}
                     </td>
                     <td className="px-6 py-4 text-center font-bold text-green-600">
-                      {Number(item.is_group) === 1 ? "--" : (item.inhand_stock !== undefined ? Number(item.inhand_stock).toFixed(3) : 0)}
+                      {Number(item.is_group) === 1 ? "--" : (item.inhand_stock !== undefined ? formatQty(item.inhand_stock) : 0)}
                     </td>
                     <td className="px-6 py-4 text-right">
                       {Number(item.is_group) === 1 ? (

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { numberToWords } from '@/utils/numberToWords';
+import { formatQty, formatAmt } from '@/utils/formatters';
 
 const styles = StyleSheet.create({
   page: {
@@ -197,9 +198,10 @@ export const GrnPdf: React.FC<GrnPdfProps> = ({ data }) => {
     }).replace(/\//g, '-');
   };
 
-  const taxExcludedAmount = Number(grn.total_amt) || 0;
-  const freightCharges = 0; 
-  const totalAmount = taxExcludedAmount + Number(grn.total_tax || 0);
+  const taxExcludedAmount = (items || []).reduce((sum: number, item: any) => sum + ((Number(item.quantity) || 0) * (Number(item.rate) || 0)), 0);
+  const totalTax = (items || []).reduce((sum: number, item: any) => sum + (Number(item.tax) || 0), 0);
+  const freightCharges = Number(grn.freight) || 0; 
+  const totalAmount = taxExcludedAmount + totalTax + freightCharges;
 
   return (
     <Document>
@@ -282,23 +284,23 @@ export const GrnPdf: React.FC<GrnPdfProps> = ({ data }) => {
           {(items || []).map((item: any, idx: number) => {
             const qty = Number(item.quantity) || 0;
             const rate = Number(item.rate) || 0;
-            const price = qty * rate;
-            const taxAmt = Number(item.tax) || 0;
-            const amount = price + taxAmt;
+            const price = item.cost_price !== undefined && item.cost_price !== null ? Number(item.cost_price) : qty * rate;
+            const taxAmt = item.tax !== undefined && item.tax !== null ? Number(item.tax) : 0;
+            const amount = item.amount !== undefined && item.amount !== null ? Number(item.amount) : price + taxAmt;
             const taxRate = price > 0 ? Math.round((taxAmt / price) * 100) : 0;
-            const orderQty = item.order_qty || qty; 
+            const orderQty = item.order_qty !== undefined && item.order_qty !== null ? Number(item.order_qty) : qty; 
             
             return (
               <View style={styles.tableRow} key={idx}>
                 <Text style={styles.colSNo}>{idx + 1}.</Text>
                 <Text style={styles.colItem}>{item.item_name}</Text>
-                <Text style={styles.colOrderQty}>{orderQty}</Text>
-                <Text style={styles.colRecQty}>{qty}</Text>
-                <Text style={styles.colRate}>{rate.toFixed(2)}</Text>
-                <Text style={styles.colPrice}>{price.toFixed(2)}</Text>
+                <Text style={styles.colOrderQty}>{formatQty(orderQty)}</Text>
+                <Text style={styles.colRecQty}>{formatQty(qty)}</Text>
+                <Text style={styles.colRate}>{formatAmt(rate)}</Text>
+                <Text style={styles.colPrice}>{formatAmt(price)}</Text>
                 <Text style={styles.colTaxRate}>{taxRate || 18}</Text>
-                <Text style={styles.colTaxAmt}>{taxAmt.toFixed(2)}</Text>
-                <Text style={styles.colAmount}>{amount.toFixed(2)}</Text>
+                <Text style={styles.colTaxAmt}>{formatAmt(taxAmt)}</Text>
+                <Text style={styles.colAmount}>{formatAmt(amount)}</Text>
               </View>
             );
           })}
@@ -306,13 +308,13 @@ export const GrnPdf: React.FC<GrnPdfProps> = ({ data }) => {
           {/* Footer: Amount Tax Excluded */}
           <View style={styles.footerRow}>
             <Text style={styles.footerLabel}>Amount Tax Excluded</Text>
-            <Text style={styles.footerValue}>{taxExcludedAmount.toFixed(2)}</Text>
+            <Text style={styles.footerValue}>{formatAmt(taxExcludedAmount)}</Text>
           </View>
 
           {/* Footer: Freight Charges */}
           <View style={styles.footerRow}>
             <Text style={styles.footerLabel}>Freight Charges</Text>
-            <Text style={styles.footerValue}>{freightCharges.toFixed(2)}</Text>
+            <Text style={styles.footerValue}>{formatAmt(freightCharges)}</Text>
           </View>
           
           {/* Footer: Words and Total Amount */}
@@ -321,7 +323,7 @@ export const GrnPdf: React.FC<GrnPdfProps> = ({ data }) => {
             <Text style={styles.wordsColText}>{numberToWords(totalAmount)}</Text>
             <View style={styles.wordsColTotal}>
               <Text style={styles.totalAmountLabel}>Total Amount</Text>
-              <Text style={styles.totalAmountValue}>{totalAmount.toFixed(2)}</Text>
+              <Text style={styles.totalAmountValue}>{formatAmt(totalAmount)}</Text>
             </View>
           </View>
 

@@ -4,6 +4,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import purchaseOrderService from '../../services/purchaseOrder.service';
 import { Loader, AlertCircle, X, Printer } from 'lucide-react';
+import { formatQty, formatAmt } from '@/utils/formatters';
 
 interface PurchaseOrderDetailsModalProps {
   poId: number;
@@ -92,11 +93,11 @@ export function PurchaseOrderDetailsModal({ poId, onClose }: PurchaseOrderDetail
                   {details.items.map((item, idx) => (
                     <tr key={idx} className="border-b border-slate-100 last:border-0">
                       <td className="p-2 text-slate-700">{item.item_name}</td>
-                      <td className="p-2 text-right">{item.order_qty} {item.uom}</td>
-                      <td className="p-2 text-right">₹{parseFloat(item.rate as any).toFixed(2)}</td>
+                      <td className="p-2 text-right">{formatQty(item.order_qty)} {item.uom}</td>
+                      <td className="p-2 text-right">₹{formatAmt(item.rate)}</td>
                       <td className="p-2 text-right">{parseFloat(item.tax_percentage as any).toFixed(2)}%</td>
                       <td className="p-2 text-right font-medium text-slate-800">
-                        ₹{parseFloat(item.amount as any).toFixed(2)}
+                        ₹{formatAmt(item.amount)}
                       </td>
                     </tr>
                   ))}
@@ -106,7 +107,7 @@ export function PurchaseOrderDetailsModal({ poId, onClose }: PurchaseOrderDetail
 
             <div className="mt-4 flex justify-end">
               <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-right">
-                <div className="text-sm text-slate-500">Total Amount: <span className="font-bold text-slate-800 text-lg">₹{details.po.total_amount?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+                <div className="text-sm text-slate-500">Total Amount: <span className="font-bold text-slate-800 text-lg">₹{formatAmt(details.po.total_amount)}</span></div>
               </div>
             </div>
           </div>

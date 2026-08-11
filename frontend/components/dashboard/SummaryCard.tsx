@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ArrowUpRight, ArrowDownRight, Activity } from 'lucide-react';
+import { formatQty, formatAmt } from '@/utils/formatters';
 
 interface SummaryCardProps {
   title: string;
@@ -71,7 +72,9 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({
       {/* Middle section: Total and Sparkline */}
       <div className="mt-4 flex items-baseline justify-between">
         <div>
-          <span className="text-3xl font-extrabold text-slate-900 tracking-tight">{total.toLocaleString()}</span>
+          <span className="text-3xl font-extrabold text-slate-900 tracking-tight">
+            {title.toLowerCase().includes('amount') || title.toLowerCase().includes('value') || title.toLowerCase().includes('cost') || title.toLowerCase().includes('rate') ? formatAmt(total) : title.toLowerCase().includes('qty') || title.toLowerCase().includes('quantity') ? formatQty(total) : total.toLocaleString()}
+          </span>
         </div>
         
         {/* Sparkline Visual */}

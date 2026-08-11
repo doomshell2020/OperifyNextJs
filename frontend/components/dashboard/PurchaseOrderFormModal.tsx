@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import purchaseOrderService, { PurchaseOrderDetailsData, PurchaseOrderItem } from '../../services/purchaseOrder.service';
 import { Loader, X, Save, AlertCircle, Plus, Trash2 } from 'lucide-react';
+import { formatQty, formatAmt } from '@/utils/formatters';
 
 interface PurchaseOrderFormModalProps {
   poId: number;
@@ -179,7 +180,7 @@ export function PurchaseOrderFormModal({ poId, onClose }: PurchaseOrderFormModal
                         <input type="number" min="0" step="0.01" value={item.tax_percentage || 0} onChange={(e) => handleItemChange(idx, 'tax_percentage', e.target.value)} className="w-full p-1 border rounded" />
                       </td>
                       <td className="p-2 font-medium text-slate-800">
-                        ₹{(parseFloat(item.amount as any) || 0).toFixed(2)}
+                        ₹{formatAmt(item.amount)}
                       </td>
                     </tr>
                   ))}
@@ -189,8 +190,8 @@ export function PurchaseOrderFormModal({ poId, onClose }: PurchaseOrderFormModal
 
             <div className="mt-4 flex justify-end">
               <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-right">
-                <div className="text-sm text-slate-500 mb-1">Total Quantity: <span className="font-bold text-slate-800">{calculateTotal().total_qty}</span></div>
-                <div className="text-sm text-slate-500">Total Amount: <span className="font-bold text-slate-800">₹{calculateTotal().total_amt.toFixed(2)}</span></div>
+                <div className="text-sm text-slate-500 mb-1">Total Quantity: <span className="font-bold text-slate-800">{formatQty(calculateTotal().total_qty)}</span></div>
+                <div className="text-sm text-slate-500">Total Amount: <span className="font-bold text-slate-800">₹{formatAmt(calculateTotal().total_amt)}</span></div>
               </div>
             </div>
           </div>

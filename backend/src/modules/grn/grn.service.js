@@ -1,4 +1,5 @@
 const repo = require('./grn.repository');
+const { formatQty, formatAmt } = require('../../utils/formatters');
 
 class GrnService {
   async listGrns(dbPool, params) {
@@ -64,11 +65,12 @@ class GrnService {
         const rate = Number(item.rate);
         const taxRate = Number(item.tax_rate) || 0;
         
-        const amount = qty * rate;
-        const taxAmount = amount * (taxRate / 100);
+        const baseAmount = qty * rate;
+        const taxAmount = baseAmount * (taxRate / 100);
+        const itemTotal = baseAmount + taxAmount;
         
         totalQty += qty;
-        totalAmt += amount;
+        totalAmt += itemTotal;
         totalTax += taxAmount;
       }
 
@@ -102,8 +104,9 @@ class GrnService {
         const qty = Number(item.received_qty);
         const rate = Number(item.rate);
         const taxRate = Number(item.tax_rate) || 0;
-        const amount = qty * rate;
-        const taxAmount = amount * (taxRate / 100);
+        const baseAmount = qty * rate;
+        const taxAmount = baseAmount * (taxRate / 100);
+        const itemTotal = baseAmount + taxAmount;
 
         // Insert into st_stock_register
         const srQuery = `
@@ -120,8 +123,8 @@ class GrnService {
           item.item_id,
           qty,
           rate,
-          amount,
-          amount, // cost_price
+          itemTotal,
+          baseAmount, // cost_price
           item.tax_id || 0,
           taxAmount,
           inwarddate,
@@ -228,11 +231,11 @@ class GrnService {
         bill_date: row.bill_date ? formatDate(billDateObj) : 'N/A',
         product_name: row.product_name,
         vendor_name: row.vendor_name,
-        total_qty: row.po_total_qty ? parseFloat(row.po_total_qty).toFixed(2) : 'N/A',
-        received_qty: row.received_qty ? parseFloat(row.received_qty).toFixed(2) : 'N/A',
-        scheduled_qty: row.scheduled_qty || 'N/A',
+        total_qty: row.po_total_qty ? formatQty(row.po_total_qty) : 'N/A',
+        received_qty: row.received_qty ? formatQty(row.received_qty) : 'N/A',
+        scheduled_qty: row.scheduled_qty ? formatQty(row.scheduled_qty) : 'N/A',
         scheduled_date: row.scheduled_date ? formatDate(scheduledDateObj) : 'N/A',
-        total_amt: row.total_amt ? parseFloat(row.total_amt).toFixed(2) : 'N/A'
+        total_amt: row.total_amt ? formatAmt(row.total_amt) : 'N/A'
       });
 
       if (inwardDateObj && scheduledDateObj && inwardDateObj > scheduledDateObj) {

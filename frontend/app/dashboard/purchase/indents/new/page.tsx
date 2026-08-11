@@ -20,6 +20,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
+import { formatAmt } from '@/utils/formatters';
 
 // ─── Item Autocomplete ────────────────────────────────────────────────────────
 
@@ -147,7 +148,7 @@ function CartRow({
       <td className="px-5 py-3.5 text-xs text-slate-500">{item.unit_name || '—'}</td>
       <td className="px-5 py-3.5 text-center font-bold text-cyan-700">{item.quantity}</td>
       <td className="px-5 py-3.5 text-center text-xs text-slate-500">
-        {item.sale_price ? `₹${Number(item.sale_price).toFixed(2)}` : '—'}
+        {item.sale_price ? `₹${formatAmt(item.sale_price)}` : '—'}
       </td>
       <td className="px-5 py-3.5 text-center">
         <button

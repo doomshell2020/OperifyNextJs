@@ -12,6 +12,7 @@ import * as z from 'zod';
 import grnInspectionService from '@/services/grnInspection.service';
 import purchaseOrderService from '@/services/purchaseOrder.service';
 import { AsyncPoSearchSelect } from '@/components/AsyncPoSearchSelect';
+import { formatQty, formatAmt } from '@/utils/formatters';
 
 const formSchema = z.object({
   po_id: z.string().min(1, "Purchase Order is required"),
@@ -379,11 +380,11 @@ export default function AddGrnInspectionPage() {
                           {hasError && <p className="text-[10px] text-red-600 mt-1 text-right">{errors.items?.[idx]?.received_qty?.message}</p>}
                         </td>
                         <td className="p-3 text-slate-600">{field.uom}</td>
-                        <td className="p-3 text-right text-slate-600">{rate.toFixed(2)}</td>
-                        <td className="p-3 text-right text-slate-600 bg-slate-50/50">{amt.toFixed(2)}</td>
+                        <td className="p-3 text-right text-slate-600">{formatAmt(rate)}</td>
+                        <td className="p-3 text-right text-slate-600 bg-slate-50/50">{formatAmt(amt)}</td>
                         <td className="p-3 text-right text-slate-600">{taxRate}%</td>
-                        <td className="p-3 text-right text-slate-600 bg-slate-50/50">{taxAmt.toFixed(2)}</td>
-                        <td className="p-3 text-right text-slate-900 font-semibold bg-slate-50/50">{totalAmt.toFixed(2)}</td>
+                        <td className="p-3 text-right text-slate-600 bg-slate-50/50">{formatAmt(taxAmt)}</td>
+                        <td className="p-3 text-right text-slate-900 font-semibold bg-slate-50/50">{formatAmt(totalAmt)}</td>
                       </tr>
                     );
                   })}
@@ -391,12 +392,12 @@ export default function AddGrnInspectionPage() {
                 <tfoot className="bg-slate-100/50 border-t border-slate-200">
                   <tr>
                     <td colSpan={3} className="p-4 text-right font-bold text-slate-700 uppercase tracking-wider text-xs">Total:</td>
-                    <td className="p-4 text-right font-bold text-cyan-700 text-base">{totalQty}</td>
+                    <td className="p-4 text-right font-bold text-cyan-700 text-base">{formatQty(totalQty)}</td>
                     <td colSpan={2}></td>
-                    <td className="p-4 text-right font-bold text-slate-800">{totalAmountPreTax.toFixed(2)}</td>
+                    <td className="p-4 text-right font-bold text-slate-800">{formatAmt(totalAmountPreTax)}</td>
                     <td></td>
-                    <td className="p-4 text-right font-bold text-slate-800">{totalTax.toFixed(2)}</td>
-                    <td className="p-4 text-right font-bold text-cyan-700 text-lg">{netAmount.toFixed(2)}</td>
+                    <td className="p-4 text-right font-bold text-slate-800">{formatAmt(totalTax)}</td>
+                    <td className="p-4 text-right font-bold text-cyan-700 text-lg">{formatAmt(netAmount)}</td>
                   </tr>
                 </tfoot>
               </table>

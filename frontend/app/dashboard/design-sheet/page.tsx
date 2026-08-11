@@ -8,6 +8,7 @@ import {
   FileText, Search, RefreshCw, Eye, Loader, AlertCircle, Briefcase, Plus, X, Edit, Trash2, Printer
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { formatQty, formatAmt } from '@/utils/formatters';
 
 export default function DesignSheetsPage() {
   const [filters, setFilters] = useState<DesignSheetFilter>({
@@ -162,7 +163,7 @@ export default function DesignSheetsPage() {
                         </button>
                   </td>
                   <td className="px-6 py-4 font-semibold text-slate-700">{d.item_name}</td>
-                  <td className="px-6 py-4 font-bold text-slate-900">{d.quantity}</td>
+                  <td className="px-6 py-4 font-bold text-slate-900">{formatQty(d.quantity)}</td>
                   <td className="px-6 py-4 text-center font-semibold">{formatDate(d.datefrom)}</td>
                   <td className="px-6 py-4 text-center">
                     {d.design_sheet ? (
@@ -226,7 +227,7 @@ export default function DesignSheetsPage() {
                     </div>
                     <div className="col-span-2">
                         <span className="text-slate-600">Quantity:- </span>
-                        {detailsData.designsheet.quantity} KM
+                        {formatQty(detailsData.designsheet.quantity)} KM
                     </div>
                 </div>
 
@@ -248,8 +249,8 @@ export default function DesignSheetsPage() {
                         <tr key={item.id} className="hover:bg-slate-50 transition">
                           <td className="px-3 py-2 border-r border-slate-200">{idx + 1}.</td>
                           <td className="px-3 py-2 border-r border-slate-200 uppercase">{item.item_name}</td>
-                          <td className="px-3 py-2 border-r border-slate-200 text-right font-medium">{parseFloat(item.km_item_qty).toFixed(2)}</td>
-                          <td className="px-3 py-2 border-r border-slate-200 text-right font-medium">{parseFloat(item.item_qty).toFixed(2)}</td>
+                          <td className="px-3 py-2 border-r border-slate-200 text-right font-medium">{formatQty(item.km_item_qty)}</td>
+                          <td className="px-3 py-2 border-r border-slate-200 text-right font-medium">{formatQty(item.item_qty)}</td>
                           <td className="px-3 py-2 uppercase">{item.uom}</td>
                         </tr>
                       ))}
@@ -287,9 +288,9 @@ export default function DesignSheetsPage() {
                     <div><span className="font-bold text-slate-900">Contract Start Date:- </span>{formatDate(contractData.contract.contract_start_date)}</div>
                     <div><span className="font-bold text-slate-900">Contract End Date:- </span>{formatDate(contractData.contract.contract_end_date)}</div>
                     <div><span className="font-bold text-slate-900">Supplier Name:- </span>{contractData.contract.supplier_name}</div>
-                    <div><span className="font-bold text-slate-900">Cost:- </span>{Number(contractData.contract.cost).toLocaleString()}</div>
-                    <div><span className="font-bold text-slate-900">Labour Cost:- </span>{contractData.contract.labour_cost}</div>
-                    <div><span className="font-bold text-slate-900">Operational Cost:- </span>{parseFloat(contractData.contract.operational_cost).toFixed(2)}</div>
+                    <div><span className="font-bold text-slate-900">Cost:- </span>{formatAmt(contractData.contract.cost)}</div>
+                    <div><span className="font-bold text-slate-900">Labour Cost:- </span>{formatAmt(contractData.contract.labour_cost)}</div>
+                    <div><span className="font-bold text-slate-900">Operational Cost:- </span>{formatAmt(contractData.contract.operational_cost)}</div>
                 </div>
 
                 <h3 className="text-base font-extrabold text-slate-900 text-center mb-6">Finished Products</h3>
@@ -301,10 +302,10 @@ export default function DesignSheetsPage() {
                                 <thead className="bg-slate-50 border-b border-slate-200 font-bold text-slate-800">
                                     <tr>
                                         <td className="px-3 py-2 border-r border-slate-200"><span className="text-slate-500">Product:-</span> {fp.item_name}</td>
-                                        <td className="px-3 py-2 border-r border-slate-200"><span className="text-slate-500">Quantity:-</span> {parseFloat(fp.quantity).toFixed(2)} KM</td>
-                                        <td className="px-3 py-2 border-r border-slate-200"><span className="text-slate-500">Planned Qty:-</span> {parseFloat(fp.planned_qty).toFixed(2)} KM</td>
-                                        <td className="px-3 py-2 border-r border-slate-200"><span className="text-slate-500">Prepared Qty:-</span> {parseFloat(fp.prepared_qty).toFixed(2)} KM</td>
-                                        <td className="px-3 py-2"><span className="text-slate-500">Price:-</span> {Number(fp.price).toLocaleString()}</td>
+                                        <td className="px-3 py-2 border-r border-slate-200"><span className="text-slate-500">Quantity:-</span> {formatQty(fp.quantity)} KM</td>
+                                        <td className="px-3 py-2 border-r border-slate-200"><span className="text-slate-500">Planned Qty:-</span> {formatQty(fp.planned_qty)} KM</td>
+                                        <td className="px-3 py-2 border-r border-slate-200"><span className="text-slate-500">Prepared Qty:-</span> {formatQty(fp.prepared_qty)} KM</td>
+                                        <td className="px-3 py-2"><span className="text-slate-500">Price:-</span> {formatAmt(fp.price)}</td>
                                     </tr>
                                 </thead>
                             </table>
@@ -331,16 +332,16 @@ export default function DesignSheetsPage() {
                                                 <tr className="hover:bg-slate-50 transition">
                                                     <td className="px-3 py-2 border-r border-slate-200">{rIdx + 1}.</td>
                                                     <td className="px-3 py-2 border-r border-slate-200 uppercase">{rm.display_name}</td>
-                                                    <td className="px-3 py-2 border-r border-slate-200 text-right">{parseFloat(rm.qty_as_per_design).toFixed(2)}</td>
-                                                    <td className="px-3 py-2 border-r border-slate-200 text-right">{parseFloat(rm.issued_qty).toFixed(2)}</td>
-                                                    <td className="px-3 py-2 text-right">{parseFloat(rm.pending_qty).toFixed(2)}</td>
+                                                    <td className="px-3 py-2 border-r border-slate-200 text-right">{formatQty(rm.qty_as_per_design)}</td>
+                                                    <td className="px-3 py-2 border-r border-slate-200 text-right">{formatQty(rm.issued_qty)}</td>
+                                                    <td className="px-3 py-2 text-right">{formatQty(rm.pending_qty)}</td>
                                                 </tr>
                                                 {rm.subItems && rm.subItems.map((subItem: any, sIdx: number) => (
                                                     <tr key={`sub-${sIdx}`} className="bg-slate-50/50">
                                                         <td className="px-3 py-2 border-r border-slate-200"></td>
                                                         <td className="px-3 py-2 border-r border-slate-200 uppercase">{subItem.item_name}</td>
                                                         <td className="px-3 py-2 border-r border-slate-200 text-right"></td>
-                                                        <td className="px-3 py-2 border-r border-slate-200 text-right">{parseFloat(subItem.issued_qty).toFixed(2)}</td>
+                                                        <td className="px-3 py-2 border-r border-slate-200 text-right">{formatQty(subItem.issued_qty)}</td>
                                                         <td className="px-3 py-2 text-right"></td>
                                                     </tr>
                                                 ))}
@@ -376,8 +377,8 @@ export default function DesignSheetsPage() {
                                     <td className="px-3 py-2 border-r border-slate-200">{po.po_id}</td>
                                     <td className="px-3 py-2 border-r border-slate-200">{formatDate(po.issuedate)}</td>
                                     <td className="px-3 py-2 border-r border-slate-200 uppercase">{po.item_name}</td>
-                                    <td className="px-3 py-2 border-r border-slate-200 text-right">{parseFloat(po.plannedqty).toFixed(2)}</td>
-                                    <td className="px-3 py-2 border-r border-slate-200 text-right">{parseFloat(po.prepared_qty).toFixed(2)}</td>
+                                    <td className="px-3 py-2 border-r border-slate-200 text-right">{formatQty(po.plannedqty)}</td>
+                                    <td className="px-3 py-2 border-r border-slate-200 text-right">{formatQty(po.prepared_qty)}</td>
                                     <td className="px-3 py-2 border-r border-slate-200">{formatDate(po.startdate)}</td>
                                     <td className="px-3 py-2 border-r border-slate-200">{formatDate(po.enddate)}</td>
                                     <td className="px-3 py-2">{po.status === 'C' ? 'Close' : 'Open'}</td>

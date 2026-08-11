@@ -11,6 +11,7 @@ import * as z from 'zod';
 
 import { grnService } from '@/services/grn.service';
 import { AsyncInspectionSearchSelect } from '@/components/AsyncInspectionSearchSelect';
+import { formatQty, formatAmt } from '@/utils/formatters';
 
 const formSchema = z.object({
   inspection_id: z.string().min(1, "Inspection ID is required"),
@@ -278,13 +279,13 @@ export default function AddGrnPage() {
                           <input type="text" readOnly {...register(`items.${index}.uom`)} className="w-full border-none bg-transparent focus:outline-none text-slate-600 text-sm" />
                         </td>
                         <td className="p-3 text-right text-slate-600">
-                          {rate.toFixed(2)}
+                          {formatAmt(rate)}
                         </td>
                         <td className="p-3 text-right text-slate-600">
                           {taxRate}
                         </td>
                         <td className="p-3 text-right font-medium text-slate-800">
-                          {total.toFixed(2)}
+                          {formatAmt(total)}
                         </td>
                       </tr>
                     )
@@ -332,19 +333,19 @@ export default function AddGrnPage() {
               </div>
               <div className="flex justify-between items-center py-2 border-b border-slate-200/50">
                 <span className="text-sm text-slate-500">Total Qty</span>
-                <span className="text-sm font-medium text-slate-800">{totalQty.toFixed(2)}</span>
+                <span className="text-sm font-medium text-slate-800">{formatQty(totalQty)}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-slate-200/50">
                 <span className="text-sm text-slate-500">Amount (Pre-Tax)</span>
-                <span className="text-sm font-medium text-slate-800">₹ {totalAmountPreTax.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                <span className="text-sm font-medium text-slate-800">₹ {formatAmt(totalAmountPreTax)}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-slate-200/50">
                 <span className="text-sm text-slate-500">Total Tax</span>
-                <span className="text-sm font-medium text-slate-800">₹ {totalTax.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                <span className="text-sm font-medium text-slate-800">₹ {formatAmt(totalTax)}</span>
               </div>
               <div className="flex justify-between items-center pt-2">
                 <span className="font-bold text-slate-700">Net Amount</span>
-                <span className="text-lg font-extrabold text-cyan-600">₹ {totalAmountPostTax.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                <span className="text-lg font-extrabold text-cyan-600">₹ {formatAmt(totalAmountPostTax)}</span>
               </div>
             </div>
           </div>

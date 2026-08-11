@@ -10,6 +10,7 @@ import { settingsService, Supplier, Product } from '@/services/settings.service'
 import { Plus, Trash2, Search, ArrowLeft, Loader2, Save, FileText, ShoppingCart, CreditCard, Building2, UserPlus, Info, Eye, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ProductSearchSelect } from '@/components/ProductSearchSelect';
+import { formatQty, formatAmt } from '@/utils/formatters';
 
 const poSchema = z.object({
   poDate: z.string().min(1, "Generated Date is required"),
@@ -547,7 +548,7 @@ export default function AddPurchaseOrderPage() {
                         </td>
                         <td className="p-3 text-right">
                           <span className="font-bold text-gray-800 bg-blue-50 px-3 py-2 h-[40px] flex items-center justify-end rounded-md border border-blue-100 tabular-nums">
-                            ₹{rowTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ₹{formatAmt(rowTotal)}
                           </span>
                         </td>
                         <td className="p-3 text-center sticky right-0 bg-white group-hover:bg-gray-50/50 z-10 shadow-[-1px_0_0_0_#f3f4f6]">
@@ -609,11 +610,11 @@ export default function AddPurchaseOrderPage() {
             <div className="p-6 space-y-4">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500 font-medium">Subtotal</span>
-                <span className="font-semibold text-gray-800 tabular-nums">₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="font-semibold text-gray-800 tabular-nums">₹{formatAmt(subtotal)}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500 font-medium">Total Tax</span>
-                <span className="font-semibold text-gray-800 tabular-nums">₹{totalTax.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="font-semibold text-gray-800 tabular-nums">₹{formatAmt(totalTax)}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500 font-medium">Discount</span>
@@ -627,7 +628,7 @@ export default function AddPurchaseOrderPage() {
               <div className="border-t border-gray-200 pt-5 mt-3 border-dashed">
                 <div className="flex justify-between items-end">
                   <span className="text-gray-800 font-bold uppercase tracking-wider text-sm">Grand Total</span>
-                  <span className="text-[28px] leading-none font-black text-blue-700 tracking-tight tabular-nums">₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <span className="text-[28px] leading-none font-black text-blue-700 tracking-tight tabular-nums">₹{formatAmt(grandTotal)}</span>
                 </div>
               </div>
             </div>
@@ -745,8 +746,8 @@ export default function AddPurchaseOrderPage() {
                           <td className="py-2.5 px-4 text-gray-800">{h.po_number}</td>
                           <td className="py-2.5 px-4 text-gray-600">{h.generated_date ? new Date(h.generated_date).toLocaleDateString('en-GB') : ''}</td>
                           <td className="py-2.5 px-4 text-gray-800">{h.supplier || '-'}</td>
-                          <td className="py-2.5 px-4 text-gray-800 text-right">{h.quantity ? Number(h.quantity).toFixed(2) : '0.00'}</td>
-                          <td className="py-2.5 px-4 text-gray-800 text-right font-medium">₹{h.price ? Number(h.price).toFixed(2) : '0.00'}</td>
+                          <td className="py-2.5 px-4 text-gray-800 text-right">{h.quantity ? formatQty(h.quantity) : formatQty(0)}</td>
+                          <td className="py-2.5 px-4 text-gray-800 text-right font-medium">₹{h.price ? formatAmt(h.price) : formatAmt(0)}</td>
                         </tr>
                       ))
                     ) : (
