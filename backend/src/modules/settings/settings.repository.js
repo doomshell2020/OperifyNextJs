@@ -1,36 +1,37 @@
+const { QueryTypes } = require('sequelize');
+
 class SettingsRepository {
   // ─── CATEGORIES ─────────────────────────────────────────────────────────────
   async getCategories(dbPool, { search } = {}) {
     let q = `SELECT id, category_name, description, status, added_time, updated_time FROM st_categorymaster WHERE 1=1`;
-    const p = [];
-    if (search) { q += ` AND category_name LIKE ?`; p.push(`%${search}%`); }
+    const p = {};
+    if (search) { q += ` AND category_name LIKE :search`; p.search = `%${search}%`; }
     q += ` ORDER BY category_name ASC`;
-    const [rows] = await dbPool.execute(q, p);
-    return rows;
+    return await dbPool.query(q, { replacements: p, type: QueryTypes.SELECT });
   }
   async getCategoryById(dbPool, id) {
-    const [rows] = await dbPool.execute(`SELECT * FROM st_categorymaster WHERE id = ? LIMIT 1`, [id]);
+    const rows = await dbPool.query(`SELECT * FROM st_categorymaster WHERE id = :id LIMIT 1`, { replacements: { id }, type: QueryTypes.SELECT });
     return rows[0] || null;
   }
   async createCategory(dbPool, { category_name, description }) {
     const now = new Date();
-    const [result] = await dbPool.execute(
-      `INSERT INTO st_categorymaster (category_name, description, status, added_time) VALUES (?, ?, 'Y', ?)`,
-      [category_name, description || '', now]
+    const result = await dbPool.query(
+      `INSERT INTO st_categorymaster (category_name, description, status, added_time) VALUES (:category_name, :description, 'Y', :now)`,
+      { replacements: { category_name, description: description || '', now }, type: QueryTypes.INSERT }
     );
-    return result.insertId;
+    return result[0];
   }
   async updateCategory(dbPool, id, { category_name, description }) {
-    await dbPool.execute(
-      `UPDATE st_categorymaster SET category_name = ?, description = ?, updated_time = ? WHERE id = ?`,
-      [category_name, description || '', new Date(), id]
+    await dbPool.query(
+      `UPDATE st_categorymaster SET category_name = :category_name, description = :description, updated_time = :updated_time WHERE id = :id`,
+      { replacements: { category_name, description: description || '', updated_time: new Date(), id }, type: QueryTypes.UPDATE }
     );
   }
   async toggleCategoryStatus(dbPool, id, status) {
-    await dbPool.execute(`UPDATE st_categorymaster SET status = ? WHERE id = ?`, [status, id]);
+    await dbPool.query(`UPDATE st_categorymaster SET status = :status WHERE id = :id`, { replacements: { status, id }, type: QueryTypes.UPDATE });
   }
   async deleteCategory(dbPool, id) {
-    await dbPool.execute(`DELETE FROM st_categorymaster WHERE id = ?`, [id]);
+    await dbPool.query(`DELETE FROM st_categorymaster WHERE id = :id`, { replacements: { id }, type: QueryTypes.DELETE });
   }
 
   // ─── PRODUCTS (st_additem) ───────────────────────────────────────────────────
@@ -44,34 +45,32 @@ class SettingsRepository {
       LEFT JOIN st_categorymaster c ON i.category_id = c.id
       LEFT JOIN st_measurementunits u ON i.uom = u.id
       WHERE 1=1`;
-    const p = [];
-    if (search) { q += ` AND i.item_name LIKE ?`; p.push(`%${search}%`); }
-    if (category_id) { q += ` AND i.category_id = ?`; p.push(category_id); }
-    if (status) { q += ` AND i.status = ?`; p.push(status); }
-    if (itemtype) { q += ` AND i.itemtype = ?`; p.push(itemtype); }
+    const p = {};
+    if (search) { q += ` AND i.item_name LIKE :search`; p.search = `%${search}%`; }
+    if (category_id) { q += ` AND i.category_id = :category_id`; p.category_id = category_id; }
+    if (status) { q += ` AND i.status = :status`; p.status = status; }
+    if (itemtype) { q += ` AND i.itemtype = :itemtype`; p.itemtype = itemtype; }
     q += ` ORDER BY i.item_name ASC`;
-    const [rows] = await dbPool.execute(q, p);
-    return rows;
+    return await dbPool.query(q, { replacements: p, type: QueryTypes.SELECT });
   }
   async getProductById(dbPool, id) {
-    const [rows] = await dbPool.execute(
+    const rows = await dbPool.query(
       `SELECT i.*, c.category_name, u.unit_name as uom_name
        FROM st_additem i
        LEFT JOIN st_categorymaster c ON i.category_id = c.id
        LEFT JOIN st_measurementunits u ON i.uom = u.id
-       WHERE i.id = ? LIMIT 1`,
-      [id]
+       WHERE i.id = :id LIMIT 1`,
+      { replacements: { id }, type: QueryTypes.SELECT }
     );
     return rows[0] || null;
   }
   async toggleProductStatus(dbPool, id, status) {
-    await dbPool.execute(`UPDATE st_additem SET status = ? WHERE id = ?`, [status, id]);
+    await dbPool.query(`UPDATE st_additem SET status = :status WHERE id = :id`, { replacements: { status, id }, type: QueryTypes.UPDATE });
   }
 
   // ─── TAXES ──────────────────────────────────────────────────────────────────
   async getTaxes(dbPool) {
-    const [rows] = await dbPool.query(`SELECT id, tax FROM st_taxmaster WHERE status = 'Y' AND parent = '0' ORDER BY id ASC`);
-    return rows;
+    return await dbPool.query(`SELECT id, tax FROM st_taxmaster WHERE status = 'Y' AND parent = '0' ORDER BY id ASC`, { type: QueryTypes.SELECT });
   }
 
   // ─── SUPPLIERS (vendors) ────────────────────────────────────────────────────
@@ -79,67 +78,77 @@ class SettingsRepository {
     let q = `SELECT id, name, address, contact_no, email, gst_number, pancard_number,
                     tin_no, tds, contact_person, type, status, created_date
              FROM vendors WHERE 1=1`;
-    const p = [];
-    if (search) { q += ` AND (name LIKE ? OR contact_person LIKE ? OR gst_number LIKE ?)`; p.push(`%${search}%`, `%${search}%`, `%${search}%`); }
-    if (status) { q += ` AND status = ?`; p.push(status); }
-    if (type) { q += ` AND type = ?`; p.push(type); }
+    const p = {};
+    if (search) { q += ` AND (name LIKE :search OR contact_person LIKE :search OR gst_number LIKE :search)`; p.search = `%${search}%`; }
+    if (status) { q += ` AND status = :status`; p.status = status; }
+    if (type) { q += ` AND type = :type`; p.type = type; }
     q += ` ORDER BY id ASC`;
-    const [rows] = await dbPool.execute(q, p);
-    return rows;
+    return await dbPool.query(q, { replacements: p, type: QueryTypes.SELECT });
   }
   async getSupplierById(dbPool, id) {
-    const [rows] = await dbPool.execute(`SELECT * FROM vendors WHERE id = ? LIMIT 1`, [id]);
+    const rows = await dbPool.query(`SELECT * FROM vendors WHERE id = :id LIMIT 1`, { replacements: { id }, type: QueryTypes.SELECT });
     return rows[0] || null;
   }
   async createSupplier(dbPool, data) {
     const { name, address, contact_no, email, gst_number, pancard_number, tin_no, tds, contact_person, type, description } = data;
-    const [result] = await dbPool.execute(
+    const result = await dbPool.query(
       `INSERT INTO vendors (name, address, contact_no, email, gst_number, pancard_number, tin_no, tds, contact_person, type, description, status, created_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Y', ?)`,
-      [name, address || '', contact_no || '', email || '', gst_number || '', pancard_number || '', tin_no || '', tds || 0, contact_person || '', type || 'Vendor', description || '', new Date()]
+       VALUES (:name, :address, :contact_no, :email, :gst_number, :pancard_number, :tin_no, :tds, :contact_person, :type, :description, 'Y', :now)`,
+      {
+        replacements: {
+          name, address: address || '', contact_no: contact_no || '', email: email || '', gst_number: gst_number || '',
+          pancard_number: pancard_number || '', tin_no: tin_no || '', tds: tds || 0, contact_person: contact_person || '',
+          type: type || 'Vendor', description: description || '', now: new Date()
+        },
+        type: QueryTypes.INSERT
+      }
     );
-    return result.insertId;
+    return result[0];
   }
   async updateSupplier(dbPool, id, data) {
     const { name, address, contact_no, email, gst_number, pancard_number, tin_no, tds, contact_person, type, description } = data;
-    await dbPool.execute(
-      `UPDATE vendors SET name=?, address=?, contact_no=?, email=?, gst_number=?, pancard_number=?, tin_no=?, tds=?, contact_person=?, type=?, description=? WHERE id=?`,
-      [name, address || '', contact_no || '', email || '', gst_number || '', pancard_number || '', tin_no || '', tds || 0, contact_person || '', type || 'Vendor', description || '', id]
+    await dbPool.query(
+      `UPDATE vendors SET name=:name, address=:address, contact_no=:contact_no, email=:email, gst_number=:gst_number, pancard_number=:pancard_number, tin_no=:tin_no, tds=:tds, contact_person=:contact_person, type=:type, description=:description WHERE id=:id`,
+      {
+        replacements: {
+          name, address: address || '', contact_no: contact_no || '', email: email || '', gst_number: gst_number || '',
+          pancard_number: pancard_number || '', tin_no: tin_no || '', tds: tds || 0, contact_person: contact_person || '',
+          type: type || 'Vendor', description: description || '', id
+        },
+        type: QueryTypes.UPDATE
+      }
     );
   }
   async toggleSupplierStatus(dbPool, id, status) {
-    await dbPool.execute(`UPDATE vendors SET status = ? WHERE id = ?`, [status, id]);
+    await dbPool.query(`UPDATE vendors SET status = :status WHERE id = :id`, { replacements: { status, id }, type: QueryTypes.UPDATE });
   }
 
   // ─── USERS ──────────────────────────────────────────────────────────────────
   async getUsers(dbPool, { search, is_status } = {}) {
     let q = `SELECT id, user_name, email, mobile, role_id, db, is_admin, is_status, created, last_login FROM users WHERE 1=1`;
-    const p = [];
-    if (search) { q += ` AND (user_name LIKE ? OR email LIKE ? OR mobile LIKE ?)`; p.push(`%${search}%`, `%${search}%`, `%${search}%`); }
-    if (is_status) { q += ` AND is_status = ?`; p.push(is_status); }
+    const p = {};
+    if (search) { q += ` AND (user_name LIKE :search OR email LIKE :search OR mobile LIKE :search)`; p.search = `%${search}%`; }
+    if (is_status) { q += ` AND is_status = :is_status`; p.is_status = is_status; }
     q += ` ORDER BY id ASC`;
-    const [rows] = await dbPool.execute(q, p);
-    return rows;
+    return await dbPool.query(q, { replacements: p, type: QueryTypes.SELECT });
   }
   async getUserById(dbPool, id) {
-    const [rows] = await dbPool.execute(
-      `SELECT id, user_name, email, mobile, role_id, db, is_admin, is_status, created, last_login FROM users WHERE id = ? LIMIT 1`,
-      [id]
+    const rows = await dbPool.query(
+      `SELECT id, user_name, email, mobile, role_id, db, is_admin, is_status, created, last_login FROM users WHERE id = :id LIMIT 1`,
+      { replacements: { id }, type: QueryTypes.SELECT }
     );
     return rows[0] || null;
   }
   async toggleUserStatus(dbPool, id, status) {
-    await dbPool.execute(`UPDATE users SET is_status = ? WHERE id = ?`, [status, id]);
+    await dbPool.query(`UPDATE users SET is_status = :status WHERE id = :id`, { replacements: { status, id }, type: QueryTypes.UPDATE });
   }
 
   // ─── HELPERS ────────────────────────────────────────────────────────────────
   async getCategoryList(dbPool) {
-    const [rows] = await dbPool.execute(`SELECT id, category_name FROM st_categorymaster WHERE status='Y' ORDER BY category_name ASC`);
-    return rows;
+    return await dbPool.query(`SELECT id, category_name FROM st_categorymaster WHERE status='Y' ORDER BY category_name ASC`, { type: QueryTypes.SELECT });
   }
   async getUomList(dbPool) {
-    const [rows] = await dbPool.execute(`SELECT id, unit_name FROM st_measurementunits ORDER BY unit_name ASC`);
-    return rows;
+    return await dbPool.query(`SELECT id, unit_name FROM st_measurementunits ORDER BY unit_name ASC`, { type: QueryTypes.SELECT });
   }
 }
 

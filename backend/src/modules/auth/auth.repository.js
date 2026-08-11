@@ -1,4 +1,4 @@
-const { centralPool, getTenantPool } = require('../../config/db');
+const { centralModels, getTenantModels } = require('../../config/sequelize');
 
 /**
  * AuthRepository executes database operations for authentication
@@ -11,9 +11,11 @@ class AuthRepository {
    * @returns {Promise<Object|null>} User record or null
    */
   async findCentralUserByMobile(mobile) {
-    const query = 'SELECT * FROM users WHERE mobile = ? LIMIT 1';
-    const [rows] = await centralPool.execute(query, [mobile]);
-    return rows.length > 0 ? rows[0] : null;
+    const user = await centralModels.users.findOne({
+      where: { mobile },
+      raw: true
+    });
+    return user || null;
   }
 
   /**
@@ -24,10 +26,12 @@ class AuthRepository {
    * @returns {Promise<Object|null>} User record or null
    */
   async findTenantUserByMobile(mobile, dbName) {
-    const pool = await getTenantPool(dbName);
-    const query = 'SELECT * FROM users WHERE mobile = ? LIMIT 1';
-    const [rows] = await pool.execute(query, [mobile]);
-    return rows.length > 0 ? rows[0] : null;
+    const tenantModels = await getTenantModels(dbName);
+    const user = await tenantModels.users.findOne({
+      where: { mobile },
+      raw: true
+    });
+    return user || null;
   }
 
   /**
@@ -39,9 +43,11 @@ class AuthRepository {
    * @param {string} dbName 
    */
   async updateTenantUserPasswordHash(userId, passwordHash, dbName) {
-    const pool = await getTenantPool(dbName);
-    const query = 'UPDATE users SET password = ? WHERE id = ?';
-    await pool.execute(query, [passwordHash, userId]);
+    const tenantModels = await getTenantModels(dbName);
+    await tenantModels.users.update(
+      { password: passwordHash },
+      { where: { id: userId } }
+    );
   }
 }
 

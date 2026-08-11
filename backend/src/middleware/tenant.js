@@ -1,4 +1,4 @@
-const { getTenantPool } = require('../config/db');
+const { getTenantSequelize, getTenantModels } = require('../config/sequelize');
 
 /**
  * Tenant switching middleware.
@@ -15,8 +15,13 @@ async function tenantMiddleware(req, res, next) {
     }
     
     // Attach the connection pool to the request context
-    const pool = await getTenantPool(dbName);
-    req.dbPool = pool;
+    const sequelize = await getTenantSequelize(dbName);
+    const models = await getTenantModels(dbName);
+    
+    // Keeping variable name req.dbPool for compatibility
+    req.dbPool = sequelize;
+    req.models = models;
+    req.dbName = dbName;
     
     next();
   } catch (error) {

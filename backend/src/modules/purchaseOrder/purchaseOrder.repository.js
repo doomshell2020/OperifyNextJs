@@ -1,3 +1,5 @@
+const { QueryTypes } = require('sequelize');
+
 class PurchaseOrderRepository {
   async getHoverDetails(dbPool, idOrNumber) {
     const query = `
@@ -22,10 +24,10 @@ class PurchaseOrderRepository {
       FROM st_purchaseorder po
       LEFT JOIN vendors v ON po.vendor_id = v.id
       LEFT JOIN users u ON po.added_by = u.id
-      WHERE po.id = ? OR po.purchaseorder_id = ?
+      WHERE po.id = :idOrNumber OR po.purchaseorder_id = :idOrNumber
       ORDER BY po.id DESC LIMIT 1
     `;
-    const [rows] = await dbPool.execute(query, [idOrNumber, idOrNumber]);
+    const rows = await dbPool.query(query, { replacements: { idOrNumber }, type: QueryTypes.SELECT });
     return rows[0] || null;
   }
 
@@ -56,20 +58,18 @@ class PurchaseOrderRepository {
         po.total_amt as total_amount
       FROM st_purchaseorder po
       LEFT JOIN vendors v ON po.vendor_id = v.id
-      WHERE po.id = ? OR po.purchaseorder_id = ?
+      WHERE po.id = :idOrNumber OR po.purchaseorder_id = :idOrNumber
       ORDER BY po.id DESC LIMIT 1
     `;
     
-    const [poRows] = await dbPool.execute(poQuery, [idOrNumber, idOrNumber]);
+    const poRows = await dbPool.query(poQuery, { replacements: { idOrNumber }, type: QueryTypes.SELECT });
     const po = poRows[0] || null;
     
     if (!po) return null;
 
     const siteSettingsQuery = `SELECT * FROM sitesettings_details WHERE status = 'Y' LIMIT 1`;
-    const [siteSettingsRows] = await dbPool.execute(siteSettingsQuery);
+    const siteSettingsRows = await dbPool.query(siteSettingsQuery, { type: QueryTypes.SELECT });
     const site_details = siteSettingsRows[0] || null;
-    
-    if (!po) return null;
     
     const itemsQuery = `
       SELECT 
@@ -85,10 +85,10 @@ class PurchaseOrderRepository {
         COALESCE(pod.uom, 'KG') as uom
       FROM st_purchaseorderDetails pod
       LEFT JOIN st_additem i ON pod.item_id = i.id
-      WHERE pod.poprimary_id = ?
+      WHERE pod.poprimary_id = :poId
     `;
     
-    const [itemRows] = await dbPool.execute(itemsQuery, [po.id]);
+    const itemRows = await dbPool.query(itemsQuery, { replacements: { poId: po.id }, type: QueryTypes.SELECT });
 
     // Fetch Goods Received Data (GRNs)
     const grnQuery = `
@@ -101,9 +101,9 @@ class PurchaseOrderRepository {
         g.total_qty,
         g.total_amt
       FROM grn_inspection g
-      WHERE g.po_id = ?
+      WHERE g.po_id = :poNumber
     `;
-    const [grnRows] = await dbPool.execute(grnQuery, [po.po_number]);
+    const grnRows = await dbPool.query(grnQuery, { replacements: { poNumber: po.po_number }, type: QueryTypes.SELECT });
     
     // For each GRN, fetch its items
     const grns = await Promise.all(grnRows.map(async (grn) => {
@@ -123,9 +123,9 @@ class PurchaseOrderRepository {
         LEFT JOIN st_additem i ON gd.item_id = i.id
         LEFT JOIN st_taxmaster t ON gd.tax_id = t.id
         LEFT JOIN st_measurementunits u ON i.uom = u.id
-        WHERE gd.inspection_id = ?
+        WHERE gd.inspection_id = :grnNumber
       `;
-      const [grnItemRows] = await dbPool.execute(grnItemsQuery, [grn.grn_number]);
+      const grnItemRows = await dbPool.query(grnItemsQuery, { replacements: { grnNumber: grn.grn_number }, type: QueryTypes.SELECT });
       return { ...grn, items: grnItemRows };
     }));
 
@@ -148,7 +148,7 @@ class PurchaseOrderRepository {
     return { po, items: updatedItemRows, site_details, grns };
   }
 
-  async getItemHistory(connection, itemId) {
+  async getItemHistory(dbPool, itemId) {
     const q = `
       SELECT po.purchaseorder_id as po_number, pod.inward_date as generated_date, 
              v.name as supplier, pod.item_qty as quantity, 
@@ -156,11 +156,11 @@ class PurchaseOrderRepository {
       FROM st_purchaseorderDetails pod
       JOIN st_purchaseorder po ON pod.poprimary_id = po.id
       LEFT JOIN vendors v ON po.vendor_id = v.id
-      WHERE pod.item_id = ?
+      WHERE pod.item_id = :itemId
       ORDER BY pod.inward_date DESC, pod.id DESC
       LIMIT 25
     `;
-    const [rows] = await connection.execute(q, [itemId]);
+    const rows = await dbPool.query(q, { replacements: { itemId }, type: QueryTypes.SELECT });
     
     // Remove revised POs (duplicate po_number)
     const uniquePOs = [];
@@ -177,28 +177,28 @@ class PurchaseOrderRepository {
 
   async listPurchaseOrders(dbPool, filters, offset, limit) {
     let whereClauses = [];
-    let queryParams = [];
+    let queryParams = {};
 
     if (filters.po_number) {
-      whereClauses.push('po.purchaseorder_id LIKE ?');
-      queryParams.push(`%${filters.po_number}%`);
+      whereClauses.push('po.purchaseorder_id LIKE :po_number');
+      queryParams.po_number = `%${filters.po_number}%`;
     }
     if (filters.vendor_name) {
-      whereClauses.push('v.name LIKE ?');
-      queryParams.push(`%${filters.vendor_name}%`);
+      whereClauses.push('v.name LIKE :vendor_name');
+      queryParams.vendor_name = `%${filters.vendor_name}%`;
     }
     if (filters.datefrom && filters.dateto) {
-      whereClauses.push('DATE(po.added_time) BETWEEN ? AND ?');
-      queryParams.push(filters.datefrom, filters.dateto);
+      whereClauses.push('DATE(po.added_time) BETWEEN :datefrom AND :dateto');
+      queryParams.datefrom = filters.datefrom;
+      queryParams.dateto = filters.dateto;
     }
     if (filters.status) {
-      whereClauses.push('po.postatus = ?');
-      queryParams.push(filters.status); // O, C, etc.
+      whereClauses.push('po.postatus = :status');
+      queryParams.status = filters.status;
     }
 
     const whereString = whereClauses.length ? 'WHERE ' + whereClauses.join(' AND ') : '';
     
-    // For 'Received Qty', we sum the delivery note qty
     const query = `
       SELECT 
         po.id,
@@ -220,93 +220,102 @@ class PurchaseOrderRepository {
       LEFT JOIN vendors v ON po.vendor_id = v.id
       ${whereString}
       ORDER BY po.id DESC
-      LIMIT ${Number(limit) || 10} OFFSET ${Number(offset) || 0}
+      LIMIT :limit OFFSET :offset
     `;
 
+    queryParams.limit = Number(limit) || 10;
+    queryParams.offset = Number(offset) || 0;
     
-    const [rows] = await dbPool.execute(query, queryParams);
+    const rows = await dbPool.query(query, { replacements: queryParams, type: QueryTypes.SELECT });
     return rows;
   }
 
   async countPurchaseOrders(dbPool, filters) {
     let whereClauses = [];
-    let queryParams = [];
+    let queryParams = {};
 
     if (filters.po_number) {
-      whereClauses.push('po.purchaseorder_id LIKE ?');
-      queryParams.push(`%${filters.po_number}%`);
+      whereClauses.push('po.purchaseorder_id LIKE :po_number');
+      queryParams.po_number = `%${filters.po_number}%`;
     }
     if (filters.vendor_name) {
-      whereClauses.push('v.name LIKE ?');
-      queryParams.push(`%${filters.vendor_name}%`);
+      whereClauses.push('v.name LIKE :vendor_name');
+      queryParams.vendor_name = `%${filters.vendor_name}%`;
     }
     if (filters.datefrom && filters.dateto) {
-      whereClauses.push('DATE(po.added_time) BETWEEN ? AND ?');
-      queryParams.push(filters.datefrom, filters.dateto);
+      whereClauses.push('DATE(po.added_time) BETWEEN :datefrom AND :dateto');
+      queryParams.datefrom = filters.datefrom;
+      queryParams.dateto = filters.dateto;
     }
     if (filters.status) {
-      whereClauses.push('po.postatus = ?');
-      queryParams.push(filters.status);
+      whereClauses.push('po.postatus = :status');
+      queryParams.status = filters.status;
     }
 
     const whereString = whereClauses.length ? 'WHERE ' + whereClauses.join(' AND ') : '';
     const query = `SELECT COUNT(*) as total FROM st_purchaseorder po LEFT JOIN vendors v ON po.vendor_id = v.id ${whereString}`;
     
-    const [rows] = await dbPool.execute(query, queryParams);
+    const rows = await dbPool.query(query, { replacements: queryParams, type: QueryTypes.SELECT });
     return rows[0].total;
   }
 
-  async updatePurchaseOrder(connection, id, poData) {
+  async updatePurchaseOrder(dbPool, id, poData, transaction) {
     const query = `
       UPDATE st_purchaseorder
       SET 
-        vendor_id = ?,
-        delivery_date = ?,
-        remarks = ?,
-        total_qty = ?,
-        total_amt = ?,
+        vendor_id = :vendor_id,
+        delivery_date = :delivery_date,
+        remarks = :remarks,
+        total_qty = :total_qty,
+        total_amt = :total_amt,
         is_revised = COALESCE(is_revised, 0) + 1,
         revised_date = CURRENT_TIMESTAMP
-      WHERE id = ?
+      WHERE id = :id
     `;
-    const params = [
-      poData.vendor_id,
-      poData.delivery_date || null,
-      poData.remarks || null,
-      poData.total_qty || 0,
-      poData.total_amt || 0,
+    const params = {
+      vendor_id: poData.vendor_id,
+      delivery_date: poData.delivery_date || null,
+      remarks: poData.remarks || null,
+      total_qty: poData.total_qty || 0,
+      total_amt: poData.total_amt || 0,
       id
-    ];
-    await connection.execute(query, params);
+    };
+    await dbPool.query(query, { replacements: params, type: QueryTypes.UPDATE, transaction });
   }
 
-  async updatePurchaseOrderItems(connection, poprimary_id, po_number, items) {
+  async updatePurchaseOrderItems(dbPool, poprimary_id, po_number, items, transaction) {
     // Delete existing items
-    await connection.execute(`DELETE FROM st_purchaseorderDetails WHERE poprimary_id = ?`, [poprimary_id]);
+    await dbPool.query(`DELETE FROM st_purchaseorderDetails WHERE poprimary_id = :poprimary_id`, {
+      replacements: { poprimary_id }, type: QueryTypes.DELETE, transaction
+    });
 
     // Insert new ones
     for (const item of items) {
       const query = `
         INSERT INTO st_purchaseorderDetails 
         (purchaseorder_id, poprimary_id, item_id, tax_id, item_amt, item_qty, item_base_price, tax_percentage, item_tax_amt, item_total_amount)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (:po_number, :poprimary_id, :item_id, :tax_id, :item_amt, :item_qty, :item_base_price, :tax_percentage, :item_tax_amt, :item_total_amount)
       `;
-      await connection.execute(query, [
-        po_number,
-        poprimary_id,
-        item.item_id,
-        item.tax_id || null,
-        item.item_amt || 0,
-        item.item_qty || 0,
-        item.item_base_price || 0,
-        item.tax_percentage || 0,
-        item.item_tax_amt || 0,
-        item.item_total_amount || 0
-      ]);
+      await dbPool.query(query, {
+        replacements: {
+          po_number,
+          poprimary_id,
+          item_id: item.item_id,
+          tax_id: item.tax_id || null,
+          item_amt: item.item_amt || 0,
+          item_qty: item.item_qty || 0,
+          item_base_price: item.item_base_price || 0,
+          tax_percentage: item.tax_percentage || 0,
+          item_tax_amt: item.item_tax_amt || 0,
+          item_total_amount: item.item_total_amount || 0
+        },
+        type: QueryTypes.INSERT,
+        transaction
+      });
     }
   }
 
-  async addDeliveryNote(connection, poprimary_id, po_number, vendor_id, items, remarks) {
+  async addDeliveryNote(dbPool, poprimary_id, po_number, vendor_id, items, remarks, transaction) {
     for (const item of items) {
       // If received_qty > 0
       if (item.received_qty > 0) {
@@ -316,24 +325,28 @@ class PurchaseOrderRepository {
         const query = `
           INSERT INTO po_delivery_note 
           (po_id, poprimary_id, vendor_id, item_id, item_qty, delivery_date, delivery_note)
-          VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+          VALUES (:po_number, :poprimary_id, :vendor_id, :item_id, :item_qty, CURRENT_TIMESTAMP, :delivery_note)
         `;
-        await connection.execute(query, [
-          po_number,
-          poprimary_id,
-          vendor_id,
-          item.item_id,
-          item.received_qty,
-          finalNote
-        ]);
+        await dbPool.query(query, {
+          replacements: {
+            po_number,
+            poprimary_id,
+            vendor_id,
+            item_id: item.item_id,
+            item_qty: item.received_qty,
+            delivery_note: finalNote
+          },
+          type: QueryTypes.INSERT,
+          transaction
+        });
       }
     }
   }
 
-  async deletePurchaseOrder(connection, id) {
-    await connection.execute('DELETE FROM st_purchaseorderDetails WHERE poprimary_id = ?', [id]);
-    await connection.execute('DELETE FROM po_delivery_note WHERE poprimary_id = ?', [id]);
-    await connection.execute('DELETE FROM st_purchaseorder WHERE id = ?', [id]);
+  async deletePurchaseOrder(dbPool, id, transaction) {
+    await dbPool.query('DELETE FROM st_purchaseorderDetails WHERE poprimary_id = :id', { replacements: { id }, type: QueryTypes.DELETE, transaction });
+    await dbPool.query('DELETE FROM po_delivery_note WHERE poprimary_id = :id', { replacements: { id }, type: QueryTypes.DELETE, transaction });
+    await dbPool.query('DELETE FROM st_purchaseorder WHERE id = :id', { replacements: { id }, type: QueryTypes.DELETE, transaction });
   }
 
   async getNextPoNumber(dbPool) {
@@ -344,10 +357,10 @@ class PurchaseOrderRepository {
     const query = `
       SELECT purchaseorder_id 
       FROM st_purchaseorder 
-      WHERE DATE(added_time) >= ? AND is_revised = '0' 
+      WHERE DATE(added_time) >= :financialYearStart AND is_revised = '0' 
       ORDER BY id DESC LIMIT 1
     `;
-    const [rows] = await dbPool.execute(query, [financialYearStart]);
+    const rows = await dbPool.query(query, { replacements: { financialYearStart }, type: QueryTypes.SELECT });
     
     if (rows.length > 0 && rows[0].purchaseorder_id) {
       const po_id = rows[0].purchaseorder_id.split('-');
@@ -362,37 +375,39 @@ class PurchaseOrderRepository {
     return `${yrStart}${yrEnd}-1`;
   }
 
-  async createPurchaseOrder(connection, poData, items) {
+  async createPurchaseOrder(dbPool, poData, items, transaction) {
     // 1. Insert into st_purchaseorder
     const poQuery = `
       INSERT INTO st_purchaseorder (
         purchaseorder_id, vendor_id, vendorshipaddress, delivery_date, freight, 
         payment_terms, transit_insurance, remark, payment_term, total_qty, total_tax, total_amt, 
         added_time, revised_date, issue_vendor, postatus, is_revised
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (:purchaseorder_id, :vendor_id, :vendorshipaddress, :delivery_date, :freight, 
+        :payment_terms, :transit_insurance, :remark, :payment_term, :total_qty, :total_tax, :total_amt, 
+        :added_time, :revised_date, :issue_vendor, :postatus, :is_revised)
     `;
-    const poParams = [
-      poData.purchaseorder_id,
-      poData.vendor_id,
-      poData.vendorshipaddress || '',
-      poData.delivery_date || new Date(),
-      poData.freight || '',
-      poData.payment_terms || '',
-      poData.transit_insurance || '',
-      poData.remark || '',
-      poData.payment_term || '',
-      poData.total_qty || 0,
-      poData.total_tax || 0,
-      poData.total_amt || 0,
-      poData.added_time || new Date(),
-      poData.added_time || new Date(), // revised_date initialized same as added
-      poData.issue_vendor || 'N',
-      poData.postatus || 'O',
-      0 // is_revised
-    ];
+    const poParams = {
+      purchaseorder_id: poData.purchaseorder_id,
+      vendor_id: poData.vendor_id,
+      vendorshipaddress: poData.vendorshipaddress || '',
+      delivery_date: poData.delivery_date || new Date(),
+      freight: poData.freight || '',
+      payment_terms: poData.payment_terms || '',
+      transit_insurance: poData.transit_insurance || '',
+      remark: poData.remark || '',
+      payment_term: poData.payment_term || '',
+      total_qty: poData.total_qty || 0,
+      total_tax: poData.total_tax || 0,
+      total_amt: poData.total_amt || 0,
+      added_time: poData.added_time || new Date(),
+      revised_date: poData.added_time || new Date(), // revised_date initialized same as added
+      issue_vendor: poData.issue_vendor || 'N',
+      postatus: poData.postatus || 'O',
+      is_revised: 0
+    };
     
-    const [poResult] = await connection.execute(poQuery, poParams);
-    const poprimary_id = poResult.insertId;
+    const poResult = await dbPool.query(poQuery, { replacements: poParams, type: QueryTypes.INSERT, transaction });
+    const poprimary_id = poResult[0];
 
     // 2. Insert into st_purchaseorderDetails
     for (const item of items) {
@@ -400,26 +415,27 @@ class PurchaseOrderRepository {
         INSERT INTO st_purchaseorderDetails (
           purchaseorder_id, poprimary_id, item_id, tax_id, item_amt, item_qty, item_base_price, 
           tax_percentage, item_tax_amt, item_total_amount, uom, weight, volume, inward_date, revised_date
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (:purchaseorder_id, :poprimary_id, :item_id, :tax_id, :item_amt, :item_qty, :item_base_price, 
+          :tax_percentage, :item_tax_amt, :item_total_amount, :uom, :weight, :volume, :inward_date, :revised_date)
       `;
-      const itemParams = [
-        poData.purchaseorder_id,
+      const itemParams = {
+        purchaseorder_id: poData.purchaseorder_id,
         poprimary_id,
-        item.item_id,
-        item.tax_id || null,
-        item.item_amt || 0,
-        item.item_qty || 0,
-        item.item_base_price || 0,
-        item.tax_percentage || 0,
-        item.item_tax_amt || 0,
-        item.item_total_amount || 0,
-        item.uom || '',
-        item.weight || '',
-        item.volume || '',
-        poData.added_time || new Date(),
-        poData.added_time || new Date()
-      ];
-      await connection.execute(itemQuery, itemParams);
+        item_id: item.item_id,
+        tax_id: item.tax_id || null,
+        item_amt: item.item_amt || 0,
+        item_qty: item.item_qty || 0,
+        item_base_price: item.item_base_price || 0,
+        tax_percentage: item.tax_percentage || 0,
+        item_tax_amt: item.item_tax_amt || 0,
+        item_total_amount: item.item_total_amount || 0,
+        uom: item.uom || '',
+        weight: item.weight || '',
+        volume: item.volume || '',
+        inward_date: poData.added_time || new Date(),
+        revised_date: poData.added_time || new Date()
+      };
+      await dbPool.query(itemQuery, { replacements: itemParams, type: QueryTypes.INSERT, transaction });
     }
     
     return { poprimary_id, purchaseorder_id: poData.purchaseorder_id };

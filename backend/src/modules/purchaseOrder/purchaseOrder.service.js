@@ -36,60 +36,45 @@ class PurchaseOrderService {
   }
 
   async revisePurchaseOrder(dbPool, id, poData) {
-    let connection;
+    const transaction = await dbPool.transaction();
     try {
-      connection = await dbPool.getConnection();
-      await connection.beginTransaction();
-
-      await purchaseOrderRepository.updatePurchaseOrder(connection, id, poData.po);
+      await purchaseOrderRepository.updatePurchaseOrder(dbPool, id, poData.po, transaction);
       if (poData.items && poData.items.length > 0) {
-        await purchaseOrderRepository.updatePurchaseOrderItems(connection, id, poData.po.po_number, poData.items);
+        await purchaseOrderRepository.updatePurchaseOrderItems(dbPool, id, poData.po.po_number, poData.items, transaction);
       }
 
-      await connection.commit();
+      await transaction.commit();
       return { success: true };
     } catch (error) {
-      if (connection) await connection.rollback();
+      await transaction.rollback();
       throw error;
-    } finally {
-      if (connection) connection.release();
     }
   }
 
   async addDeliveryNote(dbPool, id, data) {
-    let connection;
+    const transaction = await dbPool.transaction();
     try {
-      connection = await dbPool.getConnection();
-      await connection.beginTransaction();
-
       const { po_number, vendor_id, items, remarks } = data;
-      await purchaseOrderRepository.addDeliveryNote(connection, id, po_number, vendor_id, items, remarks);
+      await purchaseOrderRepository.addDeliveryNote(dbPool, id, po_number, vendor_id, items, remarks, transaction);
 
-      await connection.commit();
+      await transaction.commit();
       return { success: true };
     } catch (error) {
-      if (connection) await connection.rollback();
+      await transaction.rollback();
       throw error;
-    } finally {
-      if (connection) connection.release();
     }
   }
 
   async deletePurchaseOrder(dbPool, id) {
-    let connection;
+    const transaction = await dbPool.transaction();
     try {
-      connection = await dbPool.getConnection();
-      await connection.beginTransaction();
+      await purchaseOrderRepository.deletePurchaseOrder(dbPool, id, transaction);
 
-      await purchaseOrderRepository.deletePurchaseOrder(connection, id);
-
-      await connection.commit();
+      await transaction.commit();
       return { success: true };
     } catch (error) {
-      if (connection) await connection.rollback();
+      await transaction.rollback();
       throw error;
-    } finally {
-      if (connection) connection.release();
     }
   }
 
@@ -98,25 +83,19 @@ class PurchaseOrderService {
   }
 
   async createPurchaseOrder(dbPool, poData, items) {
-    let connection;
+    const transaction = await dbPool.transaction();
     try {
-      connection = await dbPool.getConnection();
-      await connection.beginTransaction();
-
-      // Ensure a purchaseorder_id exists, otherwise generate one
       if (!poData.purchaseorder_id) {
         poData.purchaseorder_id = await purchaseOrderRepository.getNextPoNumber(dbPool);
       }
 
-      const result = await purchaseOrderRepository.createPurchaseOrder(connection, poData, items);
+      const result = await purchaseOrderRepository.createPurchaseOrder(dbPool, poData, items, transaction);
 
-      await connection.commit();
+      await transaction.commit();
       return { success: true, data: result };
     } catch (error) {
-      if (connection) await connection.rollback();
+      await transaction.rollback();
       throw error;
-    } finally {
-      if (connection) connection.release();
     }
   }
 }

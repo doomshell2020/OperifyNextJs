@@ -1,3 +1,5 @@
+const { QueryTypes } = require('sequelize');
+
 class PaymentRepository {
   async findFiltered(dbPool, filters = {}) {
     let query = `
@@ -9,41 +11,40 @@ class PaymentRepository {
       LEFT JOIN vendors v ON p.vendor_id = v.id
       WHERE 1=1
     `;
-    const params = [];
+    const params = {};
 
     if (filters.vendor_id) {
-      query += ` AND p.vendor_id = ?`;
-      params.push(filters.vendor_id);
+      query += ` AND p.vendor_id = :vendor_id`;
+      params.vendor_id = filters.vendor_id;
     }
     if (filters.bill_no) {
-      query += ` AND p.bill_no LIKE ?`;
-      params.push(`%${filters.bill_no}%`);
+      query += ` AND p.bill_no LIKE :bill_no`;
+      params.bill_no = `%${filters.bill_no}%`;
     }
     if (filters.status) {
-      query += ` AND p.status = ?`;
-      params.push(filters.status);
+      query += ` AND p.status = :status`;
+      params.status = filters.status;
     }
     if (filters.datefrom) {
-      query += ` AND DATE(p.inwarddate) >= ?`;
-      params.push(filters.datefrom);
+      query += ` AND DATE(p.inwarddate) >= :datefrom`;
+      params.datefrom = filters.datefrom;
     }
     if (filters.dateto) {
-      query += ` AND DATE(p.inwarddate) <= ?`;
-      params.push(filters.dateto);
+      query += ` AND DATE(p.inwarddate) <= :dateto`;
+      params.dateto = filters.dateto;
     }
 
     query += ` ORDER BY p.id DESC`;
-    const [rows] = await dbPool.execute(query, params);
-    return rows;
+    return await dbPool.query(query, { replacements: params, type: QueryTypes.SELECT });
   }
 
   async findById(dbPool, id) {
-    const [rows] = await dbPool.execute(
+    const rows = await dbPool.query(
       `SELECT p.*, v.name as vendor_name, v.contact_no, v.email, v.gst_number, v.address
        FROM payments p
        LEFT JOIN vendors v ON p.vendor_id = v.id
-       WHERE p.id = ? LIMIT 1`,
-      [id]
+       WHERE p.id = :id LIMIT 1`,
+      { replacements: { id }, type: QueryTypes.SELECT }
     );
     return rows[0] || null;
   }
@@ -55,35 +56,34 @@ class PaymentRepository {
       FROM particular_payments
       WHERE 1=1
     `;
-    const params = [];
+    const params = {};
 
     if (filters.po_no) {
-      query += ` AND po_no LIKE ?`;
-      params.push(`%${filters.po_no}%`);
+      query += ` AND po_no LIKE :po_no`;
+      params.po_no = `%${filters.po_no}%`;
     }
     if (filters.status) {
-      query += ` AND status = ?`;
-      params.push(filters.status);
+      query += ` AND status = :status`;
+      params.status = filters.status;
     }
     if (filters.datefrom) {
-      query += ` AND DATE(datefrom) >= ?`;
-      params.push(filters.datefrom);
+      query += ` AND DATE(datefrom) >= :datefrom`;
+      params.datefrom = filters.datefrom;
     }
     if (filters.dateto) {
-      query += ` AND DATE(datefrom) <= ?`;
-      params.push(filters.dateto);
+      query += ` AND DATE(datefrom) <= :dateto`;
+      params.dateto = filters.dateto;
     }
 
     query += ` ORDER BY id DESC`;
-    const [rows] = await dbPool.execute(query, params);
-    return rows;
+    return await dbPool.query(query, { replacements: params, type: QueryTypes.SELECT });
   }
 
   async getVendors(dbPool) {
-    const [rows] = await dbPool.execute(
-      `SELECT id, name FROM vendors WHERE status = 'Y' ORDER BY name ASC`
+    return await dbPool.query(
+      `SELECT id, name FROM vendors WHERE status = 'Y' ORDER BY name ASC`,
+      { type: QueryTypes.SELECT }
     );
-    return rows;
   }
 }
 

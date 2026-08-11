@@ -1,3 +1,5 @@
+const { QueryTypes } = require('sequelize');
+
 class GrnRepository {
   async getList(dbPool, { offset, limit, po_id, vendor_id, from_date, to_date }) {
     let query = `
@@ -15,42 +17,33 @@ class GrnRepository {
       LEFT JOIN vendors v ON grn.vendor_id = v.id
       WHERE 1=1
     `;
-    const params = [];
+    const params = {};
 
     if (po_id) {
-      query += ` AND grn.purchaseorder_id LIKE ?`;
-      params.push(`%${po_id}%`);
+      query += ` AND grn.purchaseorder_id LIKE :po_id`;
+      params.po_id = `%${po_id}%`;
     }
     if (vendor_id) {
-      query += ` AND grn.vendor_id = ?`;
-      params.push(vendor_id);
+      query += ` AND grn.vendor_id = :vendor_id`;
+      params.vendor_id = vendor_id;
     }
     if (from_date) {
-      query += ` AND grn.inwarddate >= ?`;
-      params.push(from_date);
+      query += ` AND grn.inwarddate >= :from_date`;
+      params.from_date = from_date;
     }
     if (to_date) {
-      query += ` AND grn.inwarddate <= ?`;
-      params.push(to_date);
+      query += ` AND grn.inwarddate <= :to_date`;
+      params.to_date = to_date;
     }
 
-    query += ` ORDER BY grn.id DESC LIMIT ? OFFSET ?`;
+    let countQuery = query.replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as total FROM');
+    const countRows = await dbPool.query(countQuery, { replacements: params, type: QueryTypes.SELECT });
+
+    query += ` ORDER BY grn.id DESC LIMIT :limit OFFSET :offset`;
+    params.limit = parseInt(limit);
+    params.offset = parseInt(offset);
     
-    // Convert limit and offset to numbers for MySQL
-    const [rows] = await dbPool.execute(query, [...params, limit.toString(), offset.toString()]);
-    
-    // Count query
-    let countQuery = `
-      SELECT COUNT(*) as total 
-      FROM st_goodsreceive grn 
-      WHERE 1=1
-    `;
-    if (po_id) countQuery += ` AND grn.purchaseorder_id LIKE '%${po_id}%'`;
-    if (vendor_id) countQuery += ` AND grn.vendor_id = '${vendor_id}'`;
-    if (from_date) countQuery += ` AND grn.inwarddate >= '${from_date}'`;
-    if (to_date) countQuery += ` AND grn.inwarddate <= '${to_date}'`;
-    
-    const [countRows] = await dbPool.execute(countQuery);
+    const rows = await dbPool.query(query, { replacements: params, type: QueryTypes.SELECT });
     
     return {
       data: rows,
@@ -67,11 +60,11 @@ class GrnRepository {
       FROM grn_inspection ins
       LEFT JOIN st_purchaseorder po ON ins.po_id = po.purchaseorder_id
       LEFT JOIN vendors v ON ins.vendor_id = v.id
-      WHERE ins.inspection_id = ? AND ins.status = 'Y'
+      WHERE ins.inspection_id = :inspectionId AND ins.status = 'Y'
       ORDER BY po.id DESC
       LIMIT 1
     `;
-    const [rows] = await dbPool.execute(query, [inspectionId]);
+    const rows = await dbPool.query(query, { replacements: { inspectionId }, type: QueryTypes.SELECT });
     return rows[0] || null;
   }
 
@@ -85,10 +78,9 @@ class GrnRepository {
       FROM grn_inspection_details gd
       LEFT JOIN st_additem i ON gd.item_id = i.id
       LEFT JOIN st_measurementunits u ON i.uom = u.id
-      WHERE gd.inspection_id = ?
+      WHERE gd.inspection_id = :inspectionId
     `;
-    const [rows] = await dbPool.execute(query, [inspectionId]);
-    return rows;
+    return await dbPool.query(query, { replacements: { inspectionId }, type: QueryTypes.SELECT });
   }
 
   async getGrnDetails(dbPool, id) {
@@ -99,9 +91,9 @@ class GrnRepository {
         v.gst_number as vendor_gstin
       FROM st_goodsreceive grn
       LEFT JOIN vendors v ON grn.vendor_id = v.id
-      WHERE grn.id = ?
+      WHERE grn.id = :id
     `;
-    const [rows] = await dbPool.execute(query, [id]);
+    const rows = await dbPool.query(query, { replacements: { id }, type: QueryTypes.SELECT });
     return rows[0] || null;
   }
 
@@ -114,11 +106,11 @@ class GrnRepository {
       FROM st_stock_register sr
       LEFT JOIN st_additem i ON sr.item_id = i.id
       LEFT JOIN st_measurementunits u ON i.uom = u.id
-      WHERE sr.goods_id = ? AND sr.store_type = '1'
+      WHERE sr.goods_id = :goodsId AND sr.store_type = '1'
     `;
-    const [rows] = await dbPool.execute(query, [goodsId]);
-    return rows;
+    return await dbPool.query(query, { replacements: { goodsId }, type: QueryTypes.SELECT });
   }
+
   async exportGrns(dbPool, filters) {
     const { po_id, vendor_id, from_date, to_date } = filters;
     
@@ -150,29 +142,28 @@ class GrnRepository {
       LEFT JOIN po_delivery_note dn ON dn.po_id = grn.purchaseorder_id AND dn.id = sr.delivery_schedule_id
       WHERE 1=1
     `;
-    const params = [];
+    const params = {};
 
     if (po_id) {
-      query += ` AND grn.purchaseorder_id LIKE ?`;
-      params.push(`%${po_id}%`);
+      query += ` AND grn.purchaseorder_id LIKE :po_id`;
+      params.po_id = `%${po_id}%`;
     }
     if (vendor_id) {
-      query += ` AND grn.vendor_id = ?`;
-      params.push(vendor_id);
+      query += ` AND grn.vendor_id = :vendor_id`;
+      params.vendor_id = vendor_id;
     }
     if (from_date) {
-      query += ` AND grn.inwarddate >= ?`;
-      params.push(from_date);
+      query += ` AND grn.inwarddate >= :from_date`;
+      params.from_date = from_date;
     }
     if (to_date) {
-      query += ` AND grn.inwarddate <= ?`;
-      params.push(to_date);
+      query += ` AND grn.inwarddate <= :to_date`;
+      params.to_date = to_date;
     }
 
     query += ` ORDER BY grn.id DESC`;
     
-    const [rows] = await dbPool.execute(query, params);
-    return rows;
+    return await dbPool.query(query, { replacements: params, type: QueryTypes.SELECT });
   }
 }
 

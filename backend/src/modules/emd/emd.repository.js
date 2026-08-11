@@ -1,4 +1,4 @@
-const db = require('../../config/db');
+const { QueryTypes } = require('sequelize');
 
 class EmdRepository {
   async findFiltered(dbPool, filters = {}) {
@@ -11,72 +11,71 @@ class EmdRepository {
       FROM emd_guarantees
       WHERE 1=1
     `;
-    const params = [];
+    const params = {};
 
     if (filters.bg_for) {
-      query += ` AND bg_for = ?`;
-      params.push(filters.bg_for);
+      query += ` AND bg_for = :bg_for`;
+      params.bg_for = filters.bg_for;
     }
     if (filters.bankguaranteeno) {
-      query += ` AND bankguaranteeno LIKE ?`;
-      params.push(`%${filters.bankguaranteeno}%`);
+      query += ` AND bankguaranteeno LIKE :bankguaranteeno`;
+      params.bankguaranteeno = `%${filters.bankguaranteeno}%`;
     }
     if (filters.status) {
-      query += ` AND status = ?`;
-      params.push(filters.status);
+      query += ` AND status = :status`;
+      params.status = filters.status;
     }
     if (filters.datefrom) {
-      query += ` AND DATE(datefrom) >= ?`;
-      params.push(filters.datefrom);
+      query += ` AND DATE(datefrom) >= :datefrom`;
+      params.datefrom = filters.datefrom;
     }
     if (filters.dateto) {
-      query += ` AND DATE(datefrom) <= ?`;
-      params.push(filters.dateto);
+      query += ` AND DATE(datefrom) <= :dateto`;
+      params.dateto = filters.dateto;
     }
     if (filters.due_from && filters.due_to) {
       query += ` AND (
-        (DATE(validupto) >= ? AND DATE(validupto) <= ?) OR
-        (DATE(claim_upto) >= ? AND DATE(claim_upto) <= ?) OR
-        (DATE(extenstionupto) >= ? AND DATE(extenstionupto) <= ?)
+        (DATE(validupto) >= :due_from AND DATE(validupto) <= :due_to) OR
+        (DATE(claim_upto) >= :due_from AND DATE(claim_upto) <= :due_to) OR
+        (DATE(extenstionupto) >= :due_from AND DATE(extenstionupto) <= :due_to)
       )`;
-      params.push(filters.due_from, filters.due_to, filters.due_from, filters.due_to, filters.due_from, filters.due_to);
+      params.due_from = filters.due_from;
+      params.due_to = filters.due_to;
     }
 
     query += ` ORDER BY id DESC`;
-    const [rows] = await dbPool.execute(query, params);
-    return rows;
+    return await dbPool.query(query, { replacements: params, type: QueryTypes.SELECT });
   }
 
   async findById(dbPool, id) {
-    const [rows] = await dbPool.execute(
-      `SELECT * FROM emd_guarantees WHERE id = ? LIMIT 1`,
-      [id]
-    );
-    return rows[0] || null;
+    const record = await dbPool.models.emd_guarantees.findOne({
+      where: { id },
+      raw: true
+    });
+    return record || null;
   }
 
   async findAmounts(dbPool, bankGuaranteeId) {
-    const [rows] = await dbPool.execute(
-      `SELECT * FROM emd_amount WHERE bank_guarantee_id = ? ORDER BY id DESC`,
-      [bankGuaranteeId]
-    );
-    return rows;
+    return await dbPool.models.emd_amount.findAll({
+      where: { bank_guarantee_id: bankGuaranteeId },
+      order: [['id', 'DESC']],
+      raw: true
+    });
   }
 
   async findRemarks(dbPool, bankGuaranteeId) {
-    const [rows] = await dbPool.execute(
-      `SELECT * FROM emd_remarks WHERE bank_guarantee_id = ? ORDER BY id DESC`,
-      [bankGuaranteeId]
-    );
-    return rows;
+    return await dbPool.models.emd_remarks.findAll({
+      where: { bank_guarantee_id: bankGuaranteeId },
+      order: [['id', 'DESC']],
+      raw: true
+    });
   }
 
   async getTotalReceived(dbPool, bankGuaranteeId) {
-    const [rows] = await dbPool.execute(
-      `SELECT COALESCE(SUM(recive_amount), 0) as total FROM emd_amount WHERE bank_guarantee_id = ?`,
-      [bankGuaranteeId]
-    );
-    return parseFloat(rows[0].total) || 0;
+    const total = await dbPool.models.emd_amount.sum('recive_amount', {
+      where: { bank_guarantee_id: bankGuaranteeId }
+    });
+    return parseFloat(total) || 0;
   }
 }
 

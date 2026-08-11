@@ -17,9 +17,9 @@ class IndentService {
     }
 
     // Get item price for amount calculation
-    const [itemRows] = await dbPool.execute(
-      'SELECT cost_price FROM st_additem WHERE id = ?',
-      [item_id]
+    const itemRows = await dbPool.query(
+      'SELECT cost_price FROM st_additem WHERE id = :item_id',
+      { replacements: { item_id }, type: require('sequelize').QueryTypes.SELECT }
     );
     const costPrice = itemRows[0]?.cost_price || 0;
     const amount = costPrice * quantity;

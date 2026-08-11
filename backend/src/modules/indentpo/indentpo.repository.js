@@ -1,10 +1,13 @@
+const { QueryTypes } = require('sequelize');
+
 class IndentpoRepository {
   /**
    * Get the next available indentpo ID (MAX + 1, starting at 1001)
    */
   async getNextIndentId(dbPool) {
-    const [rows] = await dbPool.execute(
-      'SELECT COALESCE(MAX(indent_id), 1000) + 1 AS next_id FROM indentpo'
+    const rows = await dbPool.query(
+      'SELECT COALESCE(MAX(indent_id), 1000) + 1 AS next_id FROM indentpo',
+      { type: QueryTypes.SELECT }
     );
     return rows[0].next_id;
   }
@@ -13,22 +16,21 @@ class IndentpoRepository {
    * Search active contracts by workorder or title
    */
   async searchContracts(dbPool, query) {
-    const [rows] = await dbPool.execute(
+    return await dbPool.query(
       `SELECT id, title, workorder 
        FROM contracts 
-       WHERE status = 'Y' AND (title LIKE ? OR workorder LIKE ?)
+       WHERE status = 'Y' AND (title LIKE :query OR workorder LIKE :query)
        ORDER BY title ASC
        LIMIT 20`,
-      [`%${query}%`, `%${query}%`]
+      { replacements: { query: `%${query}%` }, type: QueryTypes.SELECT }
     );
-    return rows;
   }
 
   /**
    * Fetch finished products for a given contract
    */
   async getContractProducts(dbPool, contractId) {
-    const [rows] = await dbPool.execute(
+    return await dbPool.query(
       `SELECT 
          bfp.id, 
          bfp.product_id, 
@@ -39,71 +41,65 @@ class IndentpoRepository {
        FROM bom_finisedproduct bfp
        JOIN st_additem a ON a.id = bfp.product_id
        LEFT JOIN st_measurementunits u ON u.id = a.uom
-       WHERE bfp.contract_id = ?`,
-      [contractId]
+       WHERE bfp.contract_id = :contractId`,
+      { replacements: { contractId }, type: QueryTypes.SELECT }
     );
-    return rows;
   }
 
   /**
    * Search active machines
    */
   async searchMachines(dbPool, query) {
-    const [rows] = await dbPool.execute(
+    return await dbPool.query(
       `SELECT id, machine_name 
        FROM machine_master 
-       WHERE status = 'Y' AND machine_name LIKE ?
+       WHERE status = 'Y' AND machine_name LIKE :query
        ORDER BY machine_name ASC
        LIMIT 20`,
-      [`%${query}%`]
+      { replacements: { query: `%${query}%` }, type: QueryTypes.SELECT }
     );
-    return rows;
   }
 
   /**
    * Get raw materials from design sheet and calculate pending & stock
    */
   async getDesignSheetDetails(dbPool, contractId, itemId) {
-    const [designSheet] = await dbPool.execute(
-      `SELECT designsheetno FROM designsheet WHERE contract_id = ? AND item_id = ? LIMIT 1`,
-      [contractId, itemId]
+    const designSheet = await dbPool.query(
+      `SELECT designsheetno FROM designsheet WHERE contract_id = :contractId AND item_id = :itemId LIMIT 1`,
+      { replacements: { contractId, itemId }, type: QueryTypes.SELECT }
     );
 
     if (designSheet.length === 0) return [];
 
     const sheetNo = designSheet[0].designsheetno;
 
-    const [details] = await dbPool.execute(
+    const details = await dbPool.query(
       `SELECT dsd.item_id, dsd.item_qty, dsd.is_group, a.item_name, a.category_id, u.unit_name
        FROM designsheetdetails dsd
        JOIN st_additem a ON a.id = dsd.item_id
        LEFT JOIN st_measurementunits u ON u.id = a.uom
-       WHERE dsd.designsheetno = ?
+       WHERE dsd.designsheetno = :sheetNo
        ORDER BY dsd.is_group ASC`,
-      [sheetNo]
+      { replacements: { sheetNo }, type: QueryTypes.SELECT }
     );
 
     const result = [];
     for (const row of details) {
-      // Pending quantity = design qty - already issued qty (store_type = 2 or 4) + returned (if applicable)
-      // Mirroring the old legacy logic. In CakePHP: rawitempendingqty
-      
-      const [issuedRows] = await dbPool.execute(
-        `SELECT ROUND(SUM(quantity), 2) as sum_qty FROM st_stock_register WHERE item_id = ? AND contract_id = ? AND finishedproduct_id = ? AND store_type = '2'`,
-        [row.item_id, contractId, itemId]
+      const issuedRows = await dbPool.query(
+        `SELECT ROUND(SUM(quantity), 2) as sum_qty FROM st_stock_register WHERE item_id = :item_id AND contract_id = :contractId AND finishedproduct_id = :itemId AND store_type = '2'`,
+        { replacements: { item_id: row.item_id, contractId, itemId }, type: QueryTypes.SELECT }
       );
       
       const issuedQty = issuedRows[0].sum_qty || 0;
       const pendingQty = Math.max(0, row.item_qty - issuedQty);
 
-      // Inhand stock = GRN (0,1,3) - Indent (2,4)
-      const [inhandRows] = await dbPool.execute(
+      const inhandRows = await dbPool.query(
         `SELECT 
            ROUND(SUM(CASE WHEN store_type IN ('0','1','3') THEN quantity ELSE 0 END), 2) as grn_qty,
            ROUND(SUM(CASE WHEN store_type IN ('2','4') THEN quantity ELSE 0 END), 2) as issued_stock_qty
          FROM st_stock_register 
-         WHERE item_id = ?`,
-        [row.item_id]
+         WHERE item_id = :item_id`,
+        { replacements: { item_id: row.item_id }, type: QueryTypes.SELECT }
       );
       
       const grn = inhandRows[0].grn_qty || 0;
@@ -112,7 +108,7 @@ class IndentpoRepository {
 
       let groupItems = [];
       if (row.is_group == 1) {
-        const [gItems] = await dbPool.execute(
+        const gItems = await dbPool.query(
           `SELECT 
              a.id, a.item_name,
              (
@@ -121,8 +117,8 @@ class IndentpoRepository {
                FROM st_stock_register sr WHERE sr.item_id = a.id
              ) as inhand_stock
            FROM st_additem a 
-           WHERE a.category_id = ? AND a.status = 'Y'`,
-          [row.category_id]
+           WHERE a.category_id = :category_id AND a.status = 'Y'`,
+          { replacements: { category_id: row.category_id }, type: QueryTypes.SELECT }
         );
         groupItems = gItems.map(g => ({
           ...g,
@@ -151,53 +147,55 @@ class IndentpoRepository {
    * Save IndentPO (Create Header + Details)
    */
   async saveIndentpo(dbPool, data, userId) {
-    const conn = await dbPool.getConnection();
+    const transaction = await dbPool.transaction();
     try {
-      await conn.beginTransaction();
-
-      // Insert Header
-      const [headerRes] = await conn.execute(
+      const headerRes = await dbPool.query(
         `INSERT INTO indentpo 
          (indent_id, contract_id, finishedproduct_id, machine_id, issued_name, issue_date, created, updated)
-         VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-        [
-          data.indent_id,
-          data.contract_id,
-          data.finishedproduct_id,
-          data.machine_id,
-          data.issued_name,
-          data.issue_date
-        ]
+         VALUES (:indent_id, :contract_id, :finishedproduct_id, :machine_id, :issued_name, :issue_date, NOW(), NOW())`,
+        {
+          replacements: {
+            indent_id: data.indent_id,
+            contract_id: data.contract_id,
+            finishedproduct_id: data.finishedproduct_id,
+            machine_id: data.machine_id,
+            issued_name: data.issued_name,
+            issue_date: data.issue_date
+          },
+          type: QueryTypes.INSERT,
+          transaction
+        }
       );
       
-      const poId = headerRes.insertId;
+      const poId = headerRes[0];
 
-      // Insert Details into st_stock_register (store_type = 2 for issue)
       for (const item of data.items) {
         if (item.issue_qty && Number(item.issue_qty) > 0) {
-          await conn.execute(
+          await dbPool.query(
             `INSERT INTO st_stock_register 
              (indent_id, contract_id, finishedproduct_id, item_id, quantity, issue_date, store_type, created, added_time)
-             VALUES (?, ?, ?, ?, ?, ?, '2', NOW(), NOW())`,
-            [
-              data.indent_id,
-              data.contract_id,
-              data.finishedproduct_id,
-              item.item_id,
-              Number(item.issue_qty),
-              data.issue_date
-            ]
+             VALUES (:indent_id, :contract_id, :finishedproduct_id, :item_id, :quantity, :issue_date, '2', NOW(), NOW())`,
+            {
+              replacements: {
+                indent_id: data.indent_id,
+                contract_id: data.contract_id,
+                finishedproduct_id: data.finishedproduct_id,
+                item_id: item.item_id,
+                quantity: Number(item.issue_qty),
+                issue_date: data.issue_date
+              },
+              type: QueryTypes.INSERT,
+              transaction
+            }
           );
         }
       }
 
-      await conn.commit();
+      await transaction.commit();
       return { id: poId, indent_id: data.indent_id };
     } catch (err) {
-      await conn.rollback();
+      await transaction.rollback();
       throw err;
-    } finally {
-      conn.release();
     }
   }
 
@@ -206,30 +204,30 @@ class IndentpoRepository {
    */
   async listIndentpo(dbPool, filters = {}) {
     let where = '1=1';
-    const params = [];
+    const params = {};
 
     if (filters.contract_id) {
-      where += ' AND i.contract_id = ?';
-      params.push(filters.contract_id);
+      where += ' AND i.contract_id = :contract_id';
+      params.contract_id = filters.contract_id;
     }
     if (filters.machine_id) {
-      where += ' AND i.machine_id = ?';
-      params.push(filters.machine_id);
+      where += ' AND i.machine_id = :machine_id';
+      params.machine_id = filters.machine_id;
     }
     if (filters.product_id) {
-      where += ' AND i.finishedproduct_id = ?';
-      params.push(filters.product_id);
+      where += ' AND i.finishedproduct_id = :product_id';
+      params.product_id = filters.product_id;
     }
     if (filters.date_from) {
-      where += ' AND DATE(i.issue_date) >= ?';
-      params.push(filters.date_from);
+      where += ' AND DATE(i.issue_date) >= :date_from';
+      params.date_from = filters.date_from;
     }
     if (filters.date_to) {
-      where += ' AND DATE(i.issue_date) <= ?';
-      params.push(filters.date_to);
+      where += ' AND DATE(i.issue_date) <= :date_to';
+      params.date_to = filters.date_to;
     }
 
-    const [rows] = await dbPool.execute(
+    return await dbPool.query(
       `SELECT 
          i.id, i.indent_id, i.issue_date, i.issued_name, i.created, i.contract_id,
          c.title as contract_name, c.workorder,
@@ -241,17 +239,15 @@ class IndentpoRepository {
        LEFT JOIN machine_master m ON m.id = i.machine_id
        WHERE ${where}
        ORDER BY i.id DESC`,
-      params
+      { replacements: params, type: QueryTypes.SELECT }
     );
-
-    return rows;
   }
 
   /**
    * Get single Indentpo detail (Header + Items)
    */
   async getIndentpoDetail(dbPool, indentId) {
-    const [header] = await dbPool.execute(
+    const header = await dbPool.query(
       `SELECT 
          i.id, i.indent_id, i.issue_date, i.issued_name, i.created,
          c.title as contract_name, c.workorder,
@@ -263,13 +259,13 @@ class IndentpoRepository {
        LEFT JOIN st_additem a ON a.id = i.finishedproduct_id
        LEFT JOIN machine_master m ON m.id = i.machine_id
        LEFT JOIN users u ON u.id = i.user_id
-       WHERE i.indent_id = ?`,
-      [indentId]
+       WHERE i.indent_id = :indentId`,
+      { replacements: { indentId }, type: QueryTypes.SELECT }
     );
 
     if (header.length === 0) return null;
 
-    const [items] = await dbPool.execute(
+    const items = await dbPool.query(
       `SELECT 
          sr.item_id, sr.quantity,
          a.item_name as raw_material_name,
@@ -277,8 +273,8 @@ class IndentpoRepository {
        FROM st_stock_register sr
        LEFT JOIN st_additem a ON a.id = sr.item_id
        LEFT JOIN st_measurementunits u ON u.id = a.uom
-       WHERE sr.indent_id = ? AND sr.store_type = '2'`,
-      [indentId]
+       WHERE sr.indent_id = :indentId AND sr.store_type = '2'`,
+      { replacements: { indentId }, type: QueryTypes.SELECT }
     );
 
     return { ...header[0], items };
