@@ -218,7 +218,7 @@ class GrnService {
         if (!dateObj) return 'N/A';
         const d = String(dateObj.getDate()).padStart(2, '0');
         const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const y = dateObj.getFullYear();
+        const y = String(dateObj.getFullYear()).slice(-2);
         return `${d}-${m}-${y}`;
       };
 

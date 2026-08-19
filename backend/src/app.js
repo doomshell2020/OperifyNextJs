@@ -20,6 +20,7 @@ const indentpoRoutes = require('./modules/indentpo/indentpo.routes');
 const designsheetRoutes = require('./modules/designsheet/designsheet.routes');
 const grnInspectionRoutes = require('./modules/grnInspection/grnInspection.routes');
 const grnRoutes = require('./modules/grn/grn.routes');
+const stockRegisterRoutes = require('./modules/stockRegister/stockRegister.routes');
 const tenantMiddleware = require('./middleware/tenant');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -57,6 +58,7 @@ app.use('/api/indentpo', indentpoRoutes);
 app.use('/api/designsheets', designsheetRoutes);
 app.use('/api/grn-inspection', grnInspectionRoutes);
 app.use('/api/grn', grnRoutes);
+app.use('/api/stock-register', stockRegisterRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
