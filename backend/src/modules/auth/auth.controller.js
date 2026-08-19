@@ -58,10 +58,10 @@ class AuthController {
       // req.user was attached by the authenticate middleware
       // We also need to fetch assigned companies to preserve them on page refresh
       const authRepository = require('./auth.repository');
-      const tenantUser = await authRepository.findTenantUserByMobile(req.user.mobile || '', req.user.db);
+      const centralUser = await authRepository.findCentralUserByMobile(req.user.mobile || '');
       let companies = [];
-      if (tenantUser) {
-        companies = await authRepository.getAssignedCompanies(tenantUser);
+      if (centralUser) {
+        companies = await authRepository.getAssignedCompanies(centralUser);
       }
 
       return res.status(200).json({

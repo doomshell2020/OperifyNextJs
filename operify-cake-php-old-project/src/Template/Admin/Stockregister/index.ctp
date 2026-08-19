@@ -48,6 +48,29 @@
       background-color: white !important;
       background: url("<?php echo SITE_URL; ?>images/Preloader_2.gif") no-repeat center center rgba(0, 0, 0, 0.75)
     }
+    
+    .dropdown-box {
+       position: relative;
+    }
+
+    .dropdown-input {
+       border: 1px solid #ced4da;
+       padding: 6px 10px;
+       cursor: pointer;
+       background: #fff;
+    }
+
+    .dropdown-list {
+       display: none;
+       position: absolute;
+       background: #fff;
+       border: 1px solid #ced4da;
+       width: 100%;
+       max-height: 220px;
+       overflow-y: auto;
+       z-index: 1000;
+       padding: 5px;
+    }
   </style>
   <!-- Main content -->
   <section class="content">
@@ -56,12 +79,39 @@
         <div class="box">
           <div class="box-header">
             <script>
+              function updateDateLimits() {
+                 var productId = $('#retail_ids').val();
+                 var minDate = $('#fdatefrom').datepicker('getDate');
+                 
+                 if (!minDate) return;
+                 
+                 if (productId === '') {
+                    // All products: restrict to single date
+                    $("#fendfrom").datepicker("option", "minDate", minDate);
+                    $("#fendfrom").datepicker("option", "maxDate", minDate);
+                    $("#fendfrom").datepicker("setDate", minDate);
+                    $("#fendfrom").prop('readonly', true);
+                 } else {
+                    // Product selected: max 31 days
+                    var maxDate = new Date(minDate.getTime());
+                    maxDate.setDate(maxDate.getDate() + 31);
+                    $("#fendfrom").datepicker("option", "minDate", minDate);
+                    $("#fendfrom").datepicker("option", "maxDate", maxDate);
+                    $("#fendfrom").prop('readonly', false);
+                    
+                    var currentEndDate = $("#fendfrom").datepicker('getDate');
+                    if (currentEndDate && (currentEndDate < minDate || currentEndDate > maxDate)) {
+                      $("#fendfrom").val("");
+                    }
+                 }
+              }
+
               function cllbckretail(id, cid, sid) {
                 $('.secrh-retail').val(id);
                 $('#retail_ids').val(cid);
                 $('#size').val(sid);
                 $('#testUL').hide();
-                //alert(cid);
+                updateDateLimits();
                 $.ajax({
                   type: 'POST',
                   url: '<?php echo ADMIN_URL; ?>indent/getitemdetail',
@@ -69,8 +119,6 @@
                     'fetch': cid
                   },
                   success: function(data) {
-                    console.log(data);
-                    //alert(data);
                     $('#unitna').val(data);
                   },
                 });
@@ -78,9 +126,13 @@
               $(function() {
                 $('.secrh-retail').bind('keyup', function() {
                   var pos = $(this).val();
+                  if (pos.trim() === '') {
+                     $('#retail_ids').val('');
+                     updateDateLimits();
+                  }
+                  
                   var check = 0;
                   $('#testUL').show();
-                  $('#retail_ids').val('');
                   var count = pos.length;
                   if (count > 0) {
                     $.ajax({
@@ -92,7 +144,6 @@
                       },
                       success: function(data) {
                         $('#testUL ul').html(data);
-
                       },
                     });
                   } else {
@@ -105,18 +156,22 @@
             <script inline="1">
               $(document).ready(function() {
                 $("#mysubscription").bind("submit", function(event) {
+                  event.preventDefault(); // Stop default form submit just in case
+
+                  var dateFrom = $("#fdatefrom").val();
+                  var dateTo = $("#fendfrom").val();
+                  
+                  if (dateFrom === '' || dateTo === '') {
+                      alert("Please select both Date From and Date To before searching.");
+                      return false;
+                  }
+
                   $.ajax({
                     async: true,
                     data: $("#mysubscription").serialize(),
                     dataType: "html",
                     type: "POST",
                     url: "<?php echo ADMIN_URL; ?>stockregister/searchstockregister",
-                    // beforeSend: function() {},
-                    // success: function(data) {
-                    //   $("#updt").html(data);
-                    // },
-                    // complete: function(data) {},
-
                     beforeSend: function(xhr) {
                       xhr.setRequestHeader('X-CSRF-Token', $('[name="_csrfToken"]').val());
                       $('#load2').css("display", "block"); // Show loader
@@ -124,16 +179,12 @@
                     success: function(data) {
                       $("#updt").html(data);
                     },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                      console.log(textStatus, errorThrown);
+                    },
                     complete: function() {
                       $('#load2').css("display", "none"); // Hide loader
-                    },
-                    error: function() {
-                      alert("An error occurred. Please try again.");
-                      $('#load2').css("display", "none"); // Hide loader on error
                     }
-
-
-
                   });
                   return false;
                 });
@@ -143,16 +194,95 @@
             <?php echo $this->Form->create('Fees', array('type' => 'file', 'inputDefaults' => array('div' => false, 'label' => false), 'id' => 'mysubscription', 'class' => 'form-horizontal', 'style' => 'margin-bottom:0px;')); ?>
             <div class="form-group" style="margin-bottom:0px;">
               <div class="row">
-                <div class="col-sm-3">
-                  <label for="inputEmail3" class="control-label">Product<strong style="color:red;">*</strong></label>
-                  <input type="hidden" required="required" name="item_id" id="retail_ids">
-                  <?php echo $this->Form->input('nitem', array('class' => 'form-control secrh-retail', 'id' => 'itemname', 'type' => 'text', 'label' => false, 'required', 'autofocus', 'autocomplete' => 'off', 'placeholder' => 'Enter Item Name')); ?>
+                <div class="col-sm-2">
+                  <label for="inputEmail3" class="control-label">Product</label>
+                  <input type="hidden" name="item_id" id="retail_ids">
+                  <?php echo $this->Form->input('nitem', array('class' => 'form-control secrh-retail', 'id' => 'itemname', 'type' => 'text', 'label' => false, 'autofocus', 'autocomplete' => 'off', 'placeholder' => 'Enter Item Name (Optional)')); ?>
                   <div id="testUL" style="display:none;">
                     <ul></ul>
                   </div>
                 </div>
 
-                <!-- <div class="col-sm-3"> -->
+                <div class="col-sm-3">
+                  <label class="control-label">Category (Optional)</label>
+
+                  <div class="dropdown-box" id="productDropdown">
+                    <div class="form-control" id="categoryDropdownText" style="cursor: pointer;" onclick="toggleProduct(event)">
+                      Select Category <i class="fa fa-caret-down pull-right" style="margin-top: 3px;"></i>
+                    </div>
+
+                    <div class="dropdown-list" id="productList">
+                      <label>
+                        <input type="checkbox" id="selectAllProducts">
+                        <strong>All Category</strong>
+                      </label><br>
+                      <hr style="margin:4px 0;">
+
+                      <?php 
+                      if (!empty($categories)) {
+                          foreach ($categories as $cat_id => $cat_name) {
+                              echo '<label><input type="checkbox" class="product-checkbox" name="category_id[]" value="'.$cat_id.'"> '.$cat_name.'</label><br>';
+                          }
+                      }
+                      ?>
+                    </div>
+                  </div>
+                </div>
+
+                <script>
+                  function toggleProduct(e) {
+                    e.stopPropagation();
+                    let box = document.getElementById('productList');
+                    box.style.display = box.style.display === 'block' ? 'none' : 'block';
+                  }
+
+                  function updateCategoryCount() {
+                    let checkboxes = document.querySelectorAll('.product-checkbox');
+                    let checkedCount = 0;
+                    checkboxes.forEach(cb => {
+                      if (cb.checked) checkedCount++;
+                    });
+                    
+                    let textElem = document.getElementById('categoryDropdownText');
+                    let caret = ' <i class="fa fa-caret-down pull-right" style="margin-top: 3px;"></i>';
+                    
+                    if (checkedCount === 0) {
+                      textElem.innerHTML = 'Select Category' + caret;
+                    } else if (checkedCount === checkboxes.length && checkboxes.length > 0) {
+                      textElem.innerHTML = 'All Selected' + caret;
+                    } else {
+                      textElem.innerHTML = checkedCount + ' Selected' + caret;
+                    }
+                  }
+
+                  document.getElementById('selectAllProducts').addEventListener('change', function() {
+                    let checked = this.checked;
+                    document.querySelectorAll('.product-checkbox')
+                      .forEach(cb => cb.checked = checked);
+                    updateCategoryCount();
+                  });
+                  
+                  document.querySelectorAll('.product-checkbox').forEach(cb => {
+                    cb.addEventListener('change', function() {
+                      // Optional: if one is unchecked, uncheck "All Category"
+                      if (!this.checked) {
+                        document.getElementById('selectAllProducts').checked = false;
+                      }
+                      updateCategoryCount();
+                    });
+                  });
+
+                  document.addEventListener('click', function(event) {
+                    let dropdown = document.getElementById('productDropdown');
+                    let list = document.getElementById('productList');
+                    if (dropdown && list) {
+                      if (!dropdown.contains(event.target)) {
+                        list.style.display = 'none';
+                      }
+                    }
+                  });
+                </script>
+
                 <script>
                   $(document).ready(function() {
                     $('#fdatefrom').datepicker({
@@ -160,42 +290,28 @@
                       yearRange: '2018:2030',
                       changeMonth: true,
                       changeYear: true,
-                      // onSelect: function(date) {
-                      //   var selectedDate = new Date(date);
-                      //   var endDate = new Date(selectedDate);
-                      //   endDate.setDate(endDate.getDate());
-                      //   $("#fendfrom").datepicker("option", "minDate", endDate);
-                      //   $("#fendfrom").val(date);
-                      // }
+                      onSelect: function(dateText, inst) {
+                         updateDateLimits();
+                      }
                     });
-                    // $('#fdatefrom').datepicker('setDate', 'today');
+                    
                     $('#fendfrom').datepicker({
                       dateFormat: 'dd-mm-yy',
                       yearRange: '2018:2030',
                       changeMonth: true,
                       changeYear: true,
                     });
-                    //  $('#fendfrom').datepicker('setDate', 'today');
                   });
                 </script>
-                <!-- <label for="inputEmail3" class="control-label">Date From <strong style="color:red;">*</strong></label>
-                  <?php echo $this->Form->input('datefrom', array('class' => 'form-control', 'id' => 'fdatefrom', 'readonly', 'placeholder' => 'Date From', 'label' => false)); ?> -->
-                <!-- </div> -->
-
-                <div class="col-sm-3">
+                
+                <div class="col-sm-2">
                   <label for="inputEmail3" class="control-label">Date From <strong style="color:red;">*</strong></label>
-                  <input type="date" name="datefrom" class="form-control" required placeholder="Date From">
+                  <input type="text" name="datefrom" class="form-control" id="fdatefrom" readonly required placeholder="Date From">
                 </div>
 
-                <!-- <div class="col-sm-3">
+                <div class="col-sm-2">
                   <label for="inputEmail3" class="control-label">Date To <strong style="color:red;">*</strong></label>
-                  <?php echo $this->Form->input('dateto', array('class' => 'form-control', 'id' => 'fendfrom', 'readonly', 'placeholder' => 'Date To', 'label' => false)); ?>
-                </div> -->
-
-
-                <div class="col-sm-3">
-                  <label for="inputEmail3" class="control-label">Date To <strong style="color:red;">*</strong></label>
-                  <input type="date" name="dateto" class="form-control" required placeholder="Date To">
+                  <input type="text" name="dateto" class="form-control" id="fendfrom" readonly required placeholder="Date To">
                 </div>
 
 

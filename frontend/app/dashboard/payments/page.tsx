@@ -7,10 +7,7 @@ import { format } from 'date-fns';
 import { DatePicker } from '../../../components/ui/DatePicker';
 import { formatDate } from '../../../utils/dateFormatter';
 
-function formatDate(d: string | null) {
-  if (!d) return '—';
-  try { return formatDate(d); } catch { return '—'; }
-}
+
 
 function formatAmt(n: number | null) {
   if (!n) return '—';

@@ -83,13 +83,13 @@ class AuthService {
     );
 
     const refreshToken = jwt.sign(
-      { id: tenantUser.id, db: tenantDbName },
+      { id: tenantUser.id, db: tenantDbName, mobile: centralUser.mobile },
       process.env.JWT_REFRESH_SECRET || 'super_secret_refresh_key',
       { expiresIn: '7d' }
     );
 
     // Get assigned companies
-    const assignedCompanies = await authRepository.getAssignedCompanies(tenantUser);
+    const assignedCompanies = await authRepository.getAssignedCompanies(centralUser);
 
     return {
       user: {
@@ -119,21 +119,21 @@ class AuthService {
         process.env.JWT_REFRESH_SECRET || 'super_secret_refresh_key'
       );
       
-      const tenantUser = await authRepository.findTenantUserByMobile(decoded.mobile || '', decoded.db);
-      if (!tenantUser) {
+      const centralUser = await authRepository.findCentralUserByMobile(decoded.mobile || '');
+      if (!centralUser) {
         throw new Error('User not found');
       }
 
       const tokenPayload = {
-        id: tenantUser.id,
-        user_name: tenantUser.user_name,
-        email: tenantUser.email,
-        mobile: tenantUser.mobile,
-        db: decoded.db,
-        role_id: tenantUser.role_id,
-        tech_id: tenantUser.tech_id || null,
-        c_id: tenantUser.c_id || null,
-        board: tenantUser.board || null
+        id: centralUser.id,
+        user_name: centralUser.user_name,
+        email: centralUser.email,
+        mobile: centralUser.mobile,
+        db: decoded.db, // Use the DB from the decoded refresh token
+        role_id: centralUser.role_id,
+        tech_id: centralUser.tech_id || null,
+        c_id: centralUser.c_id || null,
+        board: centralUser.board || null
       };
 
       const newAccessToken = jwt.sign(
@@ -143,7 +143,7 @@ class AuthService {
       );
 
       // Return both access token and updated user details so frontend can update its context
-      const assignedCompanies = await authRepository.getAssignedCompanies(tenantUser);
+      const assignedCompanies = await authRepository.getAssignedCompanies(centralUser);
 
       return { 
         accessToken: newAccessToken,
@@ -164,12 +164,12 @@ class AuthService {
    * Switch the active company/database.
    */
   async switchCompany(mobile, currentDb, newDb) {
-    const tenantUser = await authRepository.findTenantUserByMobile(mobile, currentDb);
-    if (!tenantUser) {
+    const centralUser = await authRepository.findCentralUserByMobile(mobile);
+    if (!centralUser) {
       throw this._createAuthError('User not found');
     }
 
-    const assignedCompanies = await authRepository.getAssignedCompanies(tenantUser);
+    const assignedCompanies = await authRepository.getAssignedCompanies(centralUser);
     const hasAccess = assignedCompanies.some(c => c.school_database === newDb);
     if (!hasAccess) {
       throw this._createAuthError('You do not have permission to access this company');
@@ -177,15 +177,15 @@ class AuthService {
 
     // New token payload with the new db
     const tokenPayload = {
-      id: tenantUser.id,
-      user_name: tenantUser.user_name || tenantUser.email,
-      email: tenantUser.email,
-      mobile: tenantUser.mobile,
+      id: centralUser.id,
+      user_name: centralUser.user_name || centralUser.email,
+      email: centralUser.email,
+      mobile: centralUser.mobile,
       db: newDb,
-      role_id: tenantUser.role_id,
-      tech_id: tenantUser.tech_id || null,
-      c_id: tenantUser.c_id || null,
-      board: tenantUser.board || null
+      role_id: centralUser.role_id,
+      tech_id: centralUser.tech_id || null,
+      c_id: centralUser.c_id || null,
+      board: centralUser.board || null
     };
 
     const accessToken = jwt.sign(
@@ -195,7 +195,7 @@ class AuthService {
     );
 
     const refreshToken = jwt.sign(
-      { id: tenantUser.id, db: newDb, mobile: tenantUser.mobile }, // ensure mobile is here for refresh
+      { id: centralUser.id, db: newDb, mobile: centralUser.mobile }, // ensure mobile is here for refresh
       process.env.JWT_REFRESH_SECRET || 'super_secret_refresh_key',
       { expiresIn: '7d' }
     );

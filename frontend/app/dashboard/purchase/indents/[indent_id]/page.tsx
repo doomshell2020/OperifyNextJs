@@ -10,10 +10,7 @@ import { formatDate } from '../../../../../utils/dateFormatter';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatDate(dateStr: string | null | undefined) {
-  if (!dateStr) return '—';
-  return formatDate(dateStr);
-}
+
 
 // ─── Print styles injected into head ─────────────────────────────────────────
 

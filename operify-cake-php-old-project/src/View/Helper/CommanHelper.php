@@ -353,9 +353,10 @@ class CommanHelper extends Helper
 
     function stockregisteropening2($date, $item_id)
     {
+        // pr($date).'<br>'; 
         $articles = TableRegistry::get('Stockregister');
-        $grnStock = $articles->find('all')->select(['sum' => 'ROUND(SUM(Stockregister.quantity), 2)'])->where(['Stockregister.item_id' => $item_id, 'Stockregister.created <' => $date, 'Stockregister.store_type IN' => ['0', '1', '3']])->first();
-        $indentStock = $articles->find('all')->select(['sum' => 'ROUND(SUM(Stockregister.quantity), 2)'])->where(['Stockregister.item_id' => $item_id, 'Stockregister.created <' => $date, 'Stockregister.store_type IN' => ['2', '4']])->first();
+        $grnStock = $articles->find('all')->select(['sum' => 'ROUND(SUM(Stockregister.quantity), 2)'])->where(['Stockregister.item_id' => $item_id, 'Stockregister.issue_date <' => $date, 'Stockregister.store_type IN' => ['0', '1', '3']])->first();
+        $indentStock = $articles->find('all')->select(['sum' => 'ROUND(SUM(Stockregister.quantity), 2)'])->where(['Stockregister.item_id' => $item_id, 'Stockregister.issue_date <' => $date, 'Stockregister.store_type IN' => ['2', '4']])->first();
         // pr($indentStock);die;
         return $currentStock = $grnStock['sum'] - $indentStock['sum'];
     }
@@ -370,7 +371,7 @@ class CommanHelper extends Helper
     public function stockregisteropeningrecivied($date, $item_id)
     {
         $articles = TableRegistry::get('Stockregister');
-        return $articles->find('all')->select(['sum' => $articles->find('all')->func()->sum('Stockregister.quantity')])->where(['DATE(Stockregister.created)' => $date, 'Stockregister.status !=' => 'N', 'Stockregister.item_id' => $item_id, 'Stockregister.store_type IN' => ['0', '1', '3']])->order(['Stockregister.id' => 'DESC'])->toarray();
+        return $articles->find('all')->select(['sum' => $articles->find('all')->func()->sum('Stockregister.quantity')])->where(['DATE(Stockregister.issue_date)' => $date, 'Stockregister.status !=' => 'N', 'Stockregister.item_id' => $item_id, 'Stockregister.store_type IN' => ['0', '1', '3']])->order(['Stockregister.id' => 'DESC'])->toarray();
     }
 
     public function stockregisteropeningdispatched($date, $item_id)

@@ -230,21 +230,21 @@ class UsersController extends AppController
                 $results = $connection->execute("SHOW DATABASES LIKE '" . $this->request->data['school_database'] . "'")->fetchAll('assoc');
 
 
-                if (empty($results)) {
+                if (!empty($results)) {
                     $dbName = $this->request->data['school_database'];
                     $clondedbname = $this->request->data['clondedbname'];
                     $newdbname = $this->request->data['school_database'];
-                    $connection->execute('CREATE DATABASE ' . $dbName);
+                    // $connection->execute('CREATE DATABASE ' . $dbName);
                     $mysqlUserName = MYSQLUSERNAME;
                     $mysqlPassword = MYSQLPASSWORD;
                     $mysqlDatabaseName = $dbName;
-                    $command = 'mysql -u' . $mysqlUserName . ' -p' . $mysqlPassword . ' ' . $mysqlDatabaseName;
+                    // $command = 'mysql -u' . $mysqlUserName . ' -p' . $mysqlPassword . ' ' . $mysqlDatabaseName;
 
-                    exec($command, $output = array(), $worked);
-                    if ($worked !== 0) {
-                        $this->Flash->error(__('Error in importing Company'));
-                        return $this->redirect(['action' => 'add']);
-                    }
+                    // exec($command, $output = array(), $worked);
+                    // if ($worked !== 0) {
+                    //     $this->Flash->error(__('Error in importing Company'));
+                    //     return $this->redirect(['action' => 'add']);
+                    // }
                     $this->newdbcreate($mysqlUserName, $mysqlPassword, $clondedbname, $newdbname);
                 } else {
                     $this->Flash->error(__('Sub Domain Already Register With Company.'));

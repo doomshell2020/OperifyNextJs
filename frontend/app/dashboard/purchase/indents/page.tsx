@@ -24,10 +24,7 @@ import { formatDate } from '../../../../utils/dateFormatter';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatDate(dateStr: string) {
-  if (!dateStr) return '—';
-  return formatDate(dateStr);
-}
+
 
 // ─── Nested Item Dropdown ────────────────────────────────────────────────────
 

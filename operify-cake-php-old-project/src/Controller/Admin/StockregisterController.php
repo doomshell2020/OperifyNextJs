@@ -46,6 +46,10 @@ class StockregisterController extends AppController
     {
         $this->viewBuilder()->layout('admin');
         $this->loadModel('Stockregister');
+        $this->loadModel('Itemcategory');
+
+        $categories = $this->Itemcategory->find('list', ['keyField' => 'id', 'valueField' => 'category_name'])->toArray();
+        $this->set(compact('categories'));
     }
 
 
@@ -65,7 +69,7 @@ class StockregisterController extends AppController
 
             $jcstockregister = $this->Stockregister->find('all')->where(['DATE(Stockregister.created)' => $dateto2, 'Stockregister.status !=' => 'N', 'Stockregister.store_type' => '1', 'Stockregister.item_id' => $item_id])->order(['Stockregister.id' => 'DESC'])->toarray();
             // pr($jcstockregister); die;
-           
+
         }
 
         $additem = $this->Additem->find('all')->where(['Additem.id' => $item_id])->first();
@@ -140,80 +144,127 @@ class StockregisterController extends AppController
 
     public function searchstockregister()
     {
-        //   $this->viewBuilder()->layout('admin'); 
-
-
-        //     $dbname = $this->request->session()->read('Auth.User.db'); 
-
-        //     if($dbname == "canvas"){
-        // 	    $this->loadModel('Stockregister'); 
-
-        //     }else{
-
-        //     $branch = explode("_",$dbname);
-        //     if($dbname != $branch[0]){
-
-        //     }
-
-        //        $this->connection(trim($branch[0]));
-
-        // }
+        Configure::write('debug', false);
         $this->loadModel('Stockregister');
 
-        $item_id = $this->request->data['item_id'];
+        $item_id = isset($this->request->data['item_id']) ? $this->request->data['item_id'] : '';
+        $category_ids = isset($this->request->data['category_id']) ? $this->request->data['category_id'] : [];
         $datefrom = date('Y-m-d', strtotime($this->request->data['datefrom']));
         $dateto2 = date('Y-m-d', strtotime($this->request->data['dateto']));
-        // pr($item_id);
 
-        // pr($datefrom);
-        // pr($dateto2);die;
-        $stockregister = $this->Stockregister->find('all')->where(['DATE(Stockregister.created) >=' => $datefrom, 'Stockregister.status !=' => 'N'])->order(['Stockregister.id' => 'ASC'])->first();
-        // $stockregister = $this->Stockregister->find('all')->where(['DATE(Stockregister.created) >=' => $datefrom, 'DATE(Stockregister.created) <=' => $dateto, 'Stockregister.item_id' => $item_id, 'Stockregister.store_type IN' => ['1', '2'], 'Stockregister.status !=' => 'N'])->order(['Stockregister.id' => 'ASC'])->toarray();
-        // $this->set(compact('stockregister'));
-        // pr($stockregister);die;
-        // $datefrom = date('Y-m-d', strtotime($stockregister['created']));
+        // Server-side Date Validation
+        $d1 = new \DateTime($datefrom);
+        $d2 = new \DateTime($dateto2);
+        $diff = $d1->diff($d2)->days;
+        // Also check if dateto is before datefrom
+        $isNegative = ($d1 > $d2);
+
+        if ($isNegative) {
+            echo '<tr><td colspan="10" align="center" style="color:red; font-weight:bold;">Date To cannot be earlier than Date From.</td></tr>';
+            die;
+        }
+
+        if (empty($item_id)) {
+            if ($diff > 0) {
+                echo '<tr><td colspan="10" align="center" style="color:red; font-weight:bold;">Only a single date is allowed for the Consolidated Stock Register.</td></tr>';
+                die;
+            }
+            if ($diff == 0 && empty($category_ids)) {
+                echo '<tr><td colspan="10" align="center" style="color:red; font-weight:bold;">Please choose at least one category to generate the Consolidated report.</td></tr>';
+                die;
+            }
+            $consolidatedData = $this->_getConsolidatedStock($datefrom, $dateto2, $category_ids);
+            $this->set(compact('consolidatedData'));
+        } else {
+            if ($diff > 31) {
+                echo '<tr><td colspan="10" align="center" style="color:red; font-weight:bold;">The maximum allowed date range for the Product-wise Stock Register is one month.</td></tr>';
+                die;
+            }
+            $stockregister = $this->Stockregister->find('all')->where(['DATE(Stockregister.created) >=' => $datefrom, 'Stockregister.status !=' => 'N'])->order(['Stockregister.id' => 'ASC'])->first();
+        }
+
+        $this->set(compact('item_id'));
+        $this->set(compact('datefrom'));
+        $this->set(compact('dateto2'));
+        $this->set(compact('category_ids'));
+    }
+
+
+    public function summaryexcel($datefrom = null, $dateto = null, $item_id = null)
+    {
+        Configure::write('debug', false);
+        //   $this->viewBuilder()->layout('admin'); 
+        $this->loadModel('Stockregister');
+        $this->loadModel('Additem');
+        $this->loadModel('SitesettingsDetails');
+
+
+        if ($this->request->is('post')) {
+            $datefrom = $this->request->data['datefrom'] ?? $datefrom;
+            $dateto = $this->request->data['dateto'] ?? $dateto;
+            $item_id = $this->request->data['item_id'] ?? $item_id;
+            $category_ids = $this->request->data['category_id'] ?? [];
+        } else {
+            $category_ids = [];
+        }
+
+        $datefrom = date('Y-m-d', strtotime($datefrom));
+        $dateto2 = date('Y-m-d', strtotime($dateto));
+
+        $site_details = $this->SitesettingsDetails->find('all')->where(['status' => 'Y'])->first();
+        $this->set(compact('site_details'));
+
+        if (empty($item_id)) {
+            $consolidatedData = $this->_getConsolidatedStock($datefrom, $dateto2, $category_ids);
+            $this->set(compact('consolidatedData'));
+        } else {
+            $stockregister = $this->Stockregister->find('all')->where(['DATE(Stockregister.created) >=' => $datefrom, 'Stockregister.status !=' => 'N'])->order(['Stockregister.id' => 'ASC'])->first();
+            $additem = $this->Additem->find('all')->where(['Additem.id' => $item_id])->first();
+            $this->set(compact('additem'));
+        }
+
         $this->set(compact('item_id'));
         $this->set(compact('datefrom'));
         $this->set(compact('dateto2'));
     }
 
-
-    public function summaryexcel($datefrom, $dateto, $item_id)
+    public function detailedexcel($datefrom = null, $dateto = null, $item_id = null)
     {
+        Configure::write('debug', false);
         //   $this->viewBuilder()->layout('admin'); 
         $this->loadModel('Stockregister');
         $this->loadModel('Additem');
+        $this->loadModel('SitesettingsDetails');
+
+
+        if ($this->request->is('post')) {
+            $datefrom = $this->request->data['datefrom'] ?? $datefrom;
+            $dateto = $this->request->data['dateto'] ?? $dateto;
+            $item_id = $this->request->data['item_id'] ?? $item_id;
+            $category_ids = $this->request->data['category_id'] ?? [];
+        } else {
+            $category_ids = [];
+        }
 
         $datefrom = date('Y-m-d', strtotime($datefrom));
         $dateto2 = date('Y-m-d', strtotime($dateto));
 
+        $site_details = $this->SitesettingsDetails->find('all')->where(['status' => 'Y'])->first();
+        $this->set(compact('site_details'));
 
-        $stockregister = $this->Stockregister->find('all')->where(['DATE(Stockregister.created) >=' => $datefrom, 'Stockregister.status !=' => 'N'])->order(['Stockregister.id' => 'ASC'])->first();
+        if (empty($item_id)) {
+            $consolidatedData = $this->_getConsolidatedStock($datefrom, $dateto2, $category_ids);
+            $this->set(compact('consolidatedData'));
+        } else {
+            $stockregister = $this->Stockregister->find('all')->where(['DATE(Stockregister.created) >=' => $datefrom, 'DATE(Stockregister.created) <=' => $dateto, 'Stockregister.item_id' => $item_id, 'Stockregister.store_type IN' => ['1', '2'], 'Stockregister.status !=' => 'N'])->order(['Stockregister.id' => 'ASC'])->toarray();
+            $this->set(compact('stockregister'));
+            $additem = $this->Additem->find('all')->where(['Additem.id' => $item_id])->first();
+            $this->set(compact('additem'));
+        }
 
-        // $datefrom = date('Y-m-d', strtotime($stockregister['created']));
         $this->set(compact('item_id'));
         $this->set(compact('datefrom'));
         $this->set(compact('dateto2'));
-
-
-        $additem = $this->Additem->find('all')->where(['Additem.id' => $item_id])->first();
-        $this->set(compact('additem'));
-    }
-
-    public function detailedexcel($datefrom, $dateto, $item_id)
-    {
-        //   $this->viewBuilder()->layout('admin'); 
-        $this->loadModel('Stockregister');
-        $this->loadModel('Additem');
-
-        $datefrom = date('Y-m-d', strtotime($datefrom));
-        $dateto2 = date('Y-m-d', strtotime($dateto));
-
-        $stockregister = $this->Stockregister->find('all')->where(['DATE(Stockregister.created) >=' => $datefrom, 'DATE(Stockregister.created) <=' => $dateto, 'Stockregister.item_id' => $item_id, 'Stockregister.store_type IN' => ['1', '2'], 'Stockregister.status !=' => 'N'])->order(['Stockregister.id' => 'ASC'])->toarray();
-        $this->set(compact('stockregister'));
-        $this->set(compact('item_id'));
-        $additem = $this->Additem->find('all')->where(['Additem.id' => $item_id])->first();
-        $this->set(compact('additem'));
     }
 
 
@@ -306,10 +357,23 @@ class StockregisterController extends AppController
         $this->viewBuilder()->layout('admin');
         $this->loadModel('Itemcategory');
 
-        $categortyname =  $this->Itemcategory->find('all')->select(['keyField' => 'id', 'valueField' => 'category_name'])->order(['Itemcategory.category_name' => 'ASC'])->toarray();
+        $categortyname =  $this->Itemcategory->find('all')->select(['keyField' => 'id', 'valueField' => 'category_name'])->where(['id !=' => 25])->order(['Itemcategory.category_name' => 'ASC'])->toarray();
         // pr($categortyname);exit;
         $this->set('categortyname', $categortyname);
     }
+
+
+    // public function searchstock()
+    // {
+    //     $this->loadModel('Additem');
+    //     $req_data = $_GET;
+    //     $searchdate = [];
+    //     $searchdate[] = $req_data['datefrom'];
+    //     $searchdate[] = $req_data['product'];
+    //     $this->request->session()->write('searchdate', $searchdate);
+    //     $additem = $this->Additem->find('all')->where(['Additem.itemtype' => 'RawMaterial', 'Additem.status' => 'Y'])->order(['Additem.item_name' => 'ASC'])->toarray();
+    //     $this->set('additem', $additem);
+    // }
 
 
     public function searchstock()
@@ -317,82 +381,156 @@ class StockregisterController extends AppController
         $this->loadModel('Additem');
         $req_data = $_GET;
         $searchdate = [];
-        $searchdate[] = $req_data['datefrom'];
-        $searchdate[] = $req_data['product'];
+        $datefrom = $req_data['datefrom'] ?? date('Y-m-d');
+        $searchdate[] = $datefrom;
+        $category_ids = $req_data['product'] ?? [];
+        $searchdate[] = $category_ids;
         $this->request->session()->write('searchdate', $searchdate);
-        $additem = $this->Additem->find('all')->where(['Additem.itemtype' => 'RawMaterial', 'Additem.status' => 'Y'])->order(['Additem.item_name' => 'ASC'])->toarray();
-        $this->set('additem', $additem);
+
+        $dailyStockData = $this->_getDailyStockAsOfDate(date('Y-m-d', strtotime($datefrom)), $category_ids);
+
+        $this->set(compact('dailyStockData', 'datefrom', 'category_ids'));
     }
 
-    // old code
-    // public function dailystockexcel()
-    // {
-    //     $this->loadModel('Additem');
-    //     $this->loadModel('Itemcategory');
-    //     $searchdate = $this->request->session()->read('searchdate');
+    private function _getDailyStockAsOfDate($date, $category_ids = [])
+    {
+        $this->loadModel('Additem');
+        $conditions = [
+            'Additem.itemtype' => 'RawMaterial',
+            'Additem.status' => 'Y',
+            'Additem.category_id NOT IN' => [25]
+        ];
 
-    //     $cond = [];
+        if (!empty($category_ids) && !in_array('All', $category_ids) && !in_array(1, $category_ids)) {
+            $conditions['Additem.category_id IN'] = $category_ids;
+        }
 
-    //     $cond['Itemcategory.id'] = $searchdate[1];
-    //     if ($searchdate[1] == 1) {
-    //         $categortyname =  $this->Itemcategory->find('all')->order(['Itemcategory.category_name' => 'ASC'])->toarray();
-    //     } else {
-    //         $categortyname =  $this->Itemcategory->find('all')->where([$cond])->order(['Itemcategory.category_name' => 'ASC'])->toarray();
-    //     }
+        $products = $this->Additem->find('all')
+            ->contain(['Itemcategory', 'Measurementunit'])
+            ->where($conditions)
+            ->order(['Additem.item_name' => 'ASC'])
+            ->toArray();
 
+        if (empty($products)) {
+            return [];
+        }
 
-    //     if ($searchdate != '') {
-    //         $this->set('categortyname', $categortyname);
-    //         $this->set('searchdate', $searchdate);
-    //         $this->request->session()->delete('searchdate');
-    //     } else {
-    //         $searchdate = date('Y-m-d');
-    //         $this->set('categortyname', $categortyname);
-    //     }
-    // }
+        $productIds = [];
+        foreach ($products as $p) {
+            $productIds[] = $p->id;
+        }
+
+        $conn = \Cake\Datasource\ConnectionManager::get('default');
+        $itemIdsStr = implode(',', $productIds);
+
+        // 1. Opening Balances on $date (Matches CommanHelper::stockregisteropening2 / _getConsolidatedStock)
+        $sqlOpening = "
+            SELECT item_id, 
+            SUM(CASE WHEN store_type IN ('0','1','3') THEN quantity ELSE 0 END) as grn_sum,
+            SUM(CASE WHEN store_type IN ('2','4') THEN quantity ELSE 0 END) as indent_sum
+            FROM st_stock_register 
+            WHERE item_id IN ($itemIdsStr) AND issue_date < :date
+            GROUP BY item_id
+        ";
+        $openingData = $conn->execute($sqlOpening, ['date' => $date])->fetchAll('assoc');
+        $openingLookup = [];
+        foreach ($openingData as $row) {
+            $openingLookup[$row['item_id']] = round((float)$row['grn_sum'] - (float)$row['indent_sum'], 2);
+        }
+
+        // 2. Today's Received & Reverse (Uses DATE(issue_date) like CommanHelper::stockregisteropeningrecivied)
+        $sqlReceived = "
+            SELECT item_id, 
+            SUM(CASE WHEN store_type IN ('0','1') THEN quantity ELSE 0 END) as received_qty,
+            SUM(CASE WHEN store_type IN ('3') THEN quantity ELSE 0 END) as reverse_qty
+            FROM st_stock_register
+            WHERE status != 'N' AND item_id IN ($itemIdsStr) AND store_type IN ('0','1','3') 
+              AND DATE(issue_date) = :date
+            GROUP BY item_id
+        ";
+        $receivedData = $conn->execute($sqlReceived, ['date' => $date])->fetchAll('assoc');
+        $receivedLookup = [];
+        foreach ($receivedData as $row) {
+            $receivedLookup[$row['item_id']] = $row;
+        }
+
+        // 3. Today's Issued & Return (Uses DATE(created) like CommanHelper::stockregisteropeningdispatched)
+        $sqlIssued = "
+            SELECT item_id, 
+            SUM(CASE WHEN store_type IN ('2') THEN quantity ELSE 0 END) as issued_qty,
+            SUM(CASE WHEN store_type IN ('4') THEN quantity ELSE 0 END) as return_qty
+            FROM st_stock_register
+            WHERE status != 'N' AND item_id IN ($itemIdsStr) AND store_type IN ('2','4') 
+              AND DATE(created) = :date
+            GROUP BY item_id
+        ";
+        $issuedData = $conn->execute($sqlIssued, ['date' => $date])->fetchAll('assoc');
+        $issuedLookup = [];
+        foreach ($issuedData as $row) {
+            $issuedLookup[$row['item_id']] = $row;
+        }
+
+        $dailyStockData = [];
+        foreach ($products as $product) {
+            $pId = $product->id;
+            
+            $opening = $openingLookup[$pId] ?? 0.0;
+            $received = isset($receivedLookup[$pId]) ? (float)$receivedLookup[$pId]['received_qty'] : 0.0;
+            $reverse = isset($receivedLookup[$pId]) ? (float)$receivedLookup[$pId]['reverse_qty'] : 0.0;
+            $issued = isset($issuedLookup[$pId]) ? (float)$issuedLookup[$pId]['issued_qty'] : 0.0;
+            $return = isset($issuedLookup[$pId]) ? (float)$issuedLookup[$pId]['return_qty'] : 0.0;
+
+            // Closing formula matching Stock Register EXACTLY
+            // Stock Register: Opening + (Received + Reverse) - (Issued + Return)
+            $closing = $opening + $received + $reverse - $issued - $return;
+
+            if ($opening == 0 && $received == 0 && $issued == 0 && $reverse == 0 && $return == 0 && $closing == 0) {
+                if (empty($category_ids) || in_array('All', $category_ids)) {
+                    continue; 
+                }
+            }
+
+            $dailyStockData[] = [
+                'item_id' => $pId,
+                'item_name' => $product->item_name,
+                'category_name' => isset($product->itemcategory) ? $product->itemcategory->category_name : '',
+                'opening_stock' => number_format(round($opening, 2), 2, '.', ''),
+                'received_stock' => number_format(round($received, 2), 2, '.', ''),
+                'issued_stock' => number_format(round($issued, 2), 2, '.', ''),
+                'reverse_stock' => number_format(round($reverse, 2), 2, '.', ''),
+                'return_stock' => number_format(round($return, 2), 2, '.', ''),
+                'closing_stock' => number_format(round($closing, 2), 2, '.', '')
+            ];
+        }
+
+        return $dailyStockData;
+    }
+
 
 
     public function dailystockexcel()
     {
         $this->loadModel('Additem');
         $this->loadModel('Itemcategory');
+        $this->loadModel('SitesettingsDetails');
 
-        // $searchdate = $this->request->getSession()->read('searchdate');
-        $searchdate = $this->request->session()->read('searchdate');
+        $site_details = $this->SitesettingsDetails->find('all')->where(['status' => 'Y'])->first();
+        $this->set(compact('site_details'));
 
-
-        if (!empty($searchdate)) {
-
-            $date        = $searchdate[0];   // 03-02-2026
-            $categoryIds = $searchdate[1];   // [25,144,33]
-
-            if (in_array(1, $categoryIds)) {
-                $categortyname = $this->Itemcategory
-                    ->find('all')
-                    ->order(['Itemcategory.category_name' => 'ASC'])
-                    ->toArray();
-            } else {
-                $categortyname = $this->Itemcategory
-                    ->find('all')
-                    ->where(['Itemcategory.id IN' => $categoryIds])
-                    ->order(['Itemcategory.category_name' => 'ASC'])
-                    ->toArray();
-            }
-
-            $this->set(compact('categortyname', 'searchdate'));
-            $this->request->session()->delete('searchdate');
+        if ($this->request->is('post')) {
+            $date = $this->request->data['datefrom'] ?? date('Y-m-d');
+            $categoryIds = $this->request->data['category_ids'] ?? [];
+            $searchdate = [$date, $categoryIds];
         } else {
-
-            $searchdate = date('Y-m-d');
-
-            $categortyname = $this->Itemcategory
-                ->find('all')
-                ->order(['Itemcategory.category_name' => 'ASC'])
-                ->toArray();
-
-            $this->set(compact('categortyname', 'searchdate'));
+            $searchdate = $this->request->session()->read('searchdate');
+            $date = !empty($searchdate) ? $searchdate[0] : date('Y-m-d');
+            $categoryIds = !empty($searchdate) ? $searchdate[1] : [];
         }
+
+        $dailyStockData = $this->_getDailyStockAsOfDate(date('Y-m-d', strtotime($date)), $categoryIds);
+        $this->set(compact('dailyStockData', 'searchdate'));
     }
+
 
 
 
@@ -443,5 +581,127 @@ class StockregisterController extends AppController
 
         $additem = $this->Additem->find('all')->contain(['Itemcategory'])->where(['Additem.itemtype' => 'RawMaterial', 'Additem.status' => 'Y', 'Itemcategory.status' => 'Y', 'Itemcategory.is_print' => 'Y'])->order(['Additem.item_name' => 'ASC'])->toarray();
         $this->set('additem', $additem);
+    }
+
+    private function _getConsolidatedStock($datefrom, $dateto2, $category_ids = [])
+    {
+        $this->loadModel('Additem');
+
+        $conditions = [
+            'Additem.itemtype' => 'RawMaterial',
+            'Additem.status' => 'Y',
+            'Additem.category_id NOT IN' => [25]
+        ];
+
+        if (!empty($category_ids)) {
+            $conditions['Additem.category_id IN'] = $category_ids;
+        }
+
+        // Fetch eligible products
+        $products = $this->Additem->find('all')
+            ->contain(['Itemcategory', 'Measurementunit'])
+            ->where($conditions)
+            ->order(['Additem.item_name' => 'ASC'])
+            ->toArray();
+
+        if (empty($products)) {
+            return [];
+        }
+
+        $productIds = [];
+        foreach ($products as $p) {
+            $productIds[] = $p->id;
+        }
+
+        $conn = \Cake\Datasource\ConnectionManager::get('default');
+        $itemIdsStr = implode(',', $productIds);
+
+        // 1. Opening Balances on $datefrom (Matches CommanHelper::stockregisteropening2)
+        $sqlOpening = "
+            SELECT item_id, 
+            SUM(CASE WHEN store_type IN ('0','1','3') THEN quantity ELSE 0 END) as grn_sum,
+            SUM(CASE WHEN store_type IN ('2','4') THEN quantity ELSE 0 END) as indent_sum
+            FROM st_stock_register 
+            WHERE item_id IN ($itemIdsStr) AND issue_date < :datefrom
+            GROUP BY item_id
+        ";
+        $openingData = $conn->execute($sqlOpening, ['datefrom' => $datefrom])->fetchAll('assoc');
+        $openingLookup = [];
+        foreach ($openingData as $row) {
+            $openingLookup[$row['item_id']] = round((float)$row['grn_sum'] - (float)$row['indent_sum'], 2);
+        }
+
+        // 2. Received Stock (Matches CommanHelper::stockregisteropeningrecivied)
+        $sqlReceived = "
+            SELECT item_id, DATE(issue_date) as t_date, SUM(quantity) as qty
+            FROM st_stock_register
+            WHERE status != 'N' AND item_id IN ($itemIdsStr) AND store_type IN ('0','1','3') 
+              AND DATE(issue_date) >= :datefrom AND DATE(issue_date) <= :dateto
+            GROUP BY item_id, DATE(issue_date)
+        ";
+        $receivedData = $conn->execute($sqlReceived, ['datefrom' => $datefrom, 'dateto' => $dateto2])->fetchAll('assoc');
+        $receivedLookup = [];
+        foreach ($receivedData as $row) {
+            $receivedLookup[$row['item_id']][$row['t_date']] = round((float)$row['qty'], 2);
+        }
+
+        // 3. Dispatched Stock (Matches CommanHelper::stockregisteropeningdispatched)
+        $sqlDispatched = "
+            SELECT item_id, DATE(created) as t_date, SUM(quantity) as qty
+            FROM st_stock_register
+            WHERE status != 'N' AND item_id IN ($itemIdsStr) AND store_type IN ('2','4') 
+              AND DATE(created) >= :datefrom AND DATE(created) <= :dateto
+            GROUP BY item_id, DATE(created)
+        ";
+        $dispatchedData = $conn->execute($sqlDispatched, ['datefrom' => $datefrom, 'dateto' => $dateto2])->fetchAll('assoc');
+        $dispatchedLookup = [];
+        foreach ($dispatchedData as $row) {
+            $dispatchedLookup[$row['item_id']][$row['t_date']] = round((float)$row['qty'], 2);
+        }
+
+        $date_from_time = strtotime($datefrom);
+        $date_to_time = strtotime($dateto2);
+
+        $consolidatedData = [];
+        $previousClosingStock = [];
+
+        for ($i = $date_from_time; $i <= $date_to_time; $i += 86400) {
+            $currDate = date('Y-m-d', $i);
+
+            foreach ($products as $product) {
+                $pId = $product->id;
+
+                if ($i == $date_from_time) {
+                    $openingStock = $openingLookup[$pId] ?? 0.0;
+                } else {
+                    $openingStock = $previousClosingStock[$pId] ?? 0.0;
+                }
+
+                $receivedStock = $receivedLookup[$pId][$currDate] ?? 0.0;
+                $dispatchedStock = $dispatchedLookup[$pId][$currDate] ?? 0.0;
+
+                $closingStock = round($openingStock + $receivedStock - $dispatchedStock, 2);
+                $previousClosingStock[$pId] = $closingStock;
+
+                if ($openingStock == 0 && $receivedStock == 0 && $dispatchedStock == 0 && $closingStock == 0) {
+                    continue;
+                }
+
+                $consolidatedData[] = [
+                    'item_id' => $pId,
+                    'date' => $currDate,
+                    'product_code' => $product->item_isbn,
+                    'product_name' => $product->item_name,
+                    'category' => isset($product->itemcategory) ? $product->itemcategory->category_name : '',
+                    'unit' => isset($product->measurementunit) ? $product->measurementunit->measurement_name : '',
+                    'opening' => $openingStock,
+                    'received' => $receivedStock,
+                    'dispatched' => $dispatchedStock,
+                    'closing' => $closingStock
+                ];
+            }
+        }
+
+        return $consolidatedData;
     }
 }

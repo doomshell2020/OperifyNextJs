@@ -7,10 +7,7 @@ import { Search, X, ToggleLeft, ToggleRight, ShieldCheck, Shield } from 'lucide-
 import { format } from 'date-fns';
 import { formatDate } from '../../../../utils/dateFormatter';
 
-function formatDate(d: string | null) {
-  if (!d) return '—';
-  try { return format(new Date(d), 'dd/MM/yyyy HH:mm'); } catch { return '—'; }
-}
+
 
 export default function UsersPage() {
   const qc = useQueryClient();

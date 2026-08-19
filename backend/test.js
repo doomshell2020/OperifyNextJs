@@ -1,15 +1,1 @@
-const mysql = require('mysql2/promise');
-async function main() {
-  const connection = await mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'tirupati_tppl'
-  });
-  
-  const [items] = await connection.query('SELECT id, item_name, itemtype, category_id FROM st_additem WHERE item_name LIKE "%TRACTION%"');
-  console.log('Items:', items);
-
-  await connection.end();
-}
-main();
+const Sequelize = require('sequelize'); const sequelize = new Sequelize('operify_tppl', 'root', '', { host: 'localhost', dialect: 'mysql' }); async function run() { const q1 = await sequelize.query(SELECT * FROM st_stock_register WHERE item_id = 39 AND DATE(created) BETWEEN '2026-01-01' AND '2026-01-31', { type: Sequelize.QueryTypes.SELECT }); console.log('Daily txs in Jan:', q1.length); if(q1.length > 0) { console.log('Dates found in Jan:', q1.map(q => q.created)); } const q2 = await sequelize.query(SELECT SUM(CASE WHEN store_type IN ('0','1','3') THEN quantity ELSE 0 END) - SUM(CASE WHEN store_type IN ('2','4') THEN quantity ELSE 0 END) as qty FROM st_stock_register WHERE item_id = 39 AND created < '2026-01-01', { type: Sequelize.QueryTypes.SELECT }); console.log('Opening before Jan 1 (using created):', q2); const q3 = await sequelize.query(SELECT SUM(CASE WHEN store_type IN ('0','1','3') THEN quantity ELSE 0 END) - SUM(CASE WHEN store_type IN ('2','4') THEN quantity ELSE 0 END) as qty FROM st_stock_register WHERE item_id = 39, { type: Sequelize.QueryTypes.SELECT }); console.log('Total cumulative:', q3); } run().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); });
