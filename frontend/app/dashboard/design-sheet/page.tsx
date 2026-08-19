@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { formatQty, formatAmt } from '@/utils/formatters';
+import { DatePicker } from '../../../components/ui/DatePicker';
+import { formatDate } from '../../../utils/dateFormatter';
 
 export default function DesignSheetsPage() {
   const [filters, setFilters] = useState<DesignSheetFilter>({
@@ -66,13 +68,7 @@ export default function DesignSheetsPage() {
     }
   };
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return 'N/A';
-    return new Date(dateStr).toLocaleDateString('en-IN', {
-      day: '2-digit', month: '2-digit', year: 'numeric'
-    });
-  };
-
+  
   return (
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -103,11 +99,11 @@ export default function DesignSheetsPage() {
           </div>
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Date From</label>
-            <input type="date" value={filters.datestart || ''} onChange={(e) => setFilters({ ...filters, datestart: e.target.value })} className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-cyan-500 transition" />
+            <DatePicker value={filters.datestart || ''} onChange={(e) => setFilters({ ...filters, datestart: e.target.value })} className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-cyan-500 transition" />
           </div>
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Date To</label>
-            <input type="date" value={filters.dateto || ''} onChange={(e) => setFilters({ ...filters, dateto: e.target.value })} className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-cyan-500 transition" />
+            <DatePicker value={filters.dateto || ''} onChange={(e) => setFilters({ ...filters, dateto: e.target.value })} className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-cyan-500 transition" />
           </div>
         </div>
         <div className="flex items-center justify-end gap-3 pt-2">

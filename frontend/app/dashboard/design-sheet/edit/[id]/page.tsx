@@ -7,6 +7,7 @@ import { toast } from 'react-hot-toast';
 import { Save, Plus, Trash2, ArrowLeft, Download, Search, Package, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { formatQty, formatAmt } from '@/utils/formatters';
+import { DatePicker } from '../../../../../components/ui/DatePicker';
 
 function ItemAutocomplete({
   value,
@@ -248,7 +249,7 @@ export default function EditDesignSheetPage() {
             </div>
             <div>
               <label className="text-xs font-bold text-slate-500 block mb-2">Date<span className="text-rose-500">*</span></label>
-              <input type="date" required value={formData.datefrom} onChange={e => setFormData({ ...formData, datefrom: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-cyan-500 outline-none" />
+              <DatePicker required value={formData.datefrom} onChange={e => setFormData({ ...formData, datefrom: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-cyan-500 outline-none" />
             </div>
             <div>
               <label className="text-xs font-bold text-slate-500 block mb-2">Upload Design Sheet</label>

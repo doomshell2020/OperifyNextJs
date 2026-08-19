@@ -6,16 +6,13 @@ import { useQuery } from '@tanstack/react-query';
 import indentService from '../../../../../services/indent.service';
 import { Loader2, AlertCircle, Printer, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { formatDate } from '../../../../../utils/dateFormatter';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDate(dateStr: string | null | undefined) {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  });
+  return formatDate(dateStr);
 }
 
 // ─── Print styles injected into head ─────────────────────────────────────────

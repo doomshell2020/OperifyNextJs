@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { designsheetService } from '../../../../../services/designsheet.service';
+import { formatDate } from '../../../../../utils/dateFormatter';
 
 export default function PrintDesignSheetPage() {
   const { designsheetno } = useParams() as { designsheetno: string };
@@ -35,7 +36,7 @@ export default function PrintDesignSheetPage() {
 
       <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
         <div><span className="font-bold">Production Sheet No:</span> {designsheet?.designsheetno}</div>
-        <div><span className="font-bold">Date:</span> {designsheet?.datefrom ? new Date(designsheet.datefrom).toLocaleDateString() : ''}</div>
+        <div><span className="font-bold">Date:</span> {designsheet?.datefrom ? formatDate(designsheet.datefrom) : ''}</div>
         <div><span className="font-bold">Contract No:</span> {designsheet?.contract_no}</div>
         <div><span className="font-bold">Item Name:</span> {designsheet?.item_name}</div>
         <div><span className="font-bold">Total Quantity:</span> {designsheet?.quantity}</div>

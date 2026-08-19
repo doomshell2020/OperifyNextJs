@@ -7,6 +7,7 @@ import { Search, Plus, Printer, RefreshCw, Eye } from "lucide-react";
 import Link from "next/link";
 import { ContractDetailsModal } from "../../../../components/dashboard/ContractDetailsModal";
 import { formatQty } from "@/utils/formatters";
+import { formatDate } from '../../../../utils/dateFormatter';
 
 export default function IndentPoListPage() {
   const [indents, setIndents] = useState<Indentpo[]>([]);
@@ -116,7 +117,7 @@ export default function IndentPoListPage() {
                       {indent.indent_id}
                     </td>
                     <td className="px-6 py-4 text-slate-600">
-                      {format(new Date(indent.issue_date), "dd MMM yyyy")}
+                      {formatDate(indent.issue_date)}
                     </td>
                     <td className="px-6 py-4">
                       <div 
@@ -231,7 +232,7 @@ function IndentDetailsModal({ id, onClose }: { id: number, onClose: () => void }
                   <div className="font-semibold text-slate-500">Indent Id :- <span className="font-normal text-slate-900">{details.header.indent_id}</span></div>
                   <div className="font-semibold text-slate-500 mt-2">Product :- <span className="font-normal text-slate-900">{details.header.product_name}</span></div>
                   <div className="font-semibold text-slate-500 mt-2">Created By :- <span className="font-normal text-slate-900">Master Admin</span></div>
-                  <div className="font-semibold text-slate-500 mt-2">Issue Date :- <span className="font-normal text-slate-900">{format(new Date(details.header.issue_date), "dd-MM-yyyy")}</span></div>
+                  <div className="font-semibold text-slate-500 mt-2">Issue Date :- <span className="font-normal text-slate-900">{formatDate(details.header.issue_date)}</span></div>
                 </div>
                 <div>
                   <div className="font-semibold text-slate-500">Contract name :- <span className="font-normal text-slate-900">{details.header.contract_name}({details.header.workorder})</span></div>

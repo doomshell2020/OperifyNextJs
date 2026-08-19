@@ -11,6 +11,8 @@ import { Plus, Trash2, Search, ArrowLeft, Loader2, Save, FileText, ShoppingCart,
 import toast from 'react-hot-toast';
 import { ProductSearchSelect } from '@/components/ProductSearchSelect';
 import { formatQty, formatAmt } from '@/utils/formatters';
+import { DatePicker } from '../../../../../components/ui/DatePicker';
+import { formatDate } from '../../../../../utils/dateFormatter';
 
 const poSchema = z.object({
   poDate: z.string().min(1, "Generated Date is required"),
@@ -342,12 +344,12 @@ export default function AddPurchaseOrderPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Generated Date <span className="text-red-500">*</span></label>
-                <input type="date" className={`w-full h-[42px] border rounded-lg px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-shadow ${errors.poDate ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`} {...register('poDate')} />
+                <DatePicker className={`w-full h-[42px] border rounded-lg px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-shadow ${errors.poDate ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`} {...register('poDate')} />
                 {errors.poDate && <p className="text-red-500 text-xs mt-1 absolute">{errors.poDate.message}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Expected Delivery Date <span className="text-red-500">*</span></label>
-                <input type="date" className={`w-full h-[42px] border rounded-lg px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-shadow ${errors.deliveryDate ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`} {...register('deliveryDate')} />
+                <DatePicker className={`w-full h-[42px] border rounded-lg px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-shadow ${errors.deliveryDate ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`} {...register('deliveryDate')} />
                 {errors.deliveryDate && <p className="text-red-500 text-xs mt-1 absolute">{errors.deliveryDate.message}</p>}
               </div>
             </div>
@@ -744,7 +746,7 @@ export default function AddPurchaseOrderPage() {
                       lprHistory.map((h, i) => (
                         <tr key={i} className="hover:bg-gray-50">
                           <td className="py-2.5 px-4 text-gray-800">{h.po_number}</td>
-                          <td className="py-2.5 px-4 text-gray-600">{h.generated_date ? new Date(h.generated_date).toLocaleDateString('en-GB') : ''}</td>
+                          <td className="py-2.5 px-4 text-gray-600">{h.generated_date ? formatDate(h.generated_date) : ''}</td>
                           <td className="py-2.5 px-4 text-gray-800">{h.supplier || '-'}</td>
                           <td className="py-2.5 px-4 text-gray-800 text-right">{h.quantity ? formatQty(h.quantity) : formatQty(0)}</td>
                           <td className="py-2.5 px-4 text-gray-800 text-right font-medium">₹{h.price ? formatAmt(h.price) : formatAmt(0)}</td>

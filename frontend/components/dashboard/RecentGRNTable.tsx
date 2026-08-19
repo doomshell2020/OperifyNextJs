@@ -5,6 +5,7 @@ import { GrnRecord } from '../../services/dashboard.service';
 import { StatusBadge } from './StatusBadge';
 import { PurchaseOrderLink } from '../PurchaseOrderLink';
 import { Search, PackageCheck, Eye } from 'lucide-react';
+import { formatDate } from '../../utils/dateFormatter';
 
 interface RecentGRNTableProps {
   data: GrnRecord[];
@@ -74,7 +75,7 @@ export const RecentGRNTable: React.FC<RecentGRNTableProps> = ({ data = [] }) => 
                     ₹{Number(record.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </td>
                   <td className="px-6 py-4 text-slate-400">
-                    {record.date ? new Date(record.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : '-'}
+                    {record.date ? formatDate(record.date) : '-'}
                   </td>
                   <td className="px-6 py-4">
                     <StatusBadge status={record.status} />

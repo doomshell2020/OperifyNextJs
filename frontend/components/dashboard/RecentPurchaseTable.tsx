@@ -5,6 +5,7 @@ import { PurchaseOrderRecord } from '../../services/dashboard.service';
 import { StatusBadge } from './StatusBadge';
 import { PurchaseOrderLink } from '../PurchaseOrderLink';
 import { Search, ChevronDown, ShoppingBag, Eye } from 'lucide-react';
+import { formatDate } from '../../utils/dateFormatter';
 
 interface RecentPurchaseTableProps {
   data: PurchaseOrderRecord[];
@@ -71,7 +72,7 @@ export const RecentPurchaseTable: React.FC<RecentPurchaseTableProps> = ({ data =
                     ₹{Number(record.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                   </td>
                   <td className="px-6 py-4 text-slate-400">
-                    {new Date(record.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' })}
+                    {formatDate(record.date)}
                   </td>
                   <td className="px-6 py-4">
                     <StatusBadge status={record.postatus || record.status} />

@@ -6,6 +6,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import contractService, { CreateContractPayload, FinishedProductInput } from '../../../../services/contract.service';
 import { Briefcase, Loader, Trash2, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { DatePicker } from '../../../../components/ui/DatePicker';
 
 export default function AddContractPage() {
   const router = useRouter();
@@ -205,8 +206,7 @@ export default function AddContractPage() {
               <label className="text-[11px] font-bold text-slate-600 block mb-1">
                 Issue Date <span className="text-red-500">*</span>
               </label>
-              <input
-                type="date"
+              <DatePicker  
                 value={issuedate}
                 onChange={e => setIssuedate(e.target.value)}
                 className="w-full px-3 py-1.5 border border-slate-300 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition text-sm text-slate-800"
@@ -260,8 +260,7 @@ export default function AddContractPage() {
               <label className="text-[11px] font-bold text-slate-600 block mb-1">
                 Start Date <span className="text-red-500">*</span>
               </label>
-              <input
-                type="date"
+              <DatePicker  
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
                 className="w-full px-3 py-1.5 border border-slate-300 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition text-sm text-slate-800"
@@ -273,8 +272,7 @@ export default function AddContractPage() {
               <label className="text-[11px] font-bold text-slate-600 block mb-1">
                 End Date
               </label>
-              <input
-                type="date"
+              <DatePicker  
                 value={endDate}
                 onChange={e => setEndDate(e.target.value)}
                 className="w-full px-3 py-1.5 border border-slate-300 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition text-sm text-slate-800"

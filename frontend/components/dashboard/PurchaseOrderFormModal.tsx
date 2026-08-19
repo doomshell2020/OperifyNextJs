@@ -5,6 +5,7 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import purchaseOrderService, { PurchaseOrderDetailsData, PurchaseOrderItem } from '../../services/purchaseOrder.service';
 import { Loader, X, Save, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { formatQty, formatAmt } from '@/utils/formatters';
+import { DatePicker } from '../ui/DatePicker';
 
 interface PurchaseOrderFormModalProps {
   poId: number;
@@ -135,7 +136,7 @@ export function PurchaseOrderFormModal({ poId, onClose }: PurchaseOrderFormModal
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">PO Date</label>
-                <input type="date" value={formData.po_date?.split('T')[0] || ''} disabled className="w-full border p-2 rounded bg-slate-50 text-slate-500 cursor-not-allowed" />
+                <DatePicker value={formData.po_date?.split('T')[0] || ''} disabled className="w-full border p-2 rounded bg-slate-50 text-slate-500 cursor-not-allowed" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Vendor</label>
@@ -143,7 +144,7 @@ export function PurchaseOrderFormModal({ poId, onClose }: PurchaseOrderFormModal
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Delivery Date</label>
-                <input type="date" name="delivery_date" value={formData.delivery_date?.split('T')[0] || ''} onChange={handlePoChange} className="w-full border p-2 rounded" />
+                <DatePicker name="delivery_date" value={formData.delivery_date?.split('T')[0] || ''} onChange={handlePoChange} className="w-full border p-2 rounded" />
               </div>
             </div>
 

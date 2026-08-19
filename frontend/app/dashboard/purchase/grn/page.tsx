@@ -9,6 +9,7 @@ import { PurchaseOrderDetailsModal } from '../../../../components/PurchaseOrderD
 import { GrnDetailsModal } from '../../../../components/GrnDetailsModal';
 import { grnPdfService } from '../../../../services/grnPdf.service';
 import apiClient from '@/services/apiClient';
+import { DatePicker } from '../../../../components/ui/DatePicker';
 
 export default function GrnIndexPage() {
   const router = useRouter();
@@ -172,11 +173,11 @@ export default function GrnIndexPage() {
         </div>
         <div>
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Date From</label>
-          <input type="date" name="from_date" value={filters.from_date} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
+          <DatePicker name="from_date" value={filters.from_date} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
         </div>
         <div>
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Date To</label>
-          <input type="date" name="to_date" value={filters.to_date} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
+          <DatePicker name="to_date" value={filters.to_date} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
         </div>
         <div className="flex gap-2">
           <button onClick={() => refetch()} className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md p-2 flex items-center justify-center font-medium shadow-sm transition">

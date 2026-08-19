@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import contractService from '../../services/contract.service';
 import { Loader, AlertCircle, X, Printer } from 'lucide-react';
 import { formatQty, formatAmt } from '@/utils/formatters';
+import { formatDate } from '../../utils/dateFormatter';
 
 interface ContractDetailsModalProps {
   contractId: number;
@@ -19,15 +20,7 @@ export function ContractDetailsModal({ contractId, onClose }: ContractDetailsMod
     staleTime: 5 * 60 * 1000
   });
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return 'N/A';
-    return new Date(dateStr).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
-
+  
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white border border-slate-200 shadow-2xl rounded-2xl max-w-3xl w-full p-6 flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]">

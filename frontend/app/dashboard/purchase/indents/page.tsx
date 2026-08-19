@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import indentService, { IndentSummary } from '../../../../services/indent.service';
 import {
+import { DatePicker } from '../../../../components/ui/DatePicker';
+import { formatDate } from '../../../../utils/dateFormatter';
   ListTodo,
   Plus,
   Search,
@@ -24,11 +26,7 @@ import {
 
 function formatDate(dateStr: string) {
   if (!dateStr) return '—';
-  return new Date(dateStr).toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  return formatDate(dateStr);
 }
 
 // ─── Nested Item Dropdown ────────────────────────────────────────────────────
@@ -117,8 +115,7 @@ function SearchBar({
         <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
           Date From
         </label>
-        <input
-          type="date"
+        <DatePicker  
           value={filters.date_from}
           onChange={e => onChange({ ...filters, date_from: e.target.value })}
           className="h-9 px-3 rounded-lg border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500"
@@ -128,8 +125,7 @@ function SearchBar({
         <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
           Date To
         </label>
-        <input
-          type="date"
+        <DatePicker  
           value={filters.date_to}
           onChange={e => onChange({ ...filters, date_to: e.target.value })}
           className="h-9 px-3 rounded-lg border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500"

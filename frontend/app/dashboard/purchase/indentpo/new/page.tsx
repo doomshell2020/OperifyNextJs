@@ -7,6 +7,7 @@ import { ArrowLeft, Save, Loader2, Search, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { formatQty } from "@/utils/formatters";
+import { DatePicker } from '../../../../../components/ui/DatePicker';
 
 export default function CreateIndentPoPage() {
   const router = useRouter();
@@ -250,8 +251,7 @@ export default function CreateIndentPoPage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-700">Issue Date *</label>
-              <input
-                type="date"
+              <DatePicker  
                 value={issueDate}
                 onChange={(e) => setIssueDate(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"

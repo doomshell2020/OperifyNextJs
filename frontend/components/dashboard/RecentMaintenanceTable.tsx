@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { MaintenanceRecord } from '../../services/dashboard.service';
 import { StatusBadge } from './StatusBadge';
 import { Search, Wrench, Eye } from 'lucide-react';
+import { formatDate } from '../../utils/dateFormatter';
 
 interface RecentMaintenanceTableProps {
   data: MaintenanceRecord[];
@@ -67,7 +68,7 @@ export const RecentMaintenanceTable: React.FC<RecentMaintenanceTableProps> = ({ 
                   <td className="px-6 py-4 text-slate-600 font-semibold">{record.breakdown_type || 'N/A'}</td>
                   <td className="px-6 py-4 text-slate-500">{record.assigned_to || 'Unassigned'}</td>
                   <td className="px-6 py-4 text-slate-400">
-                    {record.date ? new Date(record.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : '-'}
+                    {record.date ? formatDate(record.date) : '-'}
                   </td>
                   <td className="px-6 py-4">
                     <StatusBadge status={record.status} />

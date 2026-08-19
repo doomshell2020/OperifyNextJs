@@ -12,6 +12,7 @@ import { PrintPurchaseOrder } from '../../../../components/dashboard/PrintPurcha
 import { Loader, AlertCircle, RefreshCw, MoreVertical, Search, FileText, X, Edit, Trash2, Box, Printer, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { DatePicker } from '../../../../components/ui/DatePicker';
 
 export default function PurchaseOrdersPage() {
   const router = useRouter();
@@ -98,11 +99,11 @@ export default function PurchaseOrdersPage() {
         </div>
         <div>
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Date From</label>
-          <input type="date" name="datefrom" value={filters.datefrom} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
+          <DatePicker name="datefrom" value={filters.datefrom} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
         </div>
         <div>
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Date To</label>
-          <input type="date" name="dateto" value={filters.dateto} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
+          <DatePicker name="dateto" value={filters.dateto} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
         </div>
         <div>
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Status</label>

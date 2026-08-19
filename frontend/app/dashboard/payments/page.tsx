@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { paymentService, Payment, PaymentFilters } from '@/services/payment.service';
 import { format } from 'date-fns';
+import { DatePicker } from '../../../components/ui/DatePicker';
+import { formatDate } from '../../../utils/dateFormatter';
 
 function formatDate(d: string | null) {
   if (!d) return '—';
-  try { return format(new Date(d), 'dd/MM/yyyy'); } catch { return '—'; }
+  try { return formatDate(d); } catch { return '—'; }
 }
 
 function formatAmt(n: number | null) {
@@ -145,8 +147,7 @@ export default function PaymentsPage() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1.5">From Date</label>
-            <input
-              type="date"
+            <DatePicker  
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={filters.datefrom || ''}
               onChange={e => setFilters(f => ({ ...f, datefrom: e.target.value }))}
@@ -154,8 +155,7 @@ export default function PaymentsPage() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1.5">To Date</label>
-            <input
-              type="date"
+            <DatePicker  
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={filters.dateto || ''}
               onChange={e => setFilters(f => ({ ...f, dateto: e.target.value }))}

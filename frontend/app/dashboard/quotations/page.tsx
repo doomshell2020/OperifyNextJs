@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { quotationService, Quotation, QuotationDetail, QuotationFilters } from '@/services/quotation.service';
 import { format } from 'date-fns';
+import { DatePicker } from '../../../components/ui/DatePicker';
+import { formatDate } from '../../../utils/dateFormatter';
 
 function formatDate(d: string | null) {
   if (!d) return '—';
-  try { return format(new Date(d), 'dd/MM/yyyy'); } catch { return '—'; }
+  try { return formatDate(d); } catch { return '—'; }
 }
 
 function formatAmt(n: number | null) {
@@ -237,11 +239,11 @@ export default function QuotationsPage() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1.5">From Date</label>
-            <input type="date" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={filters.datefrom || ''} onChange={e => setFilters(f => ({ ...f, datefrom: e.target.value }))} />
+            <DatePicker className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={filters.datefrom || ''} onChange={e => setFilters(f => ({ ...f, datefrom: e.target.value }))} />
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1.5">To Date</label>
-            <input type="date" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={filters.dateto || ''} onChange={e => setFilters(f => ({ ...f, dateto: e.target.value }))} />
+            <DatePicker className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" value={filters.dateto || ''} onChange={e => setFilters(f => ({ ...f, dateto: e.target.value }))} />
           </div>
           <div className="flex items-end gap-2 md:col-span-2">
             <button onClick={handleSearch} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">Search</button>

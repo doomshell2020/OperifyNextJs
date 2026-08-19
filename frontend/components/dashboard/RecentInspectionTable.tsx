@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { InspectionRecord } from '../../services/dashboard.service';
 import { StatusBadge } from './StatusBadge';
 import { Search, ClipboardCheck, Eye } from 'lucide-react';
+import { formatDate } from '../../utils/dateFormatter';
 
 interface RecentInspectionTableProps {
   data: InspectionRecord[];
@@ -65,7 +66,7 @@ export const RecentInspectionTable: React.FC<RecentInspectionTableProps> = ({ da
                   <td className="px-6 py-4 text-slate-900 font-bold">{record.name || 'QC Inspection Report'}</td>
                   <td className="px-6 py-4 text-slate-600">WO-{record.work_order_no || 'N/A'}</td>
                   <td className="px-6 py-4 text-slate-400">
-                    {record.date ? new Date(record.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : '-'}
+                    {record.date ? formatDate(record.date) : '-'}
                   </td>
                   <td className="px-6 py-4 text-slate-500 italic max-w-[150px] truncate" title={record.remark}>
                     {record.remark || 'No remarks'}

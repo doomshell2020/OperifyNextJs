@@ -12,6 +12,7 @@ import * as z from 'zod';
 import { grnService } from '@/services/grn.service';
 import { AsyncInspectionSearchSelect } from '@/components/AsyncInspectionSearchSelect';
 import { formatQty, formatAmt } from '@/utils/formatters';
+import { DatePicker } from '../../../../../components/ui/DatePicker';
 
 const formSchema = z.object({
   inspection_id: z.string().min(1, "Inspection ID is required"),
@@ -224,7 +225,7 @@ export default function AddGrnPage() {
 
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-slate-700">Inward Date <span className="text-red-500">*</span></label>
-                <input type="date" {...register('inwarddate')} className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white shadow-sm ${errors.inwarddate ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'}`} />
+                <DatePicker {...register('inwarddate')} className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white shadow-sm ${errors.inwarddate ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'}`} />
               </div>
 
               <div className="space-y-1.5">
@@ -234,7 +235,7 @@ export default function AddGrnPage() {
               
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-slate-700">Bill Date <span className="text-red-500">*</span></label>
-                <input type="date" {...register('bill_date')} className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white shadow-sm ${errors.bill_date ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'}`} />
+                <DatePicker {...register('bill_date')} className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white shadow-sm ${errors.bill_date ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'}`} />
               </div>
             </div>
           </div>

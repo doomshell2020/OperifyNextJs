@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { UploadCloud, CheckCircle2, AlertCircle, Save } from 'lucide-react';
 import apiClient from '../../../../services/apiClient';
+import { DatePicker } from '../../../../components/ui/DatePicker';
 
 export default function AdminProfilePage() {
   const [file, setFile] = useState<File | null>(null);
@@ -242,7 +243,7 @@ export default function AdminProfilePage() {
 
             <div className="md:col-start-1 md:row-start-3">
               <label className="block text-sm font-medium text-slate-700 mb-1">Tin Date</label>
-              <input type="date" name="tin_date" value={profileData.tin_date} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all text-slate-700" />
+              <DatePicker name="tin_date" value={profileData.tin_date} onChange={handleInputChange} className="w-full p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none transition-all text-slate-700" />
             </div>
 
             <div>

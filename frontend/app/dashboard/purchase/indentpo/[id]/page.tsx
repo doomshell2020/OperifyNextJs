@@ -6,6 +6,7 @@ import { indentpoService } from "../../../../../services/indentpo.service";
 import { ArrowLeft, Printer, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
+import { formatDate } from '../../../../../utils/dateFormatter';
 
 export default function IndentPoDetailPage() {
   const params = useParams();
@@ -98,7 +99,7 @@ export default function IndentPoDetailPage() {
             </div>
             <div className="grid grid-cols-3">
               <span className="font-semibold text-slate-700">Issue Date:</span>
-              <span className="col-span-2">{format(new Date(detail.issue_date), "dd MMM yyyy")}</span>
+              <span className="col-span-2">{formatDate(detail.issue_date)}</span>
             </div>
             <div className="grid grid-cols-3">
               <span className="font-semibold text-slate-700">Issued To:</span>

@@ -4,6 +4,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { grnService } from '../services/grn.service';
 import { X, AlertCircle, Loader } from 'lucide-react';
+import { formatDate } from '../utils/dateFormatter';
 
 interface GrnDetailsModalProps {
   id: number | string;
@@ -25,15 +26,7 @@ export const GrnDetailsModal: React.FC<GrnDetailsModalProps> = ({
 
   if (!isOpen) return null;
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return 'N/A';
-    return new Date(dateStr).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
-
+  
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
       

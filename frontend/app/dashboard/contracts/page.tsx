@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { StatusBadge } from '../../../components/dashboard/StatusBadge';
 import toast from 'react-hot-toast';
+import { DatePicker } from '../../../components/ui/DatePicker';
+import { formatDate } from '../../../utils/dateFormatter';
 
 export default function ContractsPage() {
   // Filters state
@@ -60,15 +62,7 @@ export default function ContractsPage() {
     setActiveFilters(empty);
   };
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return 'N/A';
-    return new Date(dateStr).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
-
+  
   return (
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
       
@@ -160,8 +154,7 @@ export default function ContractsPage() {
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
               Start Date
             </label>
-            <input
-              type="date"
+            <DatePicker  
               value={filters.datefrom || ''}
               onChange={(e) => setFilters({ ...filters, datefrom: e.target.value })}
               className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-cyan-500 transition"
@@ -172,8 +165,7 @@ export default function ContractsPage() {
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
               End Date
             </label>
-            <input
-              type="date"
+            <DatePicker  
               value={filters.dateto || ''}
               onChange={(e) => setFilters({ ...filters, dateto: e.target.value })}
               className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-cyan-500 transition"

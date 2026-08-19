@@ -1,19 +1,12 @@
 import React from 'react';
 import { API_URL } from '../services/apiClient';
+import { formatDate } from '../utils/dateFormatter';
 
 interface PurchaseOrderDetailsPrintProps {
   data: any;
   standalone?: boolean;
 }
 
-const formatDate = (dateStr?: string) => {
-  if (!dateStr) return '';
-  return new Date(dateStr).toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  }).replace(/\//g, '-');
-};
 
 export const PurchaseOrderDetailsPrint: React.FC<PurchaseOrderDetailsPrintProps> = ({ data, standalone }) => {
   if (!data) return null;

@@ -4,6 +4,7 @@ import React from 'react';
 import { PurchaseOrderHoverData } from '../services/purchaseOrder.service';
 import { StatusBadge } from './dashboard/StatusBadge';
 import { Eye, Edit3, Printer, Download, Copy, Check, Loader, Phone, Mail, User, AlertCircle } from 'lucide-react';
+import { formatDate } from '../utils/dateFormatter';
 
 interface PurchaseOrderHoverCardProps {
   data?: PurchaseOrderHoverData;
@@ -56,11 +57,7 @@ export const PurchaseOrderHoverCard: React.FC<PurchaseOrderHoverCardProps> = ({
 
   const formattedDate = (dateStr?: string) => {
     if (!dateStr) return 'N/A';
-    return new Date(dateStr).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
+    return formatDate(dateStr);
   };
 
   return (

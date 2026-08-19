@@ -2,6 +2,7 @@ import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { numberToWords } from '@/utils/numberToWords';
 import { formatQty, formatAmt } from '@/utils/formatters';
+import { formatDate } from '../../../utils/dateFormatter';
 
 const styles = StyleSheet.create({
   page: {
@@ -191,13 +192,7 @@ export const GrnPdf: React.FC<GrnPdfProps> = ({ data }) => {
   
   if (!grn) return <Document><Page size="A4"><Text>No data</Text></Page></Document>;
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString('en-IN', {
-      day: '2-digit', month: '2-digit', year: 'numeric'
-    }).replace(/\//g, '-');
-  };
-
+  
   const taxExcludedAmount = (items || []).reduce((sum: number, item: any) => sum + ((Number(item.quantity) || 0) * (Number(item.rate) || 0)), 0);
   const totalTax = (items || []).reduce((sum: number, item: any) => sum + (Number(item.tax) || 0), 0);
   const freightCharges = Number(grn.freight) || 0; 

@@ -6,6 +6,7 @@ import grnInspectionService from '../../../../../../services/grnInspection.servi
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Printer, Box, Loader, AlertCircle } from 'lucide-react';
 import { formatQty, formatAmt } from '@/utils/formatters';
+import { formatDate } from '../../../../../../utils/dateFormatter';
 
 export default function ViewGrnInspectionPage() {
   const params = useParams();
@@ -71,7 +72,7 @@ export default function ViewGrnInspectionPage() {
             <div className="mt-4 space-y-1 text-sm text-slate-600">
               <p><span className="font-semibold text-slate-800">Inspection No:</span> {data.inspection_id}</p>
               <p><span className="font-semibold text-slate-800">PO Number:</span> {data.po_id}</p>
-              <p><span className="font-semibold text-slate-800">Inward Date:</span> {new Date(data.inwarddate).toLocaleDateString()}</p>
+              <p><span className="font-semibold text-slate-800">Inward Date:</span> {formatDate(data.inwarddate)}</p>
             </div>
           </div>
           <div className="text-right">
@@ -79,7 +80,7 @@ export default function ViewGrnInspectionPage() {
             <p className="text-sm text-slate-600 mt-1 max-w-[250px]">{data.vendor_address || 'Address not provided'}</p>
             <p className="text-sm text-slate-600 mt-1"><span className="font-semibold">GST:</span> {data.gst_number || 'N/A'}</p>
             <p className="text-sm text-slate-600 mt-1"><span className="font-semibold">Bill No:</span> {data.bill_no}</p>
-            <p className="text-sm text-slate-600"><span className="font-semibold">Bill Date:</span> {new Date(data.bill_date).toLocaleDateString()}</p>
+            <p className="text-sm text-slate-600"><span className="font-semibold">Bill Date:</span> {formatDate(data.bill_date)}</p>
           </div>
         </div>
 

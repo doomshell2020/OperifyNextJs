@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import purchaseOrderService from '../services/purchaseOrder.service';
 import { X, Printer, AlertCircle, Loader } from 'lucide-react';
 import { StatusBadge } from './dashboard/StatusBadge';
+import { formatDate } from '../utils/dateFormatter';
 
 interface PurchaseOrderDetailsModalProps {
   id: number | string;
@@ -30,15 +31,7 @@ export const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps>
     window.open(`/dashboard/purchase/inspections/print-po/${id}`, '_blank');
   };
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return 'N/A';
-    return new Date(dateStr).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
-
+  
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
       

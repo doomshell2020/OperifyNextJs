@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsService, AppUser } from '@/services/settings.service';
 import { Search, X, ToggleLeft, ToggleRight, ShieldCheck, Shield } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatDate } from '../../../../utils/dateFormatter';
 
 function formatDate(d: string | null) {
   if (!d) return '—';

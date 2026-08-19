@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { ProductionRecord } from '../../services/dashboard.service';
 import { StatusBadge } from './StatusBadge';
 import { Search, Hammer, Eye } from 'lucide-react';
+import { formatDate } from '../../utils/dateFormatter';
 
 interface RecentProductionTableProps {
   data: ProductionRecord[];
@@ -66,7 +67,7 @@ export const RecentProductionTable: React.FC<RecentProductionTableProps> = ({ da
                   <td className="px-6 py-4 text-slate-600 font-semibold">{record.plan_qty || 'N/A'}</td>
                   <td className="px-6 py-4 text-slate-500">{record.manpower_day || '-'}</td>
                   <td className="px-6 py-4 text-slate-400">
-                    {record.date ? new Date(record.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }) : '-'}
+                    {record.date ? formatDate(record.date) : '-'}
                   </td>
                   <td className="px-6 py-4">
                     <StatusBadge status={record.status} />
