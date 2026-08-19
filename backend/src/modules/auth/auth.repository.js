@@ -49,6 +49,47 @@ class AuthRepository {
       { where: { id: userId } }
     );
   }
+
+  /**
+   * Retrieves assigned companies for a user based on role and c_id.
+   */
+  async getAssignedCompanies(user) {
+    const { Op } = require('sequelize');
+    const role = user.role_id;
+    const cid = user.c_id || 0;
+
+    if (role === 101) {
+      // SuperAdmin: all companies
+      return await centralModels.schools.findAll({
+        where: { status: 'Y' },
+        attributes: ['id', 'school_name', 'school_database'],
+        raw: true
+      });
+    } else if (role === 105) {
+      // ErpHead: parent and all franchises
+      return await centralModels.schools.findAll({
+        where: { 
+          status: 'Y',
+          [Op.or]: [
+            { id: cid },
+            { franchise_type: String(cid) }
+          ]
+        },
+        attributes: ['id', 'school_name', 'school_database'],
+        raw: true
+      });
+    } else {
+      // Normal user: just their own company
+      return await centralModels.schools.findAll({
+        where: { 
+          status: 'Y', 
+          school_database: user.db 
+        },
+        attributes: ['id', 'school_name', 'school_database'],
+        raw: true
+      });
+    }
+  }
 }
 
 module.exports = new AuthRepository();

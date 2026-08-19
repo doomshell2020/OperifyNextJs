@@ -88,6 +88,9 @@ class AuthService {
       { expiresIn: '7d' }
     );
 
+    // Get assigned companies
+    const assignedCompanies = await authRepository.getAssignedCompanies(tenantUser);
+
     return {
       user: {
         id: tenantUser.id,
@@ -95,7 +98,8 @@ class AuthService {
         email: tenantUser.email,
         mobile: tenantUser.mobile,
         role_id: tenantUser.role_id,
-        db: tenantDbName
+        db: tenantDbName,
+        companies: assignedCompanies
       },
       accessToken,
       refreshToken
@@ -138,7 +142,16 @@ class AuthService {
         { expiresIn: '2h' }
       );
 
-      return { accessToken: newAccessToken };
+      // Return both access token and updated user details so frontend can update its context
+      const assignedCompanies = await authRepository.getAssignedCompanies(tenantUser);
+
+      return { 
+        accessToken: newAccessToken,
+        user: {
+          ...tokenPayload,
+          companies: assignedCompanies
+        }
+      };
     } catch (err) {
       const error = new Error('Invalid or expired refresh token');
       error.status = 401;
@@ -146,6 +159,57 @@ class AuthService {
       throw error;
     }
   }
+
+  /**
+   * Switch the active company/database.
+   */
+  async switchCompany(mobile, currentDb, newDb) {
+    const tenantUser = await authRepository.findTenantUserByMobile(mobile, currentDb);
+    if (!tenantUser) {
+      throw this._createAuthError('User not found');
+    }
+
+    const assignedCompanies = await authRepository.getAssignedCompanies(tenantUser);
+    const hasAccess = assignedCompanies.some(c => c.school_database === newDb);
+    if (!hasAccess) {
+      throw this._createAuthError('You do not have permission to access this company');
+    }
+
+    // New token payload with the new db
+    const tokenPayload = {
+      id: tenantUser.id,
+      user_name: tenantUser.user_name || tenantUser.email,
+      email: tenantUser.email,
+      mobile: tenantUser.mobile,
+      db: newDb,
+      role_id: tenantUser.role_id,
+      tech_id: tenantUser.tech_id || null,
+      c_id: tenantUser.c_id || null,
+      board: tenantUser.board || null
+    };
+
+    const accessToken = jwt.sign(
+      tokenPayload,
+      process.env.JWT_SECRET || 'super_secret_key',
+      { expiresIn: '2h' }
+    );
+
+    const refreshToken = jwt.sign(
+      { id: tenantUser.id, db: newDb, mobile: tenantUser.mobile }, // ensure mobile is here for refresh
+      process.env.JWT_REFRESH_SECRET || 'super_secret_refresh_key',
+      { expiresIn: '7d' }
+    );
+
+    return {
+      user: {
+        ...tokenPayload,
+        companies: assignedCompanies
+      },
+      accessToken,
+      refreshToken
+    };
+  }
+
 
   _createAuthError(message) {
     const error = new Error(message);

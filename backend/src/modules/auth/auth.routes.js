@@ -12,5 +12,6 @@ router.post('/logout', authController.logout);
 
 // Protected routes
 router.get('/me', authenticate, authController.me);
+router.post('/switch-company', authenticate, authController.switchCompany);
 
 module.exports = router;

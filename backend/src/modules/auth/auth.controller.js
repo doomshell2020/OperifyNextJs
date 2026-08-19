@@ -56,11 +56,54 @@ class AuthController {
   async me(req, res, next) {
     try {
       // req.user was attached by the authenticate middleware
+      // We also need to fetch assigned companies to preserve them on page refresh
+      const authRepository = require('./auth.repository');
+      const tenantUser = await authRepository.findTenantUserByMobile(req.user.mobile || '', req.user.db);
+      let companies = [];
+      if (tenantUser) {
+        companies = await authRepository.getAssignedCompanies(tenantUser);
+      }
+
       return res.status(200).json({
         success: true,
         message: 'User profile retrieved successfully',
         data: {
-          user: req.user
+          user: {
+            ...req.user,
+            companies
+          }
+        }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Switch the active company.
+   */
+  async switchCompany(req, res, next) {
+    try {
+      const { newDb } = req.body;
+      const currentDb = req.user.db;
+      const mobile = req.user.mobile;
+      
+      const result = await authService.switchCompany(mobile, currentDb, newDb);
+
+      res.cookie('refreshToken', result.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Company switched successfully',
+        data: {
+          user: result.user,
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken
         }
       });
     } catch (error) {

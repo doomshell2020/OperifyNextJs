@@ -228,7 +228,7 @@ export const DashboardTopbar: React.FC<{
   collapsed: boolean;
   onToggle: () => void;
 }> = ({ collapsed, onToggle }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, switchCompany } = useAuth();
   const [profileOpen, setProfileOpen] = useState(false);
 
   const formatTenant = (dbName?: string) => {
@@ -255,11 +255,25 @@ export const DashboardTopbar: React.FC<{
 
       {/* Right: DB Pill + Notifications + Profile */}
       <div className="flex items-center gap-3">
-        {/* Tenant DB Pill */}
-        <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-[10px] font-extrabold text-slate-700 tracking-wide">
-          <Database className="w-3 h-3 text-slate-400" />
-          {formatTenant(user?.db)}
-        </div>
+        {/* Tenant DB Switcher */}
+        {user?.companies && user.companies.length > 1 ? (
+          <select 
+            value={user.db} 
+            onChange={(e) => switchCompany(e.target.value)}
+            className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-extrabold text-slate-700 tracking-wide outline-none cursor-pointer focus:ring-1 focus:ring-cyan-500"
+          >
+            {user.companies.map(c => (
+              <option key={c.id} value={c.school_database}>
+                {c.school_name.toUpperCase()}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-[10px] font-extrabold text-slate-700 tracking-wide">
+            <Database className="w-3 h-3 text-slate-400" />
+            {formatTenant(user?.db)}
+          </div>
+        )}
 
         {/* Notifications */}
         <button className="relative p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors">

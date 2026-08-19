@@ -4,6 +4,12 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import apiClient from '../services/apiClient';
 
+interface Company {
+  id: number;
+  school_name: string;
+  school_database: string;
+}
+
 interface User {
   id: number;
   user_name: string;
@@ -11,6 +17,7 @@ interface User {
   mobile: string;
   role_id: number;
   db: string;
+  companies?: Company[];
 }
 
 interface AuthContextType {
@@ -18,6 +25,7 @@ interface AuthContextType {
   loading: boolean;
   login: (mobile: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  switchCompany: (newDb: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -74,6 +82,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const switchCompany = async (newDb: string) => {
+    setLoading(true);
+    try {
+      const response = await apiClient.post('/auth/switch-company', { newDb });
+      if (response.data.success) {
+        const { user, accessToken, refreshToken } = response.data.data;
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
+        setUser(user);
+        // Refresh page so everything re-fetches using new DB
+        window.location.reload();
+      }
+    } catch (err: any) {
+      console.error('Company switch failed', err);
+      throw err.response?.data?.error?.message || 'Company switch failed.';
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = async () => {
     setLoading(true);
     try {
@@ -90,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, switchCompany }}>
       {children}
     </AuthContext.Provider>
   );
