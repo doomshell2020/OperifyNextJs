@@ -231,7 +231,7 @@ function IndentDetailsModal({ id, onClose }: { id: number, onClose: () => void }
                 <div>
                   <div className="font-semibold text-slate-500">Indent Id :- <span className="font-normal text-slate-900">{details.header.indent_id}</span></div>
                   <div className="font-semibold text-slate-500 mt-2">Product :- <span className="font-normal text-slate-900">{details.header.product_name}</span></div>
-                  <div className="font-semibold text-slate-500 mt-2">Created By :- <span className="font-normal text-slate-900">Master Admin</span></div>
+                  <div className="font-semibold text-slate-500 mt-2">Created By :- <span className="font-normal text-slate-900 capitalize">{details.header.created_by || '-'}</span></div>
                   <div className="font-semibold text-slate-500 mt-2">Issue Date :- <span className="font-normal text-slate-900">{formatDate(details.header.issue_date)}</span></div>
                 </div>
                 <div>

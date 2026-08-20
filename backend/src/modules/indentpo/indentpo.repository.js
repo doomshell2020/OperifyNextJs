@@ -151,8 +151,8 @@ class IndentpoRepository {
     try {
       const headerRes = await dbPool.query(
         `INSERT INTO indentpo 
-         (indent_id, contract_id, finishedproduct_id, machine_id, issued_name, issue_date, created, updated)
-         VALUES (:indent_id, :contract_id, :finishedproduct_id, :machine_id, :issued_name, :issue_date, NOW(), NOW())`,
+         (indent_id, contract_id, finishedproduct_id, machine_id, issued_name, issue_date, user_id, created, updated)
+         VALUES (:indent_id, :contract_id, :finishedproduct_id, :machine_id, :issued_name, :issue_date, :user_id, NOW(), NOW())`,
         {
           replacements: {
             indent_id: data.indent_id,
@@ -160,7 +160,8 @@ class IndentpoRepository {
             finishedproduct_id: data.finishedproduct_id,
             machine_id: data.machine_id,
             issued_name: data.issued_name,
-            issue_date: data.issue_date
+            issue_date: data.issue_date,
+            user_id: userId
           },
           type: QueryTypes.INSERT,
           transaction
