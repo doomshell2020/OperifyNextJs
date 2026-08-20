@@ -59,6 +59,7 @@ app.use('/api/designsheets', designsheetRoutes);
 app.use('/api/grn-inspection', grnInspectionRoutes);
 app.use('/api/grn', grnRoutes);
 app.use('/api/stock-register', stockRegisterRoutes);
+app.use('/api/reverse-indent', require('./modules/reverseIndent/reverseIndent.routes'));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
