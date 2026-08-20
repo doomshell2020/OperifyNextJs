@@ -162,8 +162,9 @@ async function generateContractPDF(contractData, tenantDb = 'default') {
             <tr>
               <th style="width: 5%;">No.</th>
               <th style="width: 45%;">Item Name</th>
-              <th style="width: 25%; text-align: right;">Qty(As per Design)</th>
-              <th style="width: 25%; text-align: right;">Pending Qty</th>
+              <th style="width: 16%; text-align: right;">Qty(As per Design)</th>
+              <th style="width: 17%; text-align: right;">Issued Qty</th>
+              <th style="width: 17%; text-align: right;">Pending Qty</th>
             </tr>
           </thead>
           <tbody>
@@ -174,9 +175,23 @@ async function generateContractPDF(contractData, tenantDb = 'default') {
               <td>${idx + 1}.</td>
               <td>${rm.item_name}</td>
               <td style="text-align: right;">${formatQty(rm.as_per_design)}</td>
+              <td style="text-align: right;">${formatQty(rm.total_issued)}</td>
               <td style="text-align: right;">${formatQty(rm.pending_qty)}</td>
             </tr>
           `;
+          if (rm.issued_items && rm.issued_items.length > 0) {
+            rm.issued_items.forEach((issued) => {
+              html += `
+                <tr>
+                  <td></td>
+                  <td>${issued.item_name}</td>
+                  <td></td>
+                  <td style="text-align: right;">${formatQty(issued.issued_qty)}</td>
+                  <td></td>
+                </tr>
+              `;
+            });
+          }
         });
         html += `
           </tbody>

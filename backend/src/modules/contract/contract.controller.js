@@ -117,7 +117,7 @@ class ContractController {
       const pdfBuffer = await generateContractPDF(details, tenantDb);
       
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="contract-${id}.pdf"`);
+      res.setHeader('Content-Disposition', `inline; filename="contract-${id}.pdf"`);
       res.end(pdfBuffer, 'binary');
     } catch (err) {
       next(err);

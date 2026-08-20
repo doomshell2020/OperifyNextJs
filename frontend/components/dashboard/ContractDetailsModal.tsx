@@ -29,7 +29,10 @@ export function ContractDetailsModal({ contractId, onClose }: ContractDetailsMod
         <div className="absolute top-4 right-4 z-10 flex gap-2">
           {details && (
             <button
-              onClick={() => window.print()}
+              onClick={() => {
+                const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+                window.open(`${API_URL}/contracts/${contractId}/pdf?token=${localStorage.getItem('accessToken')}`, '_blank');
+              }}
               className="flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded font-bold shadow-sm transition cursor-pointer print:hidden text-sm"
             >
               <Printer className="w-4 h-4" />
