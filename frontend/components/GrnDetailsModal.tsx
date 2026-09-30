@@ -4,7 +4,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { grnService } from '../services/grn.service';
 import { X, AlertCircle, Loader } from 'lucide-react';
-import { formatDate } from '../utils/dateFormatter';
+import { formatDate, formatContractDate } from '../utils/dateFormatter';
 
 interface GrnDetailsModalProps {
   id: number | string;
@@ -69,7 +69,7 @@ export const GrnDetailsModal: React.FC<GrnDetailsModalProps> = ({
                 </div>
                 <div>
                   <span className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Inward Date</span>
-                  <p className="text-slate-800 font-semibold mt-0.5">Inward Date :- {formatDate(data.data.grn.inwarddate)}</p>
+                  <p className="text-slate-800 font-semibold mt-0.5">Inward Date :- {formatContractDate(data.data.grn.inwarddate)}</p>
                 </div>
                 <div>
                   <span className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Bill No</span>
@@ -88,7 +88,7 @@ export const GrnDetailsModal: React.FC<GrnDetailsModalProps> = ({
                 </div>
                 <div>
                   <span className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Bill Date</span>
-                  <p className="text-slate-800 font-semibold mt-0.5">Bill Date :- {formatDate(data.data.grn.bill_date)}</p>
+                  <p className="text-slate-800 font-semibold mt-0.5">Bill Date :- {formatContractDate(data.data.grn.bill_date)}</p>
                 </div>
                 <div>
                   <span className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">GSTIN NO</span>

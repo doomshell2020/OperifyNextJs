@@ -6,6 +6,7 @@ import grnInspectionService from '../../../../services/grnInspection.service';
 import { Loader, AlertCircle, RefreshCw, Search, X, Plus, FileSpreadsheet, Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { PurchaseOrderDetailsModal } from '../../../../components/PurchaseOrderDetailsModal';
+import { formatContractDate } from '../../../../utils/dateFormatter';
 
 export default function GrnInspectionPage() {
   const router = useRouter();
@@ -119,9 +120,9 @@ export default function GrnInspectionPage() {
                   <tr key={grn.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
                     <td className="p-4 font-medium text-slate-800">{grn.inspection_id}</td>
                     <td className="p-4 font-medium text-cyan-700 cursor-pointer hover:underline" onClick={() => { setSelectedPoId(grn.po_id); setIsPoModalOpen(true); }}>{grn.po_id}</td>
-                    <td className="p-4 text-slate-600">{grn.inward_date?.split('T')[0]}</td>
+                    <td className="p-4 text-slate-600">{formatContractDate(grn.inward_date)}</td>
                     <td className="p-4 text-slate-600">{grn.bill_no}</td>
-                    <td className="p-4 text-slate-600">{grn.bill_date?.split('T')[0]}</td>
+                    <td className="p-4 text-slate-600">{formatContractDate(grn.bill_date)}</td>
                     <td className="p-4 text-slate-600">{grn.supplier}</td>
                     <td className="p-4 text-right font-medium">{grn.total_qty}</td>
                     <td className="p-4 text-right font-bold">{parseFloat(grn.total_amt).toLocaleString('en-IN')}</td>

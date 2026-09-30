@@ -260,7 +260,7 @@ export default function AddGrnInspectionPage() {
             {/* Inward Date */}
             <div className="space-y-1.5 relative">
               <label className="block text-sm font-medium text-slate-700">Inward Date <span className="text-red-500">*</span></label>
-              <DatePicker   
+              <DatePicker dateFormat="dd-MM-yyyy"   
                 {...register('inwarddate')}
                 className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white ${errors.inwarddate ? 'border-red-500' : 'border-slate-300'}`} 
               />
@@ -294,7 +294,7 @@ export default function AddGrnInspectionPage() {
             {/* Bill Date */}
             <div className="space-y-1.5 relative">
               <label className="block text-sm font-medium text-slate-700">Bill Date <span className="text-red-500">*</span></label>
-              <DatePicker   
+              <DatePicker dateFormat="dd-MM-yyyy"   
                 {...register('bill_date')}
                 className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white ${errors.bill_date ? 'border-red-500' : 'border-slate-300'}`} 
               />

@@ -10,7 +10,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { formatQty, formatAmt } from '@/utils/formatters';
 import { DatePicker } from '../../../components/ui/DatePicker';
-import { formatDate } from '../../../utils/dateFormatter';
+import { formatDate, formatContractDate } from '../../../utils/dateFormatter';
 
 export default function DesignSheetsPage() {
   const [filters, setFilters] = useState<DesignSheetFilter>({
@@ -99,11 +99,11 @@ export default function DesignSheetsPage() {
           </div>
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Date From</label>
-            <DatePicker value={filters.datestart || ''} onChange={(e) => setFilters({ ...filters, datestart: e.target.value })} className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-cyan-500 transition" />
+            <DatePicker dateFormat="dd-MM-yyyy" value={filters.datestart || ''} onChange={(e) => setFilters({ ...filters, datestart: e.target.value })} className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-cyan-500 transition" />
           </div>
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Date To</label>
-            <DatePicker value={filters.dateto || ''} onChange={(e) => setFilters({ ...filters, dateto: e.target.value })} className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-cyan-500 transition" />
+            <DatePicker dateFormat="dd-MM-yyyy" value={filters.dateto || ''} onChange={(e) => setFilters({ ...filters, dateto: e.target.value })} className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-cyan-500 transition" />
           </div>
         </div>
         <div className="flex items-center justify-end gap-3 pt-2">
@@ -160,7 +160,7 @@ export default function DesignSheetsPage() {
                   </td>
                   <td className="px-6 py-4 font-semibold text-slate-700">{d.item_name}</td>
                   <td className="px-6 py-4 font-bold text-slate-900">{formatQty(d.quantity)}</td>
-                  <td className="px-6 py-4 text-center font-semibold">{formatDate(d.datefrom)}</td>
+                  <td className="px-6 py-4 text-center font-semibold">{formatContractDate(d.datefrom)}</td>
                   <td className="px-6 py-4 text-center">
                     {d.design_sheet ? (
                         <a href={`/designsheet/${d.design_sheet}`} target="_blank" rel="noreferrer" className="text-cyan-600 underline">
@@ -211,7 +211,7 @@ export default function DesignSheetsPage() {
                     </div>
                     <div>
                         <span className="text-slate-600">Issue Date:- </span>
-                        {formatDate(detailsData.designsheet.datefrom)}
+                        {formatContractDate(detailsData.designsheet.datefrom)}
                     </div>
                     <div>
                         <span className="text-slate-600">Contract:- </span>
@@ -280,9 +280,9 @@ export default function DesignSheetsPage() {
                 <div className="grid grid-cols-2 gap-y-4 gap-x-8 mb-8 text-sm text-slate-800">
                     <div><span className="font-bold text-slate-900">Work Order:- </span>{contractData.contract.workorder}</div>
                     <div><span className="font-bold text-slate-900">Title:- </span>{contractData.contract.title}</div>
-                    <div><span className="font-bold text-slate-900">Issue Date:- </span>{formatDate(contractData.contract.issuedate)}</div>
-                    <div><span className="font-bold text-slate-900">Contract Start Date:- </span>{formatDate(contractData.contract.contract_start_date)}</div>
-                    <div><span className="font-bold text-slate-900">Contract End Date:- </span>{formatDate(contractData.contract.contract_end_date)}</div>
+                    <div><span className="font-bold text-slate-900">Issue Date:- </span>{formatContractDate(contractData.contract.issuedate)}</div>
+                    <div><span className="font-bold text-slate-900">Contract Start Date:- </span>{formatContractDate(contractData.contract.contract_start_date)}</div>
+                    <div><span className="font-bold text-slate-900">Contract End Date:- </span>{formatContractDate(contractData.contract.contract_end_date)}</div>
                     <div><span className="font-bold text-slate-900">Supplier Name:- </span>{contractData.contract.supplier_name}</div>
                     <div><span className="font-bold text-slate-900">Cost:- </span>{formatAmt(contractData.contract.cost)}</div>
                     <div><span className="font-bold text-slate-900">Labour Cost:- </span>{formatAmt(contractData.contract.labour_cost)}</div>
@@ -371,12 +371,12 @@ export default function DesignSheetsPage() {
                             {contractData.productionOrders.length > 0 ? contractData.productionOrders.map((po: any, pIdx: number) => (
                                 <tr key={pIdx} className="hover:bg-slate-50 transition">
                                     <td className="px-3 py-2 border-r border-slate-200">{po.po_id}</td>
-                                    <td className="px-3 py-2 border-r border-slate-200">{formatDate(po.issuedate)}</td>
+                                    <td className="px-3 py-2 border-r border-slate-200">{formatContractDate(po.issuedate)}</td>
                                     <td className="px-3 py-2 border-r border-slate-200 uppercase">{po.item_name}</td>
                                     <td className="px-3 py-2 border-r border-slate-200 text-right">{formatQty(po.plannedqty)}</td>
                                     <td className="px-3 py-2 border-r border-slate-200 text-right">{formatQty(po.prepared_qty)}</td>
-                                    <td className="px-3 py-2 border-r border-slate-200">{formatDate(po.startdate)}</td>
-                                    <td className="px-3 py-2 border-r border-slate-200">{formatDate(po.enddate)}</td>
+                                    <td className="px-3 py-2 border-r border-slate-200">{formatContractDate(po.startdate)}</td>
+                                    <td className="px-3 py-2 border-r border-slate-200">{formatContractDate(po.enddate)}</td>
                                     <td className="px-3 py-2">{po.status === 'C' ? 'Close' : 'Open'}</td>
                                 </tr>
                             )) : (
@@ -403,7 +403,7 @@ export default function DesignSheetsPage() {
                                 <tr key={irIdx} className="hover:bg-slate-50 transition">
                                     <td className="px-3 py-2 border-r border-slate-200">{irIdx + 1}.</td>
                                     <td className="px-3 py-2 border-r border-slate-200 uppercase">{ir.name}</td>
-                                    <td className="px-3 py-2">{formatDate(ir.inspection_date)}</td>
+                                    <td className="px-3 py-2">{formatContractDate(ir.inspection_date)}</td>
                                 </tr>
                             )) : (
                                 <tr>

@@ -28,6 +28,10 @@ class AuthService {
       throw this._createAuthError('Invalid mobile number or password');
     }
 
+    if (tenantUser.is_status === 'N') {
+      throw this._createAuthError('Your account is inactive. Please contact the administrator.');
+    }
+
     // 3. Password Verification (Bcrypt Hash with Plaintext fallback)
     let isPasswordCorrect = false;
     let shouldUpgradeHash = false;

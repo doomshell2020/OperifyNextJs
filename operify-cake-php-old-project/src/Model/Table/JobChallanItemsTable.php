@@ -14,6 +14,10 @@ class JobChallanItemsTable extends Table
         $this->belongsTo('JobChallans', [
             'foreignKey' => 'challan_id'
         ]);
+        
+        $this->belongsTo('Additem', [
+            'foreignKey' => 'item_id'
+        ]);
     }
 }
 

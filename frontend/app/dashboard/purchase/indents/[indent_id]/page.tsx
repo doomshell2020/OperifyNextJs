@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import indentService from '../../../../../services/indent.service';
 import { Loader2, AlertCircle, Printer, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { formatDate } from '../../../../../utils/dateFormatter';
+import {  formatDate , formatContractDate } from '../../../../../utils/dateFormatter';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -129,7 +129,7 @@ export default function IndentDetailPage() {
             <div className="font-semibold text-slate-800">Purchase Requisition</div>
             <div>Indent No.: <span className="font-bold text-cyan-700">#{indent_id}</span></div>
             <div>From: <span className="font-semibold">{createdBy}</span></div>
-            <div>Date: <span className="font-semibold">{formatDate(createdDate)}</span></div>
+            <div>Date: <span className="font-semibold">{formatContractDate(createdDate)}</span></div>
           </div>
         </div>
 

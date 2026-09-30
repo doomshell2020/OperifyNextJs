@@ -4,7 +4,7 @@ class ReverseIndentController {
   async getNextReverseId(req, res, next) {
     try {
       const id = await reverseIndentService.getNextReverseId(req.dbPool);
-      res.json({ next_id: `I-${id}` });
+      res.json({ next_id: `${id}` });
     } catch (err) {
       next(err);
     }

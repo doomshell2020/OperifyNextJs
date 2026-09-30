@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsService, Product } from '@/services/settings.service';
-import { Search, X, ToggleLeft, ToggleRight, Eye } from 'lucide-react';
+import { Search, X, ToggleLeft, ToggleRight, Eye, Edit } from 'lucide-react';
 
 function formatAmt(n: number | null) {
   if (!n) return '—';
@@ -84,7 +85,12 @@ export default function ProductsPage() {
           <h1 className="text-2xl font-bold text-slate-800">Products / Items</h1>
           <p className="text-sm text-slate-500 mt-0.5">View and manage all items in the system</p>
         </div>
-        <span className="bg-slate-100 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500">{data?.length ?? 0} items</span>
+        <div className="flex items-center gap-3">
+          <span className="bg-slate-100 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500">{data?.length ?? 0} items</span>
+          <Link href="/dashboard/admin/products/add" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            + Add Product
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}
@@ -147,8 +153,9 @@ export default function ProductsPage() {
                       }
                     </button>
                   </td>
-                  <td className="px-4 py-2.5">
-                    <button onClick={() => setSelected(row)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Eye className="w-3.5 h-3.5" /></button>
+                  <td className="px-4 py-2.5 flex items-center gap-1">
+                    <button onClick={() => setSelected(row)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View"><Eye className="w-4 h-4" /></button>
+                    <Link href={`/dashboard/admin/products/edit/${row.id}`} className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors" title="Edit"><Edit className="w-4 h-4" /></Link>
                   </td>
                 </tr>
               ))}

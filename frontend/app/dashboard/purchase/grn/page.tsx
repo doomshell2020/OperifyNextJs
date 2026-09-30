@@ -10,6 +10,7 @@ import { GrnDetailsModal } from '../../../../components/GrnDetailsModal';
 import { grnPdfService } from '../../../../services/grnPdf.service';
 import apiClient from '@/services/apiClient';
 import { DatePicker } from '../../../../components/ui/DatePicker';
+import { formatContractDate } from '../../../../utils/dateFormatter';
 
 export default function GrnIndexPage() {
   const router = useRouter();
@@ -173,11 +174,11 @@ export default function GrnIndexPage() {
         </div>
         <div>
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Date From</label>
-          <DatePicker name="from_date" value={filters.from_date} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
+          <DatePicker dateFormat="dd-MM-yyyy" name="from_date" value={filters.from_date} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
         </div>
         <div>
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Date To</label>
-          <DatePicker name="to_date" value={filters.to_date} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
+          <DatePicker dateFormat="dd-MM-yyyy" name="to_date" value={filters.to_date} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
         </div>
         <div className="flex gap-2">
           <button onClick={() => refetch()} className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md p-2 flex items-center justify-center font-medium shadow-sm transition">
@@ -225,9 +226,9 @@ export default function GrnIndexPage() {
                   <tr key={grn.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
                     <td className="p-4 font-medium text-cyan-700 cursor-pointer hover:underline" onClick={() => { setSelectedGrnId(grn.id); setIsGrnModalOpen(true); }}>{grn.id}</td>
                     <td className="p-4 font-medium text-cyan-700 cursor-pointer hover:underline" onClick={() => { setSelectedPoId(grn.purchaseorder_id); setIsPoModalOpen(true); }}>{grn.purchaseorder_id}</td>
-                    <td className="p-4 text-slate-600">{grn.inwarddate?.split('T')[0]}</td>
+                    <td className="p-4 text-slate-600">{formatContractDate(grn.inwarddate)}</td>
                     <td className="p-4 text-slate-600">{grn.bill_no}</td>
-                    <td className="p-4 text-slate-600">{grn.bill_date?.split('T')[0]}</td>
+                    <td className="p-4 text-slate-600">{formatContractDate(grn.bill_date)}</td>
                     <td className="p-4 text-slate-600">{grn.vendor_name}</td>
                     <td className="p-4 text-right font-medium">{grn.total_qty}</td>
                     <td className="p-4 text-right font-bold">{parseFloat(grn.total_amt).toLocaleString('en-IN')}</td>

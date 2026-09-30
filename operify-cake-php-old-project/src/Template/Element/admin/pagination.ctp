@@ -32,11 +32,24 @@
     margin: 10px 0 2px;
   }
 
-  .pagination li a {
+  .pagination li {
+    list-style: none;
+  }
+
+  .pagination li a, .pagination li span {
     background: black;
     color: white;
-    padding: 8px;
+    padding: 5px 10px;
     margin: 3px;
     margin-top: 17px;
+    display: inline-block;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .pagination li.active a, .pagination li.active span {
+    background: white;
+    color: black;
+    border: 1px solid black;
   }
 </style>

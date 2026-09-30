@@ -207,6 +207,7 @@ export default function AddContractPage() {
                 Issue Date <span className="text-red-500">*</span>
               </label>
               <DatePicker  
+                dateFormat="dd-MM-yyyy"
                 value={issuedate}
                 onChange={e => setIssuedate(e.target.value)}
                 className="w-full px-3 py-1.5 border border-slate-300 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition text-sm text-slate-800"
@@ -261,6 +262,7 @@ export default function AddContractPage() {
                 Start Date <span className="text-red-500">*</span>
               </label>
               <DatePicker  
+                dateFormat="dd-MM-yyyy"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
                 className="w-full px-3 py-1.5 border border-slate-300 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition text-sm text-slate-800"
@@ -273,6 +275,7 @@ export default function AddContractPage() {
                 End Date
               </label>
               <DatePicker  
+                dateFormat="dd-MM-yyyy"
                 value={endDate}
                 onChange={e => setEndDate(e.target.value)}
                 className="w-full px-3 py-1.5 border border-slate-300 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition text-sm text-slate-800"

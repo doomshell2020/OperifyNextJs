@@ -47,21 +47,19 @@ export default function DashboardPage() {
 
   if (isError) {
     return (
-      <main className="max-w-lg w-full mx-auto px-6 py-20 flex flex-col items-center justify-center text-center">
-        <div className="p-4 bg-rose-50 border border-rose-100 rounded-full text-rose-500 mb-4 animate-bounce">
-          <AlertCircle className="w-10 h-10" />
+      <main className="w-full mx-auto px-4 pt-4">
+        <div className="border border-[#ccc] bg-white p-4 w-full max-w-md mx-auto mt-10">
+          <h2 className="text-sm font-bold text-[#333] border-b border-[#eee] pb-2 mb-3">Connection Sync Failed</h2>
+          <p className="text-xs text-[#555] mb-4">
+            There was a problem communicating with the tenant database instance.
+          </p>
+          <button
+            onClick={refetchAll}
+            className="px-4 py-1.5 bg-[#1683D8] hover:bg-[#1266a8] text-white rounded-[3px] text-xs font-semibold cursor-pointer h-8"
+          >
+            Retry Connection
+          </button>
         </div>
-        <h2 className="text-xl font-bold text-slate-800">Connection Sync Failed</h2>
-        <p className="text-sm text-slate-500 mt-2 max-w-md">
-          There was a problem communicating with the tenant database instance. Check your network connection.
-        </p>
-        <button
-          onClick={refetchAll}
-          className="mt-6 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white rounded-lg text-xs font-semibold shadow-md transition cursor-pointer"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Retry Connection
-        </button>
       </main>
     );
   }

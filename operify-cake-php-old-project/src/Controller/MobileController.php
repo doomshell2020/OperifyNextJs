@@ -71,20 +71,26 @@ class MobileController extends AppController
 
     public function db($dbs)
     {
-        ConnectionManager::config($dbs, [
-            'className' => 'Cake\Database\Connection',
-            'driver' => 'Cake\Database\Driver\Mysql',
-            'persistent' => false,
-            'host' => DBHOSTNAME,
-            'username' => MYSQLUSERNAME,
-            'password' => MYSQLPASSWORD,
-            'database' => $dbs,
-            'encoding' => 'utf8mb4',
-            'timezone' => 'UTC',
-            'cacheMetadata' => true,
-        ]);
-        ConnectionManager::drop('default');
-        ConnectionManager::get($dbs);
+        if (empty($dbs)) return;
+        $configured = \Cake\Datasource\ConnectionManager::configured();
+        if (!in_array($dbs, $configured)) {
+            \Cake\Datasource\ConnectionManager::config($dbs, [
+                'className' => 'Cake\Database\Connection',
+                'driver' => 'Cake\Database\Driver\Mysql',
+                'persistent' => false,
+                'host' => DBHOSTNAME,
+                'username' => MYSQLUSERNAME,
+                'password' => MYSQLPASSWORD,
+                'database' => $dbs,
+                'encoding' => 'utf8mb4',
+                'timezone' => 'UTC',
+                'cacheMetadata' => true,
+            ]);
+        }
+        if (in_array('default', $configured)) {
+            \Cake\Datasource\ConnectionManager::drop('default');
+        }
+        \Cake\Datasource\ConnectionManager::get($dbs);
         \Cake\Datasource\ConnectionManager::alias($dbs, 'default');
 
 
@@ -552,8 +558,18 @@ class MobileController extends AppController
             $response["success"] = true;
             $response["message"] = "PurchaseOrder Details fetched successfully.";
             $response["poDetails"] = array();
+            
+            $vendor_ids = array_filter(array_unique(array_column($podata, 'vendor_id')));
+            $vendors_map = [];
+            if (!empty($vendor_ids)) {
+                $vendors_list = $this->Vendor->find('all')->where(['id IN' => $vendor_ids])->toArray();
+                foreach ($vendors_list as $v) {
+                    $vendors_map[$v['id']] = $v;
+                }
+            }
+
             foreach ($podata as $value) {
-                $vendors = $this->Vendor->find('all')->where(['Vendor.id' => $value['vendor_id']])->first();
+                $vendors = isset($vendors_map[$value['vendor_id']]) ? $vendors_map[$value['vendor_id']] : ['name' => ''];
                 if ($value['is_revised'] > 0) {
                     $purchaseorder['poid'] = $value['purchaseorder_id'] . ' R-' . $value['is_revised'];
                 } else {
@@ -563,7 +579,7 @@ class MobileController extends AppController
                 $purchaseorder['po_primary'] = $value['id'];
                 $purchaseorder['is_revised'] = $value['is_revised'];
                 $purchaseorder['date'] = date('d-m-Y', strtotime($value['added_time']));
-                $purchaseorder['supplier'] = $vendors['name'];
+                $purchaseorder['supplier'] = isset($vendors['name']) ? $vendors['name'] : '';
                 $purchaseorder['qty'] = $value['total_qty'];
                 $purchaseorder['amount'] = $value['total_amt'];
                 $purchaseorder['delivery'] = date('d-m-Y', strtotime($value['delivery_date']));
@@ -594,13 +610,23 @@ class MobileController extends AppController
             $response["success"] = true;
             $response["message"] = "GRN Details fetched successfully.";
             $response["grnDetails"] = array();
+            
+            $vendor_ids = array_filter(array_unique(array_column($goodsreceived, 'vendor_id')));
+            $vendors_map = [];
+            if (!empty($vendor_ids)) {
+                $vendors_list = $this->Vendor->find('all')->where(['id IN' => $vendor_ids])->toArray();
+                foreach ($vendors_list as $v) {
+                    $vendors_map[$v['id']] = $v;
+                }
+            }
+
             foreach ($goodsreceived as $value) {
-                $vendors = $this->Vendor->find('all')->where(['Vendor.id' => $value['vendor_id']])->first();
+                $vendors = isset($vendors_map[$value['vendor_id']]) ? $vendors_map[$value['vendor_id']] : null;
                 $grn['grnno'] = $value['id'];
                 $grn['poid'] = $value['purchaseorder_id'];
                 $grn['date'] = date('d-m-Y', strtotime($value['inwarddate']));
                 $grn['billDate'] = date('d-m-Y', strtotime($value['bill_date']));
-                $grn['supplier'] = $vendors['name'];
+                $grn['supplier'] = isset($vendors['name']) ? $vendors['name'] : '';
                 $grn['amount'] = $value['total_amt'];
                 array_push($response["grnDetails"], $grn);
             }
@@ -845,13 +871,30 @@ class MobileController extends AppController
             $response["message"] = "Indent Details fetched successfully.";
             $response["indentDetails"] = array();
             $i = 1;
+
+            $contract_ids = array_filter(array_unique(array_column($indentpoid, 'contract_id')));
+            $product_ids = array_filter(array_unique(array_column($indentpoid, 'finishedproduct_id')));
+            
+            $contracts_map = [];
+            if (!empty($contract_ids)) {
+                $contracts_list = $this->Contracts->find('all')->where(['id IN' => $contract_ids])->toArray();
+                foreach ($contracts_list as $c) { $contracts_map[$c['id']] = $c; }
+            }
+            
+            $products_map = [];
+            if (!empty($product_ids)) {
+                $products_list = $this->Additem->find('all')->where(['id IN' => $product_ids])->toArray();
+                foreach ($products_list as $p) { $products_map[$p['id']] = $p; }
+            }
+
             foreach ($indentpoid as $value) {
-                $contractname = $this->Contracts->find('all')->where(['Contracts.id' => $value['contract_id']])->first();
-                $product = $this->Additem->find('all')->where(['Additem.id' => $value['finishedproduct_id']])->first();
-                $indent['contract_id'] = $contractname['id'];
+                $contractname = isset($contracts_map[$value['contract_id']]) ? $contracts_map[$value['contract_id']] : ['id' => '', 'title' => '', 'workorder' => ''];
+                $product = isset($products_map[$value['finishedproduct_id']]) ? $products_map[$value['finishedproduct_id']] : ['item_name' => ''];
+                
+                $indent['contract_id'] = isset($contractname['id']) ? $contractname['id'] : '';
                 $indent['indent_id'] = $value['indent_id'];
-                $indent['contact_name'] = $contractname['title'] . '(' . $contractname['workorder'] . ')';
-                $indent['product'] = $product['item_name'];
+                $indent['contact_name'] = (isset($contractname['title']) ? $contractname['title'] : '') . '(' . (isset($contractname['workorder']) ? $contractname['workorder'] : '') . ')';
+                $indent['product'] = isset($product['item_name']) ? $product['item_name'] : '';
                 $indent['issued_name'] = $value['issued_name'];
                 $indent['date'] = date('d-m-Y', strtotime($value['created']));
                 array_push($response["indentDetails"], $indent);
@@ -882,13 +925,30 @@ class MobileController extends AppController
             $response["success"] = true;
             $response["message"] = "Reverse Details fetched successfully.";
             $response["reverseDetails"] = array();
+            
+            $contract_ids = array_filter(array_unique(array_column($reverseindentid, 'contract_id')));
+            $product_ids = array_filter(array_unique(array_column($reverseindentid, 'finishedproduct_id')));
+            
+            $contracts_map = [];
+            if (!empty($contract_ids)) {
+                $contracts_list = $this->Contracts->find('all')->where(['id IN' => $contract_ids])->toArray();
+                foreach ($contracts_list as $c) { $contracts_map[$c['id']] = $c; }
+            }
+            
+            $products_map = [];
+            if (!empty($product_ids)) {
+                $products_list = $this->Additem->find('all')->where(['id IN' => $product_ids])->toArray();
+                foreach ($products_list as $p) { $products_map[$p['id']] = $p; }
+            }
+
             foreach ($reverseindentid as $value) {
-                $contractname = $this->Contracts->find('all')->where(['Contracts.id' => $value['contract_id']])->first();
-                $product = $this->Additem->find('all')->where(['Additem.id' => $value['finishedproduct_id']])->first();
-                $reverse['contract_id'] = $contractname['id'];
+                $contractname = isset($contracts_map[$value['contract_id']]) ? $contracts_map[$value['contract_id']] : null;
+                $product = isset($products_map[$value['finishedproduct_id']]) ? $products_map[$value['finishedproduct_id']] : null;
+                
+                $reverse['contract_id'] = isset($contractname['id']) ? $contractname['id'] : '';
                 $reverse['reverse_id'] = $value['reverse_id'];
-                $reverse['contact_name'] = $contractname['title'] . '(' . $contractname['workorder'] . ')';
-                $reverse['product'] = $product['item_name'];
+                $reverse['contact_name'] = (isset($contractname['title']) ? $contractname['title'] : '') . '(' . (isset($contractname['workorder']) ? $contractname['workorder'] : '') . ')';
+                $reverse['product'] = isset($product['item_name']) ? $product['item_name'] : '';
                 $reverse['received_name'] = $value['received_name'];
                 $reverse['date'] = date('d-m-Y', strtotime($value['created']));
                 array_push($response["reverseDetails"], $reverse);
@@ -918,14 +978,30 @@ class MobileController extends AppController
             $response["success"] = true;
             $response["message"] = "Reverse Details fetched successfully.";
             $response["reverseDetails"] = array();
-            $i = 1;
+            
+            $contract_ids = array_filter(array_unique(array_column($reverseindentid, 'contract_id')));
+            $product_ids = array_filter(array_unique(array_column($reverseindentid, 'finishedproduct_id')));
+            
+            $contracts_map = [];
+            if (!empty($contract_ids)) {
+                $contracts_list = $this->Contracts->find('all')->where(['id IN' => $contract_ids])->toArray();
+                foreach ($contracts_list as $c) { $contracts_map[$c['id']] = $c; }
+            }
+            
+            $products_map = [];
+            if (!empty($product_ids)) {
+                $products_list = $this->Additem->find('all')->where(['id IN' => $product_ids])->toArray();
+                foreach ($products_list as $p) { $products_map[$p['id']] = $p; }
+            }
+
             foreach ($reverseindentid as $value) {
-                $contractname = $this->Contracts->find('all')->where(['Contracts.id' => $value['contract_id']])->first();
-                $product = $this->Additem->find('all')->where(['Additem.id' => $value['finishedproduct_id']])->first();
-                $reverse['contract_id'] = $contractname['id'];
+                $contractname = isset($contracts_map[$value['contract_id']]) ? $contracts_map[$value['contract_id']] : null;
+                $product = isset($products_map[$value['finishedproduct_id']]) ? $products_map[$value['finishedproduct_id']] : null;
+                
+                $reverse['contract_id'] = isset($contractname['id']) ? $contractname['id'] : '';
                 $reverse['reverse_id'] = $value['reverse_id'];
-                $reverse['contact_name'] = $contractname['title'] . '(' . $contractname['workorder'] . ')';
-                $reverse['product'] = $product['item_name'];
+                $reverse['contact_name'] = (isset($contractname['title']) ? $contractname['title'] : '') . '(' . (isset($contractname['workorder']) ? $contractname['workorder'] : '') . ')';
+                $reverse['product'] = isset($product['item_name']) ? $product['item_name'] : '';
                 $reverse['received_name'] = $value['received_name'];
                 $reverse['date'] = date('d-m-Y', strtotime($value['created']));
                 array_push($response["reverseDetails"], $reverse);
@@ -956,19 +1032,45 @@ class MobileController extends AppController
             $response["success"] = true;
             $response["message"] = "Production Details fetched successfully.";
             $response["productionDetails"] = array();
+            
+            $contract_ids = array_filter(array_unique(array_column($productionorder, 'contract_id')));
+            $product_ids = array_filter(array_unique(array_column($productionorder, 'item_id')));
+            $po_ids = array_filter(array_unique(array_column($productionorder, 'po_id')));
+            
+            $contracts_map = [];
+            if (!empty($contract_ids)) {
+                $contracts_list = $this->Contracts->find('all')->where(['id IN' => $contract_ids])->toArray();
+                foreach ($contracts_list as $c) { $contracts_map[$c['id']] = $c; }
+            }
+            
+            $products_map = [];
+            if (!empty($product_ids)) {
+                $products_list = $this->Additem->find('all')->where(['id IN' => $product_ids])->toArray();
+                foreach ($products_list as $p) { $products_map[$p['id']] = $p; }
+            }
+            
+            $production_map = [];
+            if (!empty($po_ids)) {
+                $production_list = $this->Production->find('all')->where(['po_id IN' => $po_ids, 'productprocess_id' => 8])->toArray();
+                foreach ($production_list as $prod) {
+                    $production_map[$prod['po_id']][] = $prod;
+                }
+            }
+
             foreach ($productionorder as $value) {
-                $contractname = $this->Contracts->find('all')->where(['Contracts.id' => $value['contract_id']])->first();
-                $product = $this->Additem->find('all')->where(['Additem.id' => $value['item_id']])->first();
-                $checkdailysheet = $this->Production->find()->where(['Production.po_id' => $value['po_id'], 'Production.productprocess_id' => 8])->order(['Production.id' => 'DESC'])->toarray();
-                $quantity = '';
+                $contractname = isset($contracts_map[$value['contract_id']]) ? $contracts_map[$value['contract_id']] : null;
+                $product = isset($products_map[$value['item_id']]) ? $products_map[$value['item_id']] : null;
+                $checkdailysheet = isset($production_map[$value['po_id']]) ? $production_map[$value['po_id']] : [];
+                
+                $quantity = 0;
                 foreach ($checkdailysheet as $prepqty) {
                     $quantity += $prepqty['production_shift_a'] + $prepqty['production_shift_b'];
                 }
-                $production['contract_id'] = $contractname['id'];
+                $production['contract_id'] = isset($contractname['id']) ? $contractname['id'] : '';
                 $production['po_id'] = $value['po_id'];
                 $production['date'] = date('d-m-Y', strtotime($value['issuedate']));
-                $production['contact_name'] = $contractname['title'] . '(' . $contractname['workorder'] . ')';
-                $production['product'] = $product['item_name'];
+                $production['contact_name'] = (isset($contractname['title']) ? $contractname['title'] : '') . '(' . (isset($contractname['workorder']) ? $contractname['workorder'] : '') . ')';
+                $production['product'] = isset($product['item_name']) ? $product['item_name'] : '';
                 $production['plannedqty'] = number_format((float) $value['plannedqty'], 2, '.', '');
                 $production['preparedqty'] = number_format((float) $quantity ? $quantity : 0, 2, '.', '');
                 array_push($response["productionDetails"], $production);

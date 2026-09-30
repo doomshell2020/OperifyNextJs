@@ -601,37 +601,47 @@ class CommanHelper extends Helper
     }
     public function connection_query($dbs)
     {
-        ConnectionManager::config($dbs, [
-            'className' => 'Cake\Database\Connection',
-            'driver' => 'Cake\Database\Driver\Mysql',
-            'persistent' => false,
-            'host' => DBHOSTNAME,
-            'username' => MYSQLUSERNAME,
-            'password' => MYSQLPASSWORD,
-            'database' => $dbs,
-            'encoding' => 'utf8mb4',
-            'timezone' => 'UTC',
-            'cacheMetadata' => true,
-        ]);
-        ConnectionManager::drop('default');
-        ConnectionManager::get($dbs);
+        if (empty($dbs)) return;
+        $configured = \Cake\Datasource\ConnectionManager::configured();
+        if (!in_array($dbs, $configured)) {
+            \Cake\Datasource\ConnectionManager::config($dbs, [
+                'className' => 'Cake\Database\Connection',
+                'driver' => 'Cake\Database\Driver\Mysql',
+                'persistent' => false,
+                'host' => DBHOSTNAME,
+                'username' => MYSQLUSERNAME,
+                'password' => MYSQLPASSWORD,
+                'database' => $dbs,
+                'encoding' => 'utf8mb4',
+                'timezone' => 'UTC',
+                'cacheMetadata' => true,
+            ]);
+        }
+        if (in_array('default', $configured)) {
+            \Cake\Datasource\ConnectionManager::drop('default');
+        }
+        \Cake\Datasource\ConnectionManager::get($dbs);
         \Cake\Datasource\ConnectionManager::alias($dbs, 'default');
     }
 
     public function connection($dbname)
     {
-        ConnectionManager::config($dbname, [
-            'className' => 'Cake\Database\Connection',
-            'driver' => 'Cake\Database\Driver\Mysql',
-            'persistent' => false,
-            'host' => DBHOSTNAME,
-            'username' => MYSQLUSERNAME,
-            'password' => MYSQLPASSWORD,
-            'database' => $dbname,
-            'encoding' => 'utf8mb4',
-            'timezone' => 'UTC',
-            'cacheMetadata' => true,
-        ]);
+        if (empty($dbname)) return;
+        $configured = \Cake\Datasource\ConnectionManager::configured();
+        if (!in_array($dbname, $configured)) {
+            \Cake\Datasource\ConnectionManager::config($dbname, [
+                'className' => 'Cake\Database\Connection',
+                'driver' => 'Cake\Database\Driver\Mysql',
+                'persistent' => false,
+                'host' => DBHOSTNAME,
+                'username' => MYSQLUSERNAME,
+                'password' => MYSQLPASSWORD,
+                'database' => $dbname,
+                'encoding' => 'utf8mb4',
+                'timezone' => 'UTC',
+                'cacheMetadata' => true,
+            ]);
+        }
     }
 
     public function findgroupitemstore($category_id, $group_type, $branch_name)

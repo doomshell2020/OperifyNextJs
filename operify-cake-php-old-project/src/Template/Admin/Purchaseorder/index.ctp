@@ -500,9 +500,7 @@ $status = $parms['status'];
                         <?php } ?>
                      </tbody>
                   </table>
-                  <?php // echo $this->element('admin/pagination'); 
-                  ?>
-                  <?php echo $this->element('admin/custompagination'); ?>
+                  <?php echo $this->element('admin/pagination'); ?>
                </div>
                <!-- /.box-body -->
             </div>

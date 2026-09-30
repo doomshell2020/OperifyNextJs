@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import indentService, { IndentSummary } from '../../../../services/indent.service';
 import {
 import { DatePicker } from '../../../../components/ui/DatePicker';
-import { formatDate } from '../../../../utils/dateFormatter';
+import {  formatDate , formatContractDate } from '../../../../utils/dateFormatter';
   ListTodo,
   Plus,
   Search,
@@ -112,7 +112,7 @@ function SearchBar({
         <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
           Date From
         </label>
-        <DatePicker  
+        <DatePicker dateFormat="dd-MM-yyyy"  
           value={filters.date_from}
           onChange={e => onChange({ ...filters, date_from: e.target.value })}
           className="h-9 px-3 rounded-lg border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500"
@@ -122,7 +122,7 @@ function SearchBar({
         <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
           Date To
         </label>
-        <DatePicker  
+        <DatePicker dateFormat="dd-MM-yyyy"  
           value={filters.date_to}
           onChange={e => onChange({ ...filters, date_to: e.target.value })}
           className="h-9 px-3 rounded-lg border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500"
@@ -282,7 +282,7 @@ export default function IndentsListPage() {
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-1.5 text-xs text-slate-600">
                       <Calendar className="w-3 h-3 text-slate-400" />
-                      {formatDate(indent.added_time)}
+                      {formatContractDate(indent.added_time)}
                     </div>
                   </td>
                   <td className="px-5 py-4">

@@ -358,7 +358,7 @@ export default function AddDesignSheetPage() {
             </div>
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Date <span className="text-rose-500">*</span></label>
-              <DatePicker required value={formData.datefrom} onChange={e => setFormData({ ...formData, datefrom: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-cyan-500 outline-none" />
+              <DatePicker dateFormat="dd-MM-yyyy" required value={formData.datefrom} onChange={e => setFormData({ ...formData, datefrom: e.target.value })} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:border-cyan-500 outline-none" />
             </div>
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Upload Design Sheet <span className="text-rose-500">*</span></label>

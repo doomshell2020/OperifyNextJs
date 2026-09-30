@@ -1,47 +1,57 @@
-import React, { useState, forwardRef, InputHTMLAttributes } from 'react';
-import { formatDate } from '../../utils/dateFormatter';
+import React, { forwardRef, InputHTMLAttributes } from 'react';
+import { formatDate, formatContractDate } from '../../utils/dateFormatter';
 
 export interface DatePickerProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
   value?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  dateFormat?: 'dd-MM-yy' | 'dd-MM-yyyy';
 }
 
 export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
-  ({ value, onChange, onBlur, className, ...props }, ref) => {
-    const [focused, setFocused] = useState(false);
+  ({ value, onChange, onBlur, className, dateFormat = 'dd-MM-yy', ...props }, ref) => {
+    const hiddenDateRef = React.useRef<HTMLInputElement>(null);
 
-    if (focused) {
-      return (
-        <input
-          {...props}
-          type="date"
-          ref={ref}
-          value={value || ''}
-          onChange={onChange}
-          onBlur={(e) => {
-            setFocused(false);
-            onBlur?.(e);
-          }}
-          autoFocus
-          className={className}
-        />
-      );
-    }
+    // Sync external ref if provided
+    React.useImperativeHandle(ref, () => hiddenDateRef.current as HTMLInputElement);
 
-    // Display formatted value when not focused
-    const displayValue = value ? formatDate(value) : '';
+
+
+    const displayValue = value ? (dateFormat === 'dd-MM-yyyy' ? formatContractDate(value) : formatDate(value)) : '';
+    const placeholderText = dateFormat === 'dd-MM-yyyy' ? 'DD-MM-YYYY' : 'DD-MM-YY';
 
     return (
-      <input
-        {...props}
-        type="text"
-        value={displayValue}
-        onFocus={() => setFocused(true)}
-        readOnly
-        className={className}
-        placeholder="DD-MM-YY"
-      />
+      <div className="relative w-full">
+        <input
+          {...props}
+          type="text"
+          value={displayValue}
+          readOnly
+          className={className}
+          placeholder={placeholderText}
+        />
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+        </div>
+        <input
+          type="date"
+          ref={hiddenDateRef}
+          value={value || ''}
+          onChange={onChange}
+          onBlur={onBlur}
+          onClick={(e) => {
+            try {
+              if ('showPicker' in HTMLInputElement.prototype) {
+                (e.target as HTMLInputElement).showPicker();
+              }
+            } catch {
+              // Ignore
+            }
+          }}
+          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+          style={{ padding: 0, margin: 0, border: 'none', background: 'transparent' }}
+        />
+      </div>
     );
   }
 );

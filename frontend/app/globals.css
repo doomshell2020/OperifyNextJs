@@ -24,3 +24,117 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* --- ERP THEME GLOBAL OVERRIDES --- */
+
+/* Tables */
+table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  border: 1px solid #ccc !important;
+  text-align: left !important;
+}
+
+thead tr {
+  background-color: #333 !important;
+  color: #fff !important;
+}
+
+thead th {
+  padding: 6px 10px !important;
+  border-right: 1px solid #444 !important;
+  border-bottom: 1px solid #ccc !important;
+  font-size: 11px !important;
+  font-weight: bold !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  background-color: #333 !important;
+  color: #fff !important;
+}
+
+tbody tr {
+  background-color: #fff !important;
+  border-bottom: 1px solid #ccc !important;
+}
+
+tbody tr:nth-child(even) {
+  background-color: #f9f9f9 !important;
+}
+
+tbody tr:hover {
+  background-color: #f1f5f9 !important;
+}
+
+tbody td {
+  padding: 10px 10px !important;
+  border-right: 1px solid #ccc !important;
+  font-size: 12px !important;
+  color: #333 !important;
+}
+
+/* Buttons (primary) */
+button[type="submit"], button.bg-blue-500, button.bg-cyan-600, a.bg-blue-500 {
+  background-color: #1683D8 !important;
+  color: white !important;
+  border-radius: 3px !important;
+  padding: 4px 16px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  height: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: none !important;
+}
+
+/* Inputs, Selects, Textareas */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea {
+  border: 1px solid #ccc !important;
+  border-radius: 3px !important;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  color: #333 !important;
+  background-color: #fff !important;
+  min-height: 32px !important;
+  box-shadow: none !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none !important;
+  border-color: #1683D8 !important;
+}
+
+
+
+/* Labels */
+label {
+  font-size: 11px !important;
+  font-weight: bold !important;
+  color: #555 !important;
+  text-transform: none !important;
+  margin-bottom: 4px !important;
+}
+
+/* Form Cards / Containers */
+form.bg-white, div.bg-white.border {
+  border: 1px solid #ccc !important;
+  border-radius: 3px !important;
+  box-shadow: none !important;
+}
+
+/* Page Titles */
+h1 {
+  font-size: 22px !important;
+  color: #333 !important;
+  font-weight: normal !important;
+}
+
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+

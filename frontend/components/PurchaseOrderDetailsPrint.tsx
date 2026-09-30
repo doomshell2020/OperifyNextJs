@@ -1,6 +1,6 @@
 import React from 'react';
 import { API_URL } from '../services/apiClient';
-import { formatDate } from '../utils/dateFormatter';
+import { formatDate, formatContractDate } from '../utils/dateFormatter';
 
 interface PurchaseOrderDetailsPrintProps {
   data: any;
@@ -52,11 +52,11 @@ export const PurchaseOrderDetailsPrint: React.FC<PurchaseOrderDetailsPrintProps>
                 <tbody>
                   <tr>
                     <td className="p-1.5 border-b border-black w-1/2">Purchase Order No. :- {data.po.po_number}</td>
-                    <td className="p-1.5 border-b border-black border-l w-1/2">Amendment No :- {data.po.amendment_no || '0'} (Date : {formatDate(data.po.amendment_date)})</td>
+                    <td className="p-1.5 border-b border-black border-l w-1/2">Amendment No :- {data.po.amendment_no || '0'} (Date : {formatContractDate(data.po.amendment_date)})</td>
                   </tr>
                   <tr>
-                    <td className="p-1.5 border-b border-black">Purchase Order Date :- {formatDate(data.po.po_date)}</td>
-                    <td className="p-1.5 border-b border-black border-l">Delivery Date :- {formatDate(data.po.delivery_date)}</td>
+                    <td className="p-1.5 border-b border-black">Purchase Order Date :- {formatContractDate(data.po.po_date)}</td>
+                    <td className="p-1.5 border-b border-black border-l">Delivery Date :- {data.po.delivery_date ? formatContractDate(data.po.delivery_date) : '-'}</td>
                   </tr>
                   <tr>
                     <td className="p-1.5 border-b border-black">GSTIN NO. :- {data.po.gst_number || 'NA'}</td>

@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import purchaseOrderService from '../services/purchaseOrder.service';
 import { X, Printer, AlertCircle, Loader } from 'lucide-react';
 import { StatusBadge } from './dashboard/StatusBadge';
-import { formatDate } from '../utils/dateFormatter';
+import { formatDate, formatContractDate } from '../utils/dateFormatter';
 
 interface PurchaseOrderDetailsModalProps {
   id: number | string;
@@ -85,13 +85,13 @@ export const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps>
                 </div>
                 <div>
                   <span className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Generation Date</span>
-                  <p className="text-slate-800 font-semibold mt-0.5">Date : {formatDate(data.po.po_date)}</p>
+                  <p className="text-slate-800 font-semibold mt-0.5">Date : {formatContractDate(data.po.po_date)}</p>
                 </div>
                 {data.po.amendment_no > 0 && (
                   <div>
                     <span className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Amendments</span>
                     <p className="text-slate-800 font-semibold mt-0.5">
-                      Amendment No : {data.po.amendment_no} (Date : {formatDate(data.po.amendment_date)})
+                      Amendment No : {data.po.amendment_no} (Date : {formatContractDate(data.po.amendment_date)})
                     </p>
                   </div>
                 )}
@@ -107,7 +107,7 @@ export const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps>
               <div className="space-y-2">
                 <div>
                   <span className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Delivery Commitments</span>
-                  <p className="text-slate-800 font-semibold mt-0.5">Delivery Date : {formatDate(data.po.delivery_date)}</p>
+                  <p className="text-slate-800 font-semibold mt-0.5">Delivery Date : {formatContractDate(data.po.delivery_date)}</p>
                 </div>
                 <div>
                   <span className="text-slate-400 font-bold uppercase text-[9px] tracking-wider">Vendor Connection</span>
@@ -202,7 +202,7 @@ export const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps>
                       </div>
                       <div>
                         <span className="text-slate-400 font-bold uppercase block mb-0.5">Inward Date</span>
-                        <span className="font-semibold text-slate-900">{formatDate(grn.inward_date)}</span>
+                        <span className="font-semibold text-slate-900">{formatContractDate(grn.inward_date)}</span>
                       </div>
                       <div>
                         <span className="text-slate-400 font-bold uppercase block mb-0.5">Bill No.</span>
@@ -210,7 +210,7 @@ export const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps>
                       </div>
                       <div>
                         <span className="text-slate-400 font-bold uppercase block mb-0.5">Bill Date</span>
-                        <span className="font-semibold text-slate-900">{formatDate(grn.bill_date)}</span>
+                        <span className="font-semibold text-slate-900">{formatContractDate(grn.bill_date)}</span>
                       </div>
                     </div>
                     

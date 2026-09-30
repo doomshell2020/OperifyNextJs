@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import contractService from '../../services/contract.service';
 import { Loader, AlertCircle, X, Printer } from 'lucide-react';
 import { formatQty, formatAmt } from '@/utils/formatters';
-import { formatDate } from '../../utils/dateFormatter';
+import { formatContractDate } from '../../utils/dateFormatter';
 
 interface ContractDetailsModalProps {
   contractId: number;
@@ -68,13 +68,13 @@ export function ContractDetailsModal({ contractId, onClose }: ContractDetailsMod
               <div>
                 <p>Work Order:- {details.contract.workorder}</p>
                 <p>Title:- {details.contract.title}</p>
-                <p>Contract Start Date:- {formatDate(details.contract.contract_start_date)}</p>
+                <p>Contract Start Date:- {formatContractDate(details.contract.contract_start_date)}</p>
                 <p>Supplier Name:- {details.contract.vendor_name}</p>
                 <p>Labour Cost:- {formatAmt(details.contract.labour_cost)}</p>
               </div>
               <div>
-                <p>Issue Date:- {formatDate(details.contract.issuedate)}</p>
-                <p>Contract End Date:- {formatDate(details.contract.contract_end_date)}</p>
+                <p>Issue Date:- {formatContractDate(details.contract.issuedate)}</p>
+                <p>Contract End Date:- {formatContractDate(details.contract.contract_end_date)}</p>
                 <p>Cost:- {formatAmt(details.contract.cost)}</p>
                 <p>Operational Cost:- {formatAmt(details.contract.operation_cost)}</p>
               </div>
@@ -161,12 +161,12 @@ export function ContractDetailsModal({ contractId, onClose }: ContractDetailsMod
                     details.productionOrders.map((po: any, idx: number) => (
                       <tr key={po.po_id || idx} className="border-b border-gray-200">
                         <td className="px-2 py-1.5 border-r border-gray-300">{po.po_id}</td>
-                        <td className="px-2 py-1.5 border-r border-gray-300">{formatDate(po.issuedate)}</td>
+                        <td className="px-2 py-1.5 border-r border-gray-300">{formatContractDate(po.issuedate)}</td>
                         <td className="px-2 py-1.5 border-r border-gray-300">{po.product_name}</td>
                         <td className="px-2 py-1.5 border-r border-gray-300 text-right">{formatQty(po.plannedqty)}</td>
                         <td className="px-2 py-1.5 border-r border-gray-300 text-right">{formatQty(po.prepared_qty)}</td>
-                        <td className="px-2 py-1.5 border-r border-gray-300">{formatDate(po.startdate)}</td>
-                        <td className="px-2 py-1.5 border-r border-gray-300">{formatDate(po.enddate)}</td>
+                        <td className="px-2 py-1.5 border-r border-gray-300">{formatContractDate(po.startdate)}</td>
+                        <td className="px-2 py-1.5 border-r border-gray-300">{formatContractDate(po.enddate)}</td>
                         <td className="px-2 py-1.5">{po.status === 'O' ? 'Open' : 'Closed'}</td>
                       </tr>
                     ))
@@ -196,7 +196,7 @@ export function ContractDetailsModal({ contractId, onClose }: ContractDetailsMod
                       <tr key={ir.s_no || idx} className="border-b border-gray-200">
                         <td className="px-2 py-1.5 border-r border-gray-300">{idx + 1}.</td>
                         <td className="px-2 py-1.5 border-r border-gray-300">{ir.inspector_name}</td>
-                        <td className="px-2 py-1.5">{formatDate(ir.inspection_date)}</td>
+                        <td className="px-2 py-1.5">{formatContractDate(ir.inspection_date)}</td>
                       </tr>
                     ))
                   ) : (

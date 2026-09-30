@@ -9,8 +9,7 @@ import { Lock, Phone, AlertCircle, Loader } from 'lucide-react';
 
 const loginSchema = zod.object({
   mobile: zod.string()
-    .min(1, 'Mobile number is required')
-    .regex(/^[0-9]+$/, 'Mobile must contain only digits'),
+    .min(1, 'Mobile number/Username is required'),
   password: zod.string()
     .min(1, 'Password is required'),
   rememberMe: zod.boolean().optional()
@@ -81,7 +80,7 @@ export default function LoginPage() {
             {/* Mobile field */}
             <div className="space-y-2">
               <label htmlFor="mobile" className="block text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Mobile Number
+                Mobile / Username
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">

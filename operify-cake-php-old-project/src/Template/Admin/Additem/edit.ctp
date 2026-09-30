@@ -138,19 +138,28 @@
 
                 <div class="col-sm-4" style="margin-bottom:15px;">
                   <label for="inputEmail3" class="control-label">Type :</label><br>
-                  <label class="radio-inline">
-                    <input type="radio" name="itemtype" class="mode radio-inline checkstr " value="RawMaterial" id="rawpro"
-                      <?php if ($addeditem['itemtype'] == 'RawMaterial') {
-                        echo "checked";
-                      } ?>>&nbsp;RawMaterial
-                  </label>
+                  <div style="display:flex; flex-direction:column; gap:8px; margin-top:5px;">
+                    <label class="radio-inline" style="margin:0;">
+                      <input type="radio" name="itemtype" class="mode checkstr" value="RawMaterial" id="rawpro"
+                        <?php if ($addeditem['itemtype'] == 'RawMaterial') {
+                          echo "checked";
+                        } ?>>&nbsp;RawMaterial
+                    </label>
 
-                  <label class="radio-inline">
-                    <input type="radio" name="itemtype" class="mode radio-inline checkstr" value="FinishedProduct" id="finishedpro"
-                      <?php if ($addeditem['itemtype'] == 'FinishedProduct') {
-                        echo "checked";
-                      } ?>>&nbsp; FinishedProduct
-                  </label>
+                    <label class="radio-inline" style="margin:0;">
+                      <input type="radio" name="itemtype" class="mode checkstr" value="Semi-Finished Product" id="semipro"
+                        <?php if ($addeditem['itemtype'] == 'Semi-Finished Product') {
+                          echo "checked";
+                        } ?>>&nbsp;Semi-Finished Product
+                    </label>
+
+                    <label class="radio-inline" style="margin:0;">
+                      <input type="radio" name="itemtype" class="mode checkstr" value="FinishedProduct" id="finishedpro"
+                        <?php if ($addeditem['itemtype'] == 'FinishedProduct') {
+                          echo "checked";
+                        } ?>>&nbsp;FinishedProduct
+                    </label>
+                  </div>
                 </div>
 
 
@@ -269,7 +278,7 @@
   });
 </script>
 <script>
-  $('#rawpro').on('change', function() {
+  $('#rawpro, #semipro').on('change', function() {
     $("#proceesname").css("display", "none");
   });
 </script>

@@ -2,7 +2,7 @@ import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Image } from '@react-pdf/renderer';
 import { numberToWords } from '@/utils/numberToWords';
 import { formatQty, formatAmt } from '@/utils/formatters';
-import { formatDate } from '../../../utils/dateFormatter';
+import { formatContractDate } from '../../../utils/dateFormatter';
 
 const styles = StyleSheet.create({
   page: {
@@ -235,11 +235,11 @@ export const GrnPdf: React.FC<GrnPdfProps> = ({ data }) => {
               </View>
               <View style={styles.detailLine}>
                 <Text style={styles.detailLabel}>Inward Date</Text>
-                <Text style={styles.detailValue}>: {formatDate(grn.inwarddate)}</Text>
+                <Text style={styles.detailValue}>: {formatContractDate(grn.inwarddate)}</Text>
               </View>
               <View style={styles.detailLine}>
                 <Text style={styles.detailLabel}>Bill Date</Text>
-                <Text style={styles.detailValue}>: {formatDate(grn.bill_date)}</Text>
+                <Text style={styles.detailValue}>: {formatContractDate(grn.bill_date)}</Text>
               </View>
               <View style={styles.detailLine}>
                 <Text style={styles.detailLabel}>Bill No</Text>

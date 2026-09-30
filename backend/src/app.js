@@ -21,6 +21,7 @@ const designsheetRoutes = require('./modules/designsheet/designsheet.routes');
 const grnInspectionRoutes = require('./modules/grnInspection/grnInspection.routes');
 const grnRoutes = require('./modules/grn/grn.routes');
 const stockRegisterRoutes = require('./modules/stockRegister/stockRegister.routes');
+const jobChallanRoutes = require('./modules/jobChallan/jobChallan.routes');
 const tenantMiddleware = require('./middleware/tenant');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -31,7 +32,7 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 app.use(cors({
-  origin: '*', // Adjust origin rules in production
+  origin: true, // Dynamically mirror origin
   credentials: true
 }));
 app.use(morgan('dev'));
@@ -59,6 +60,7 @@ app.use('/api/designsheets', designsheetRoutes);
 app.use('/api/grn-inspection', grnInspectionRoutes);
 app.use('/api/grn', grnRoutes);
 app.use('/api/stock-register', stockRegisterRoutes);
+app.use('/api/job-challan', jobChallanRoutes);
 app.use('/api/reverse-indent', require('./modules/reverseIndent/reverseIndent.routes'));
 
 // Health check endpoint

@@ -10,17 +10,23 @@ use Firebase\JWT\JWT;
 
 class PermissionHelper extends Helper
 {
+    protected $_cachedPermissions = null;
 
     // initialize() hook is available since 3.2. For prior versions you can
     // override the constructor if required.
     public function initialize(array $config)
     {
     }
+    
     public function permissioncheck($url = null)
     {
+        if ($this->_cachedPermissions !== null) {
+            return $this->_cachedPermissions;
+        }
+
         $rolepresent = $this->request->session()->read('Auth.User.role_id');
 
-        TableRegistry::clear();
+        $urlfetch = [];
         $primary_users = '';
         $this->setPrimaryDatabase();
         $primary_connection = ConnectionManager::get('primary_db');
@@ -41,6 +47,7 @@ class PermissionHelper extends Helper
 
         }
 
+        $this->_cachedPermissions = $urlfetch;
         return $urlfetch;
 
 
@@ -58,8 +65,6 @@ class PermissionHelper extends Helper
     {
 
         $rolepresent = $this->request->session()->read('Auth.User.role_id');
-
-        TableRegistry::clear();
 
         $this->setPrimaryDatabase();
         $primary_connection2 = ConnectionManager::get('primary_db');
@@ -142,8 +147,7 @@ class PermissionHelper extends Helper
     {
         // Check if the connection already exists
         if (ConnectionManager::config('primary_db')) {
-            // Drop the existing connection
-            ConnectionManager::drop('primary_db');
+            return; // Prevent dropping and recreating the connection
         }
         // Primary Database connection
         ConnectionManager::Config('primary_db', [

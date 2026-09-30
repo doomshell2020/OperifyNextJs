@@ -8,7 +8,7 @@ import AsyncSelect from "react-select/async";
 import { Search, Plus, Printer, RefreshCw, X, FileSpreadsheet } from "lucide-react";
 import Link from "next/link";
 import { ContractDetailsModal } from "../../../components/dashboard/ContractDetailsModal";
-import { formatDate } from '../../../utils/dateFormatter';
+import { formatDate, formatContractDate } from '../../../utils/dateFormatter';
 import { DatePicker } from "../../../components/ui/DatePicker";
 
 export default function ReverseIndentListPage() {
@@ -166,20 +166,22 @@ export default function ReverseIndentListPage() {
           </div>
           <div className="space-y-1">
             <label className="text-xs font-semibold text-slate-500">Start Date</label>
-            <input 
-              type="date"
+            <DatePicker 
+              dateFormat="dd-MM-yyyy"
+              name="datefrom"
               className="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none"
               value={filters.datefrom}
-              onChange={(e) => setFilters({...filters, datefrom: e.target.value})}
+              onChange={(e: any) => setFilters({...filters, datefrom: e.target.value})}
             />
           </div>
           <div className="space-y-1">
             <label className="text-xs font-semibold text-slate-500">End Date</label>
-            <input 
-              type="date"
+            <DatePicker 
+              dateFormat="dd-MM-yyyy"
+              name="dateto"
               className="w-full px-3 py-2 border border-slate-300 rounded text-sm focus:outline-none"
               value={filters.dateto}
-              onChange={(e) => setFilters({...filters, dateto: e.target.value})}
+              onChange={(e: any) => setFilters({...filters, dateto: e.target.value})}
             />
           </div>
         </div>
@@ -247,7 +249,7 @@ export default function ReverseIndentListPage() {
                     <td className="px-4 py-3 text-slate-700">{indent.machine_name}</td>
                     <td className="px-4 py-3 text-slate-700 uppercase">{indent.received_name}</td>
                     <td className="px-4 py-3 text-slate-600">
-                      {formatDate(indent.issue_date)}
+                      {formatContractDate(indent.issue_date)}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Link href={`/dashboard/reverse/${indent.reverse_id}`}>
@@ -342,7 +344,7 @@ function ReverseDetailsModal({ id, onClose }: { id: string, onClose: () => void 
             <div><span className="font-semibold text-slate-500">Product:</span> {details?.product_name}</div>
             <div><span className="font-semibold text-slate-500">Machine:</span> {details?.machine_name}</div>
             <div><span className="font-semibold text-slate-500">Received By:</span> {details?.received_name}</div>
-            <div><span className="font-semibold text-slate-500">Issue Date:</span> {formatDate(details?.issue_date)}</div>
+            <div><span className="font-semibold text-slate-500">Issue Date:</span> {formatContractDate(details?.issue_date)}</div>
           </div>
           
           <div>

@@ -8,6 +8,7 @@ import AsyncSelect from "react-select/async";
 import { format } from "date-fns";
 import { Save, ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
+import { DatePicker } from "../../../../components/ui/DatePicker";
 
 export default function AddReverseIndentPage() {
   const router = useRouter();
@@ -30,8 +31,8 @@ export default function AddReverseIndentPage() {
 
   useEffect(() => {
     reverseIndentService.getNextReverseId().then(id => {
-      setNextId(`I-${id}`);
-      setFormData(prev => ({ ...prev, reverse_id: `I-${id}` }));
+      setNextId(`${id}`);
+      setFormData(prev => ({ ...prev, reverse_id: `${id}` }));
     }).catch(() => {});
   }, []);
 
@@ -55,7 +56,7 @@ export default function AddReverseIndentPage() {
     
     if (cid) {
       indentpoService.getContractProducts(cid).then(data => {
-        setProductOptions(data.map((p: any) => ({ label: p.item_name, value: p.id })));
+        setProductOptions(data.map((p: any) => ({ label: p.item_name, value: p.product_id })));
       });
     }
   };
@@ -69,8 +70,10 @@ export default function AddReverseIndentPage() {
         setDesignSheetItems(data.map((item: any) => ({
           item_id: item.item_id,
           item_name: item.item_name,
-          uom: item.uom,
-          quantity: ""
+          uom: item.unit_name,
+          quantity: "",
+          is_group: item.is_group,
+          group_items: item.group_items
         })));
       });
     } else {
@@ -84,6 +87,24 @@ export default function AddReverseIndentPage() {
       updated[index].quantity = val;
       return updated;
     });
+  };
+
+  const handleGroupItemSelect = (groupItem: any, selectedItemId: string) => {
+    if (!selectedItemId) return;
+    
+    const selectedItem = groupItem.group_items?.find((i: any) => i.id.toString() === selectedItemId);
+    if (!selectedItem) return;
+    
+    const newItem = {
+      item_id: selectedItem.id,
+      item_name: selectedItem.item_name,
+      uom: groupItem.uom,
+      quantity: "",
+      is_group: 0,
+      is_added_from_group: true
+    };
+    
+    setDesignSheetItems([...designSheetItems, newItem]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -143,11 +164,11 @@ export default function AddReverseIndentPage() {
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700">Issued Date <span className="text-red-500">*</span></label>
-              <input 
-                type="date" 
+              <DatePicker 
+                dateFormat="dd-MM-yyyy"
+                name="issue_date"
                 value={formData.issue_date}
-                onChange={e => setFormData({ ...formData, issue_date: e.target.value })}
-                required
+                onChange={(e: any) => setFormData({ ...formData, issue_date: e.target.value })}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -215,21 +236,40 @@ export default function AddReverseIndentPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-200">
                     {designSheetItems.map((item, index) => (
-                      <tr key={index} className="hover:bg-slate-50">
+                      <tr key={index} className={`hover:bg-slate-50 ${Number(item.is_group) === 1 ? 'bg-amber-50/40' : ''}`}>
                         <td className="px-4 py-3">
-                          <input type="text" value={item.item_name} readOnly className="w-full px-2 py-1 bg-transparent border-none focus:outline-none" />
+                          {Number(item.is_group) === 1 ? (
+                            <select
+                              className="w-full px-2 py-1.5 border border-amber-300 bg-white rounded text-sm font-medium text-amber-900 outline-none focus:ring-2 focus:ring-amber-500"
+                              onChange={(e) => {
+                                handleGroupItemSelect(item, e.target.value);
+                                e.target.value = "";
+                              }}
+                            >
+                              <option value="">-- {item.item_name} --</option>
+                              {item.group_items?.map((g: any) => (
+                                <option key={g.id} value={g.id}>{g.item_name}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input type="text" value={item.item_name} readOnly className="w-full px-2 py-1 bg-transparent border-none focus:outline-none text-slate-700 font-medium text-sm" />
+                          )}
                         </td>
                         <td className="px-4 py-3">
-                          <input 
-                            type="number" 
-                            step="any"
-                            value={item.quantity}
-                            onChange={(e) => handleItemQtyChange(index, e.target.value)}
-                            className="w-full px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          />
+                          {Number(item.is_group) === 1 ? (
+                            <span className="text-slate-400 pl-3">--</span>
+                          ) : (
+                            <input 
+                              type="number" 
+                              step="any"
+                              value={item.quantity}
+                              onChange={(e) => handleItemQtyChange(index, e.target.value)}
+                              className="w-full px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm"
+                            />
+                          )}
                         </td>
                         <td className="px-4 py-3">
-                          <input type="text" value={item.uom} readOnly className="w-full px-2 py-1 bg-transparent border-none focus:outline-none" />
+                          <input type="text" value={item.uom} readOnly className="w-full px-2 py-1 bg-transparent border-none focus:outline-none text-sm text-slate-600" />
                         </td>
                       </tr>
                     ))}

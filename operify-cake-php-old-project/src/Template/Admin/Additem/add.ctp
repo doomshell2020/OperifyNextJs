@@ -123,16 +123,22 @@
 
               <div class="col-sm-4" style="margin-bottom:15px;">
                 <label for="inputEmail3" class="control-label">Type :</label>
-                <label class="radio-inline">
-                  <input type="radio" name="itemtype" class="mode radio-inline checkstr " id="rawpro"
-                    value="RawMaterial">&nbsp;RawMaterial
-                </label>
+                <div style="display:flex; flex-direction:column; gap:8px; margin-top:5px;">
+                  <label class="radio-inline" style="margin:0;">
+                    <input type="radio" name="itemtype" class="mode checkstr" id="rawpro"
+                      value="RawMaterial">&nbsp;RawMaterial
+                  </label>
 
-                <label class="radio-inline">
-                  <input type="radio" name="itemtype" id="finishedpro" class="mode radio-inline checkstr"
-                    value="FinishedProduct">&nbsp;
-                  FinishedProduct
-                </label>
+                  <label class="radio-inline" style="margin:0;">
+                    <input type="radio" name="itemtype" id="semipro" class="mode checkstr"
+                      value="Semi-Finished Product">&nbsp;Semi-Finished Product
+                  </label>
+
+                  <label class="radio-inline" style="margin:0;">
+                    <input type="radio" name="itemtype" id="finishedpro" class="mode checkstr"
+                      value="FinishedProduct">&nbsp;FinishedProduct
+                  </label>
+                </div>
               </div>
 
               <div class="col-sm-4" id="proceesname" style="margin-bottom:15px;display:none;">
@@ -217,7 +223,7 @@
   });
 </script>
 <script>
-  $('#rawpro').on('change', function() {
+  $('#rawpro, #semipro').on('change', function() {
     $("#proceesname").css("display", "none");
   });
 </script>

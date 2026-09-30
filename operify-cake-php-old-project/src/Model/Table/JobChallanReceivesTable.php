@@ -12,7 +12,6 @@ class JobChallanReceivesTable extends Table
         $this->table('job_challan_receives');
         $this->primaryKey('id');
 
-        // 🔗 Relations
         $this->belongsTo('JobChallans', [
             'foreignKey' => 'challan_id'
         ]);
@@ -20,6 +19,16 @@ class JobChallanReceivesTable extends Table
         $this->belongsTo('Additem', [
             'foreignKey' => 'item_id'
         ]);
+
+        $this->belongsTo('FinishedProducts', [
+            'className' => 'Additem',
+            'foreignKey' => 'finished_product_id'
+        ]);
+
+        $this->hasMany('JobChallanReceiveMaterials', [
+            'foreignKey' => 'receive_id',
+            'dependent' => true,
+            'saveStrategy' => 'replace'
+        ]);
     }
 }
-?>

@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { reverseIndentService } from "../../../../../services/reverseIndent.service";
+import { reverseIndentService } from "@/services/reverseIndent.service";
 import { Printer, ArrowLeft, Trash2, Download } from "lucide-react";
 import Link from "next/link";
-import { formatDate } from '../../../../../utils/dateFormatter';
+import { formatDate, formatContractDate } from "@/utils/dateFormatter";
 
 export default function ViewReverseIndentPage() {
   const { id } = useParams();
@@ -76,7 +76,7 @@ export default function ViewReverseIndentPage() {
         <div className="grid grid-cols-2 gap-8 mb-8">
           <div className="space-y-2">
             <div className="flex"><span className="w-32 font-semibold text-slate-500 print:text-black">Reverse ID:</span> <span>{details.reverse_id}</span></div>
-            <div className="flex"><span className="w-32 font-semibold text-slate-500 print:text-black">Date:</span> <span>{formatDate(details.issue_date)}</span></div>
+            <div className="flex"><span className="w-32 font-semibold text-slate-500 print:text-black">Date:</span> <span>{formatContractDate(details.issue_date)}</span></div>
             <div className="flex"><span className="w-32 font-semibold text-slate-500 print:text-black">Contract:</span> <span>{details.contract_name}</span></div>
           </div>
           <div className="space-y-2">

@@ -16,12 +16,14 @@ import {
   Briefcase,
   X,
   Printer,
-  Download
+  Download,
+  Home,
+  Edit,
+  Trash2
 } from 'lucide-react';
-import { StatusBadge } from '../../../components/dashboard/StatusBadge';
 import toast from 'react-hot-toast';
 import { DatePicker } from '../../../components/ui/DatePicker';
-import { formatDate } from '../../../utils/dateFormatter';
+import { formatContractDate } from '../../../utils/dateFormatter';
 
 export default function ContractsPage() {
   // Filters state
@@ -62,135 +64,117 @@ export default function ContractsPage() {
     setActiveFilters(empty);
   };
 
-  
   return (
-    <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
+    <div className="w-full px-4 py-4 space-y-4 font-sans select-none text-[#333]">
       
-      {/* Top Tenant Context Filters */}
-{/* Header and Title */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-            <FileText className="w-5 h-5 text-cyan-600" />
-            Contracts Management
-          </h1>
-          <p className="text-xs text-slate-500 font-medium mt-0.5">
-            View, search, and audit service contracts and associated finished products.
-          </p>
+      {/* Header and Title */}
+      <div className="flex items-center justify-between border-b border-[#e0e0e0] pb-2 mb-4">
+        <h1 className="text-xl text-[#333] font-normal tracking-tight">
+          Contracts Manager
+        </h1>
+        <div className="flex items-center gap-1.5 text-[#555] text-sm cursor-pointer hover:text-[#1683D8]">
+          <Home className="w-4 h-4" />
+          <span className="font-semibold text-xs">Home</span>
         </div>
-        <button
-          onClick={() => refetch()}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 transition cursor-pointer self-start md:self-auto"
-        >
-          <RefreshCw className="w-3.5 h-3.5" />
-          Refresh Table
-        </button>
       </div>
 
-      {/* Search & Filter Form Card */}
-      <form onSubmit={handleSearch} className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-sm space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+      {/* Search & Filter Form */}
+      <form onSubmit={handleSearch} className="bg-white p-4 mb-4 space-y-3 border border-[#ccc] rounded-[3px]">
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="w-48">
+            <label className="text-xs font-bold text-[#555] block mb-1">
               Contract Name
             </label>
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                list="contract-names-list"
-                placeholder="Enter Contract Name"
-                value={filters.contract_name || ''}
-                onChange={(e) => setFilters({ ...filters, contract_name: e.target.value })}
-                className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-cyan-500 transition"
-              />
-              <datalist id="contract-names-list">
-                {contracts && contracts.map(c => (
-                  <option key={c.id} value={c.title} />
-                ))}
-              </datalist>
-            </div>
+            <input
+              type="text"
+              list="contract-names-list"
+              placeholder="Enter Contract Name"
+              value={filters.contract_name || ''}
+              onChange={(e) => setFilters({ ...filters, contract_name: e.target.value })}
+              className="w-full px-2 py-1.5 bg-white border border-[#ccc] rounded-[3px] text-xs text-[#333] placeholder-[#999] focus:outline-none focus:border-[#1683D8] h-8"
+            />
+            <datalist id="contract-names-list">
+              {contracts && contracts.map(c => (
+                <option key={c.id} value={c.title} />
+              ))}
+            </datalist>
           </div>
 
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+          <div className="w-48">
+            <label className="text-xs font-bold text-[#555] block mb-1">
               Supplier Name
             </label>
-            <div className="relative">
-              <Briefcase className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                list="supplier-names-list"
-                placeholder="Enter Supplier Name"
-                value={filters.vendor_name || ''}
-                onChange={(e) => setFilters({ ...filters, vendor_name: e.target.value })}
-                className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-cyan-500 transition"
-              />
-              <datalist id="supplier-names-list">
-                {contracts && Array.from(new Set(contracts.map(c => c.vendor_name))).filter(Boolean).map(vendor => (
-                  <option key={vendor} value={vendor} />
-                ))}
-              </datalist>
-            </div>
+            <input
+              type="text"
+              list="supplier-names-list"
+              placeholder="Enter Supplier Name"
+              value={filters.vendor_name || ''}
+              onChange={(e) => setFilters({ ...filters, vendor_name: e.target.value })}
+              className="w-full px-2 py-1.5 bg-white border border-[#ccc] rounded-[3px] text-xs text-[#333] placeholder-[#999] focus:outline-none focus:border-[#1683D8] h-8"
+            />
+            <datalist id="supplier-names-list">
+              {contracts && Array.from(new Set(contracts.map(c => c.vendor_name))).filter(Boolean).map(vendor => (
+                <option key={vendor} value={vendor} />
+              ))}
+            </datalist>
           </div>
 
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+          <div className="w-32">
+            <label className="text-xs font-bold text-[#555] block mb-1">
               Cost
             </label>
-            <div className="relative">
-              <DollarSign className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Enter Cost"
-                value={filters.cost || ''}
-                onChange={(e) => setFilters({ ...filters, cost: e.target.value })}
-                className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-cyan-500 transition"
-              />
-            </div>
+            <input
+              type="text"
+              placeholder="Enter Cost"
+              value={filters.cost || ''}
+              onChange={(e) => setFilters({ ...filters, cost: e.target.value })}
+              className="w-full px-2 py-1.5 bg-white border border-[#ccc] rounded-[3px] text-xs text-[#333] placeholder-[#999] focus:outline-none focus:border-[#1683D8] h-8"
+            />
           </div>
 
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+          <div className="w-36">
+            <label className="text-xs font-bold text-[#555] block mb-1">
               Start Date
             </label>
             <DatePicker  
+              dateFormat="dd-MM-yyyy"
               value={filters.datefrom || ''}
               onChange={(e) => setFilters({ ...filters, datefrom: e.target.value })}
-              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-cyan-500 transition"
+              className="w-full px-2 py-1.5 bg-white border border-[#ccc] rounded-[3px] text-xs text-[#333] focus:outline-none focus:border-[#1683D8] h-8"
             />
           </div>
 
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
+          <div className="w-36">
+            <label className="text-xs font-bold text-[#555] block mb-1">
               End Date
             </label>
             <DatePicker  
+              dateFormat="dd-MM-yyyy"
               value={filters.dateto || ''}
               onChange={(e) => setFilters({ ...filters, dateto: e.target.value })}
-              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-cyan-500 transition"
+              className="w-full px-2 py-1.5 bg-white border border-[#ccc] rounded-[3px] text-xs text-[#333] focus:outline-none focus:border-[#1683D8] h-8"
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-3 pt-2">
+        <div className="flex items-center gap-2 mt-2">
           <button
             type="submit"
-            className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-xs font-semibold transition cursor-pointer"
+            className="px-4 py-1.5 bg-[#1683D8] hover:bg-[#2563eb] text-white rounded-[3px] text-xs font-semibold cursor-pointer h-8"
           >
             Search
           </button>
           <button
             type="button"
             onClick={handleReset}
-            className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-xs font-semibold transition cursor-pointer"
+            className="px-4 py-1.5 bg-[#1683D8] hover:bg-[#2563eb] text-white rounded-[3px] text-xs font-semibold cursor-pointer h-8"
           >
             Reset
           </button>
           <div className="flex-1"></div>
           <a
             href="/dashboard/contracts/add"
-            className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md text-xs font-semibold shadow-sm transition cursor-pointer"
+            className="px-4 py-1.5 bg-[#1683D8] hover:bg-[#2563eb] text-white rounded-[3px] text-xs font-semibold cursor-pointer h-8 flex items-center justify-center"
           >
             + Add
           </a>
@@ -199,75 +183,82 @@ export default function ContractsPage() {
 
       {/* Contracts Data Table */}
       {isLoading ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-16 flex flex-col items-center justify-center text-slate-400 gap-2">
-          <Loader className="w-8 h-8 animate-spin text-cyan-600" />
-          <span className="text-xs font-medium">Fetching contract records...</span>
+        <div className="bg-white border border-[#ccc] rounded p-10 flex flex-col items-center justify-center text-[#999] gap-2">
+          <Loader className="w-6 h-6 animate-spin text-[#1683D8]" />
+          <span className="text-xs font-medium">Loading...</span>
         </div>
       ) : isError || !contracts ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-16 flex flex-col items-center justify-center text-rose-500 gap-2">
-          <AlertCircle className="w-8 h-8 animate-bounce" />
-          <span className="text-xs font-medium">Failed to sync contract records.</span>
+        <div className="bg-white border border-[#ccc] rounded p-10 flex flex-col items-center justify-center text-rose-500 gap-2">
+          <AlertCircle className="w-6 h-6 animate-bounce" />
+          <span className="text-xs font-medium">Error loading data.</span>
         </div>
       ) : contracts.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-16 flex flex-col items-center justify-center text-slate-400 gap-2 text-center">
-          <Briefcase className="w-8 h-8" />
-          <span className="text-xs font-medium">No contracts found matching the active search criteria.</span>
+        <div className="bg-white border border-[#ccc] rounded p-10 flex flex-col items-center justify-center text-[#999] gap-2 text-center">
+          <span className="text-xs font-medium">No contracts found.</span>
         </div>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-xl overflow-x-auto shadow-sm">
-          <table className="w-full min-w-max text-left border-collapse text-xs font-medium text-slate-600">
+        <div className="bg-white border border-[#ccc] overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs text-[#333]">
             <thead>
-              <tr className="bg-[#333] text-white text-[10px] font-bold uppercase tracking-wider border-b border-slate-200">
-                <th className="px-6 py-3">S.No.</th>
-                <th className="px-6 py-3">Title</th>
-                <th className="px-6 py-3">Supplier Name</th>
-                <th className="px-6 py-3 text-right">Cost</th>
-                <th className="px-6 py-3 text-center">Issue Date</th>
-                <th className="px-6 py-3 text-center">Start Date</th>
-                <th className="px-6 py-3 text-center">End Date</th>
-                <th className="px-6 py-3">Description</th>
-                <th className="px-6 py-3 text-center w-24">Action</th>
+              <tr className="bg-[#333] text-white font-bold border-b border-[#ccc]">
+                <th className="px-3 py-2 border-r border-[#444]">S.No.</th>
+                <th className="px-3 py-2 border-r border-[#444]">Title</th>
+                <th className="px-3 py-2 border-r border-[#444]">Supplier Name</th>
+                <th className="px-3 py-2 border-r border-[#444] text-right">Cost</th>
+                <th className="px-3 py-2 border-r border-[#444] text-center">Issue Date</th>
+                <th className="px-3 py-2 border-r border-[#444] text-center">Start Date</th>
+                <th className="px-3 py-2 border-r border-[#444] text-center">End Date</th>
+                <th className="px-3 py-2 border-r border-[#444]">Description</th>
+                <th className="px-3 py-2 text-center">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 border-x border-b border-slate-200">
+            <tbody>
               {contracts.map((c, idx) => (
-                <tr key={c.id} className="hover:bg-slate-50/50 transition">
-                  <td className="px-6 py-4 font-semibold text-slate-700">{idx + 1}.</td>
-                  <td className="px-6 py-4">
+                <tr key={c.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-[#f9f9f9]'}>
+                  <td className="px-3 py-2 border-r border-[#ccc] border-b">{idx + 1}.</td>
+                  <td className="px-3 py-2 border-r border-[#ccc] border-b">
                     <button 
                       onClick={() => setSelectedContractId(c.id)}
-                      className="font-bold text-blue-600 hover:underline text-left cursor-pointer"
+                      className="text-[#1683D8] hover:underline text-left cursor-pointer"
                     >
                       {c.title}({c.workorder})
                     </button>
                   </td>
-                  <td className="px-6 py-4 font-semibold text-slate-700">{c.vendor_name}</td>
-                  <td className="px-6 py-4 text-right font-semibold text-slate-700">
+                  <td className="px-3 py-2 border-r border-[#ccc] border-b">{c.vendor_name}</td>
+                  <td className="px-3 py-2 border-r border-[#ccc] border-b text-right">
                     {Number(c.cost).toLocaleString('en-IN')}
                   </td>
-                  <td className="px-6 py-4 text-center font-semibold text-slate-700">{formatDate(c.issuedate)}</td>
-                  <td className="px-6 py-4 text-center font-semibold text-slate-700">{formatDate(c.contract_start_date)}</td>
-                  <td className="px-6 py-4 text-center font-semibold text-slate-700">{formatDate(c.contract_end_date)}</td>
-                  <td className="px-6 py-4 text-slate-600 max-w-[150px] truncate" title={c.description}>
+                  <td className="px-3 py-2 border-r border-[#ccc] border-b text-center">{formatContractDate(c.issuedate)}</td>
+                  <td className="px-3 py-2 border-r border-[#ccc] border-b text-center">{formatContractDate(c.contract_start_date)}</td>
+                  <td className="px-3 py-2 border-r border-[#ccc] border-b text-center">{formatContractDate(c.contract_end_date)}</td>
+                  <td className="px-3 py-2 border-r border-[#ccc] border-b max-w-[150px] truncate" title={c.description}>
                     {c.description || ''}
                   </td>
-                  <td className="px-6 py-4 text-center">
-                    <button
-                      onClick={async () => {
-                        try {
-                          toast.loading('Generating PDF...', { id: 'pdf-toast' });
-                          await contractService.downloadPDF(c.id);
-                          toast.success('PDF downloaded!', { id: 'pdf-toast' });
-                        } catch (err) {
-                          console.error('Failed to download PDF:', err);
-                          toast.error('Failed to download PDF', { id: 'pdf-toast' });
-                        }
-                      }}
-                      className="inline-flex items-center justify-center p-1.5 text-emerald-600 hover:bg-emerald-50 rounded transition cursor-pointer"
-                      title="Download PDF"
-                    >
-                      <Download className="w-4 h-4 stroke-[2.5px]" />
-                    </button>
+                  <td className="px-3 py-2 border-b text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <button className="text-[#1683D8] hover:text-blue-800" title="Edit">
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button className="text-rose-600 hover:text-rose-800" title="Delete">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            toast.loading('Generating PDF...', { id: 'pdf-toast' });
+                            await contractService.downloadPDF(c.id);
+                            toast.success('PDF downloaded!', { id: 'pdf-toast' });
+                          } catch (err) {
+                            console.error('Failed to download PDF:', err);
+                            toast.error('Failed to download PDF', { id: 'pdf-toast' });
+                          }
+                        }}
+                        className="text-emerald-600 hover:text-emerald-800 cursor-pointer"
+                        title="Download PDF"
+                      >
+                        <Download className="w-4 h-4 stroke-[2.5px]" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -284,6 +275,6 @@ export default function ContractsPage() {
         />
       )}
 
-    </main>
+    </div>
   );
 }

@@ -9,22 +9,27 @@ async function tenantMiddleware(req, res, next) {
   try {
     let dbName = null;
     
-    // If user is authenticated, derive tenant DB from JWT claims
     if (req.user && req.user.db) {
       dbName = req.user.db;
     }
+
+    // Guard against obviously invalid DB names
+    if (dbName && !/^[a-zA-Z0-9_]+$/.test(dbName)) {
+      return res.status(400).json({ success: false, error: { code: 'INVALID_DB', message: 'Invalid database name in session. Please log in again.' } });
+    }
     
-    // Attach the connection pool to the request context
     const sequelize = await getTenantSequelize(dbName);
-    const models = await getTenantModels(dbName);
+    const models    = await getTenantModels(dbName);
     
-    // Keeping variable name req.dbPool for compatibility
     req.dbPool = sequelize;
     req.models = models;
     req.dbName = dbName;
     
     next();
   } catch (error) {
+    if (error.code === 'ER_BAD_DB_ERROR') {
+      return res.status(401).json({ success: false, error: { code: 'SESSION_EXPIRED', message: 'Your session database is invalid. Please log out and log in again.' } });
+    }
     next(error);
   }
 }

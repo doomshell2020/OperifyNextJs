@@ -64,6 +64,10 @@
             <label>Item Name</label>
             <input type="text" name="job_challan_items[0][item_name]" class="form-control secrh-retail">
 
+            <small class="text-info item-qty-info" style="display:none; font-weight: bold; margin-top: 3px;">
+                JC Qty: <span class="jc-qty">0</span> | Pending: <span class="pending-qty">0</span>
+            </small>
+
             <div class="testUL"><ul></ul></div>
 
             <input type="hidden" name="job_challan_items[0][item_id]" class="retail_ids">
@@ -77,6 +81,11 @@
         <div class="col-sm-2">
             <label>Received Date</label>
             <input type="text" name="job_challan_items[0][received_date]" class="form-control received_date" readonly>
+        </div>
+
+        <div class="col-sm-2">
+            <label>Vehicle No.</label>
+            <input type="text" name="job_challan_items[0][vehicle_no]" class="form-control vehicle_no" placeholder="Vehicle No.">
         </div>
 
         <div class="col-sm-2">
@@ -123,25 +132,6 @@
 
 
 <!-- ✅ ADD ROW -->
-<!-- <script>
-$('#addRow').click(function () {
-
-    let row = $('.item-row:first').clone();
-
-    row.find('input').val('');
-    row.find('select').val('');
-
-    // clean datepicker
-    row.find('.received_date')
-        .removeClass('hasDatepicker')
-        .removeAttr('id')
-        .off();
-
-    row.find('.testUL').hide().find('ul').html('');
-
-    $('.item-row:last').after(row);
-});
-</script> -->
 <script>
 let rowIndex = 1;
 
@@ -151,6 +141,11 @@ $('#addRow').click(function () {
 
     row.find('input').val('');
     row.find('select').val('');
+    
+    // Hide info block in new row
+    row.find('.item-qty-info').hide();
+    row.find('.jc-qty').text('0');
+    row.find('.pending-qty').text('0');
 
     // 🔥 update index properly
     row.find('input, select').each(function () {
@@ -231,12 +226,13 @@ $(document).on('keyup', '.secrh-retail', function() {
     let value = input.val();
     let parent = input.closest('.col-sm-4');
     let dropdown = parent.find('.testUL');
+    let challan_id = "<?= isset($challan_id) ? $challan_id : '' ?>";
 
     if (value.length > 0) {
         $.ajax({
             type: 'POST',
             url: '<?php echo ADMIN_URL; ?>Jobchallan/getitemname',
-            data: { fetch: value, check: 0 },
+            data: { fetch: value, check: 0, challan_id: challan_id },
             success: function(data) {
                 dropdown.show();
                 dropdown.find('ul').html(data);
@@ -250,10 +246,51 @@ $(document).on('keyup', '.secrh-retail', function() {
 $(document).on('click', '.testUL ul li', function() {
 
     let parent = $(this).closest('.col-sm-4');
+    let itemId = $(this).attr('data-id');
+    
+    // Check for duplicate items
+    let isDuplicate = false;
+    $('.retail_ids').not(parent.find('.retail_ids')).each(function() {
+        if ($(this).val() == itemId) {
+            isDuplicate = true;
+        }
+    });
+    
+    if (isDuplicate) {
+        alert('This item is already selected in another row.');
+        parent.find('.testUL').hide();
+        return;
+    }
 
-    parent.find('.secrh-retail').val($(this).text());
-    parent.find('.retail_ids').val($(this).attr('data-id'));
+    // Remove the (Pending: X) text for the input value
+    let itemText = $(this).text().split(' (Pending:')[0];
+    parent.find('.secrh-retail').val(itemText);
+    parent.find('.retail_ids').val(itemId);
+    
+    let jcQty = $(this).attr('data-jc-qty');
+    let pendingQty = $(this).attr('data-pending-qty');
+    
+    if (jcQty && pendingQty) {
+        parent.find('.jc-qty').text(jcQty);
+        parent.find('.pending-qty').text(pendingQty);
+        parent.find('.item-qty-info').show();
+        
+        // Also set the max attribute for the qty input
+        parent.closest('.item-row').find('.qty').attr('max', pendingQty);
+    }
+    
     parent.find('.testUL').hide();
+});
+
+// Validate max quantity before submission or change
+$(document).on('change', '.qty', function() {
+    let max = parseFloat($(this).attr('max'));
+    let val = parseFloat($(this).val());
+    if (max && val > max) {
+        alert('Quantity cannot exceed pending quantity: ' + max);
+        $(this).val(max);
+        $(this).trigger('input');
+    }
 });
 </script>
 

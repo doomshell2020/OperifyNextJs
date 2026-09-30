@@ -82,7 +82,7 @@
 
 <tr>
     <td><?= $i ?></td>
-    <td><?= h($item->item_name) ?></td>
+    <td><?= h(!empty($item->additem) ? $item->additem->item_name : $item->item_name) ?></td>
     <td><?= number_format((float)$item->quantity, 2, '.', ''); ?></td>
     <td><?= number_format((float)$item->rate, 2, '.', ''); ?></td>
     <td><?= h($item->tax_rate) . '%' ?></td>

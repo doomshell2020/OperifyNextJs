@@ -14,8 +14,8 @@
     ?>
 
     <!-- Bootstrap 5.2.3 -->
-    <?php echo 
-   
+    <?php echo
+
     $this->Html->css('admin/bootstrap5/css/bootstrap.min.css'); ?>
 
     <?= $this->Html->meta(
@@ -77,7 +77,8 @@
 
             .navbar-nav {
                 /* margin-top: 16px !important; */
-                height: 58px;
+                height: auto;
+                min-height: 58px;
             }
         </style>
     <?php } ?>
@@ -89,32 +90,56 @@
             background-color: #fff;
             box-shadow: 0px 0px 5px 0px #0002;
             height: 58px;
+            flex-wrap: nowrap !important;
         }
 
         .skin-blue .main-header .navbar .navbar-custom-menu .nt_menu_align {
             display: flex;
             align-items: center;
+            flex-wrap: nowrap !important;
         }
 
-        .skin-blue .main-header .navbar .navbar-custom-menu .nt_menu_align li ul {
+        .skin-blue .main-header .navbar .navbar-custom-menu .nt_menu_align > li:first-child > ul {
             margin-left: 0px;
+            display: flex;
+            flex-wrap: nowrap !important;
         }
 
         header .navbar-nav li {
-            padding: 0px 3px !important;
+            padding: 0px 2px !important;
             text-align: center;
+            flex: 1 1 auto;
+            min-width: 0;
         }
 
-        ul.nt_menu_align li a span {
+        ul.nt_menu_align > li:first-child > ul > li > a {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        ul.nt_menu_align > li:first-child > ul > li > a span {
             display: block;
             text-align: center;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 400;
+            line-height: 1;
+            margin-top: 2px;
+            white-space: normal;
         }
 
         header img {
             height: 26px;
             width: auto;
+        }
+
+        ul.nt_menu_align > li:first-child > ul > li > a > img {
+            width: 33px;
+            max-width: 100%;
+            height: auto;
+            max-height: 26px;
+            object-fit: contain;
         }
 
         header {
@@ -126,9 +151,15 @@
             padding: 0px !important;
         }
 
+        .main-header {
+            max-height: none !important;
+        }
+
         .main-header .navbar {
             min-height: auto !important;
             padding: 5px 0px;
+            height: auto;
+            flex-wrap: nowrap !important;
         }
 
         .skin-blue .main-header .logo:hover {
@@ -172,24 +203,23 @@
 
             <!-- Header Navbar: style can be found in header.less -->
             <nav class="navbar navbar-static-top">
-                <div class="d-flex justify-content-between" style="width: 100%;">
+                <div class="d-flex justify-content-between" style="width: 100%; flex-wrap: nowrap !important;">
                     <div class="drawerLogo" style="display: flex;">
                         <div>
                             <?php
                             $findlogo = $this->Comman->findlogo();
-                            if ($role_id == '105' || $role_id == '1') { ?>
-                                <a href="<?php echo SITE_URL; ?>admin/dashboards/overview">
-                                <?php } elseif ($role_id == '6') { ?>
-                                    <a href="<?php echo SITE_URL; ?>admin/dashboards/overview">
-                                    <?php } elseif ($role_id == '101') { ?>
-                                        <a href="<?php echo SITE_URL; ?>admin/Sitesettings/index">
-                                        <?php }
-                                    if ($role_id == '101') { ?>
-                                            <img src="<?php echo SITE_URL; ?>images/<?php echo $findlogo['small_logo']; ?>" class="fullLogo" alt="logo">
-                                        <?php } else { ?>
-                                            <img src="<?php echo SITE_URL . 'images/' . $findlogo['small_logo']; ?>" class="fullLogo" alt="logo">
-                                        <?php } ?>
-                                        </a>
+                            $logo_url = SITE_URL . "admin/dashboards/overview";
+                            if ($role_id == '101') {
+                                $logo_url = SITE_URL . "admin/Sitesettings/index";
+                            }
+                            ?>
+                            <a href="<?php echo $logo_url; ?>">
+                                <?php if ($role_id == '101') { ?>
+                                    <img src="<?php echo SITE_URL; ?>images/<?php echo $findlogo['small_logo']; ?>" class="fullLogo" alt="logo">
+                                <?php } else { ?>
+                                    <img src="<?php echo SITE_URL . 'images/' . $findlogo['small_logo']; ?>" class="fullLogo" alt="logo">
+                                <?php } ?>
+                            </a>
                         </div>
                         <div>
                             <div style="padding-top: 17px;  font-size: 13px; padding-left: 4px;">
@@ -447,11 +477,11 @@
                                             </a>
                                         </li>
                                     <?php } ?>
-                      
 
-                                      <?php
-                                    $fileurl = "admin/jobchallan/index";
-                                    if (in_array($fileurl, $role_permissions)) { 
+
+                                    <?php
+                                   // $fileurl = "admin/jobchallan/index";
+                                    // if (in_array($fileurl, $role_permissions)) {
                                     ?>
                                         <li style="padding:5px; text-align:center">
                                             <a title="Users" href="<?php echo SITE_URL; ?>admin/jobchallan/index"
@@ -461,23 +491,49 @@
                                                 <span>JC Challan</span>
                                             </a>
                                         </li>
-                                    <?php } ?>
-                                                <li class="dropdown" style="padding:5px; text-align:center; list-style:none; position:relative;">
+                                   <?php //} ?> 
 
-    <a href="javascript:void(0);"
-        class="dropdown-toggle"
-        data-toggle="dropdown"
-       
-        style="display:block; cursor:pointer;">
+                                    <li style="padding:5px; text-align:center">
+                                        <a title="JC Receive" href="<?php echo SITE_URL; ?>admin/jobchallan/receiveIndex"
+                                            data-toggle="tooltip">
+                                            <img src="<?php echo SITE_URL; ?>images/headericons/goodsreceivedindex.png"
+                                                height="30px" width="33px" class="" alt="images">
+                                  
+                                            <span>JC Receive</span>
+                                        </a>
+                                    </li>
 
-        <img src="<?php echo SITE_URL; ?>images/headericons/setting.png"
-            height="30px" width="33px" class="" alt="images">
+                                    <li style="padding:5px; text-align:center">
+                                        <a title="Gate Passes" href="<?php echo SITE_URL; ?>admin/gatepasses"
+                                            data-toggle="tooltip">
+                                           <img src="<?php echo SITE_URL; ?>images/headericons/Gatepassindex.png"
+                                                height="30px" width="33px" class="" alt="images">
+                                       
+                                            <span>Gate Pass</span>
+                                        </a>
+                                    </li>
 
-        <span>Setting</span>
-    </a>
 
-   <ul class="dropdown-menu"
-    style="
+
+
+
+
+                                    <li class="dropdown" style="padding:5px; text-align:center; list-style:none; position:relative;">
+
+                                        <a href="javascript:void(0);"
+                                            class="dropdown-toggle"
+                                            data-toggle="dropdown"
+
+                                            style="display:block; cursor:pointer;">
+
+                                            <img src="<?php echo SITE_URL; ?>images/headericons/setting.png"
+                                                height="30px" width="33px" class="" alt="images">
+
+                                            <span>Setting</span>
+                                        </a>
+
+                                        <ul class="dropdown-menu"
+                                            style="
         display:none;
         position:absolute;
         top:100%;
@@ -492,15 +548,15 @@
         margin:0;
     ">
 
-    <!-- Categories -->
-    <?php
-    $fileurl = "admin/itemcategory/index";
-    if (in_array($fileurl, $role_permissions)) {
-    ?>
-    <li style="margin:0; border-bottom:1px solid #eee;">
-        <a href="<?php echo SITE_URL; ?>admin/itemcategory/index"
-            data-toggle="tooltip"
-            style="
+                                            <!-- Categories -->
+                                            <?php
+                                            $fileurl = "admin/itemcategory/index";
+                                            if (in_array($fileurl, $role_permissions)) {
+                                            ?>
+                                                <li style="margin:0; border-bottom:1px solid #eee;">
+                                                    <a href="<?php echo SITE_URL; ?>admin/itemcategory/index"
+                                                        data-toggle="tooltip"
+                                                        style="
                 display:flex;
                 align-items:center;
                 justify-content:flex-start;
@@ -512,27 +568,27 @@
                 transition:0.3s;
                 box-sizing:border-box;
             "
-            onmouseover="this.style.background='#f7f7f7'"
-            onmouseout="this.style.background='transparent'">
+                                                        onmouseover="this.style.background='#f7f7f7'"
+                                                        onmouseout="this.style.background='transparent'">
 
-            <img src="<?php echo SITE_URL; ?>images/headericons/itemcategoryindex.png"
-                height="30" width="33" alt="images">
+                                                        <img src="<?php echo SITE_URL; ?>images/headericons/itemcategoryindex.png"
+                                                            height="30" width="33" alt="images">
 
-            <span >Categories</span>
-        </a>
-    </li>
-    <?php } ?>
+                                                        <span>Categories</span>
+                                                    </a>
+                                                </li>
+                                            <?php } ?>
 
 
-    <!-- Products -->
-    <?php
-    $fileurl = "admin/additem/index";
-    if (in_array($fileurl, $role_permissions)) {
-    ?>
-    <li style="margin:0; border-bottom:1px solid #eee;">
-        <a href="<?php echo SITE_URL; ?>admin/additem/index"
-            data-toggle="tooltip"
-            style="
+                                            <!-- Products -->
+                                            <?php
+                                            $fileurl = "admin/additem/index";
+                                            if (in_array($fileurl, $role_permissions)) {
+                                            ?>
+                                                <li style="margin:0; border-bottom:1px solid #eee;">
+                                                    <a href="<?php echo SITE_URL; ?>admin/additem/index"
+                                                        data-toggle="tooltip"
+                                                        style="
                 display:flex;
                 align-items:center;
                 justify-content:flex-start;
@@ -544,130 +600,140 @@
                 transition:0.3s;
                 box-sizing:border-box;
             "
-            onmouseover="this.style.background='#f7f7f7'"
-            onmouseout="this.style.background='transparent'">
+                                                        onmouseover="this.style.background='#f7f7f7'"
+                                                        onmouseout="this.style.background='transparent'">
 
-            <img src="<?php echo SITE_URL; ?>images/headericons/additemindex.png"
-                height="30" width="33" alt="images">
+                                                        <img src="<?php echo SITE_URL; ?>images/headericons/additemindex.png"
+                                                            height="30" width="33" alt="images">
 
-            <span >Products</span>
-        </a>
-    </li>
-    <?php } ?>
-
-
-    <!-- Tax -->
-    <?php
-    $fileurl = "admin/Taxmaster/index";
-    if (in_array($fileurl, $role_permissions)) {
-    ?>
-    <li style="margin:0; border-bottom:1px solid #eee;">
-        <a href="<?php echo SITE_URL; ?>admin/Taxmaster/index"
-            data-toggle="tooltip"
-            style="
-                display:flex;
-                align-items:center;
-                justify-content:flex-start;
-                gap:12px;
-                padding:12px 18px;
-                text-decoration:none;
-                color:#333;
-                width:100%;
-                transition:0.3s;
-                box-sizing:border-box;
-            "
-            onmouseover="this.style.background='#f7f7f7'"
-            onmouseout="this.style.background='transparent'">
-
-            <img src="<?php echo SITE_URL; ?>images/headericons/taxindex.png"
-                height="30" width="33" alt="images">
-
-            <span >Tax</span>
-        </a>
-    </li>
-    <?php } ?>
+                                                        <span>Products</span>
+                                                    </a>
+                                                </li>
+                                            <?php } ?>
 
 
-    <!-- Suppliers -->
-    <?php
-    $fileurl = "admin/vendors/index";
-    if (in_array($fileurl, $role_permissions)) {
-    ?>
-    <li style="margin:0; border-bottom:1px solid #eee;">
-        <a href="<?php echo SITE_URL; ?>admin/vendors/index"
-            data-toggle="tooltip"
-            style="
-                display:flex;
-                align-items:center;
-                justify-content:flex-start;
-                gap:12px;
-                padding:12px 18px;
-                text-decoration:none;
-                color:#333;
-                width:100%;
-                transition:0.3s;
-                box-sizing:border-box;
-            "
-            onmouseover="this.style.background='#f7f7f7'"
-            onmouseout="this.style.background='transparent'">
+                                            <!-- Tax -->
+                                            <?php
+                                            $fileurl = "admin/Taxmaster/index";
+                                            if (in_array($fileurl, $role_permissions)) {
+                                            ?>
+                                                <li style="margin:0; border-bottom:1px solid #eee;">
+                                                    <a href="<?php echo SITE_URL; ?>admin/Taxmaster/index"
+                                                        data-toggle="tooltip"
+                                                        style="
+                                                                display:flex;
+                                                                align-items:center;
+                                                                justify-content:flex-start;
+                                                                gap:12px;
+                                                                padding:12px 18px;
+                                                                text-decoration:none;
+                                                                color:#333;
+                                                                width:100%;
+                                                                transition:0.3s;
+                                                                box-sizing:border-box;
+                                                            "
+                                                        onmouseover="this.style.background='#f7f7f7'"
+                                                        onmouseout="this.style.background='transparent'">
 
-            <img src="<?php echo SITE_URL; ?>images/headericons/suuplierIco.png"
-                height="30" width="33" alt="images">
+                                                        <img src="<?php echo SITE_URL; ?>images/headericons/taxmasterindex.png"
+                                                            height="30" width="33" alt="images">
 
-            <span >Suppliers</span>
-        </a>
-    </li>
-    <?php } ?>
+                                                        <span>Tax</span>
+                                                    </a>
+                                                </li>
+                                            <?php } ?>
 
 
-    <!-- Users -->
-    <?php
-    $fileurl = "admin/roles/index";
-    if (in_array($fileurl, $role_permissions)) {
-    ?>
-    <li style="margin:0;">
-        <a href="<?php echo SITE_URL; ?>admin/roles/index"
-            data-toggle="tooltip"
-            style="
-                display:flex;
-                align-items:center;
-                justify-content:flex-start;
-                gap:12px;
-                padding:12px 18px;
-                text-decoration:none;
-                color:#333;
-                width:100%;
-                transition:0.3s;
-                box-sizing:border-box;
-            "
-            onmouseover="this.style.background='#f7f7f7'"
-            onmouseout="this.style.background='transparent'">
 
-            <img src="<?php echo SITE_URL; ?>images/headericons/vendorsindex.png"
-                height="30" width="33" alt="images">
+                                            <?php
+                                            $fileurl = "admin/Role/index";
+                                            if (in_array($fileurl, $role_permissions)) {
+                                            ?>
+                                                <li style="margin:0; border-bottom:1px solid #eee;">
+                                                    <a href="<?php echo SITE_URL; ?>admin/Role/index"
+                                                        data-toggle="tooltip"
+                                                        style="
+                                                                display:flex;
+                                                                align-items:center;
+                                                                justify-content:flex-start;
+                                                                gap:12px;
+                                                                padding:12px 18px;
+                                                                text-decoration:none;
+                                                                color:#333;
+                                                                width:100%;
+                                                                transition:0.3s;
+                                                                box-sizing:border-box;
+                                                            "
+                                                        onmouseover="this.style.background='#f7f7f7'"
+                                                        onmouseout="this.style.background='transparent'">
 
-            <span >Users</span>
-        </a>
-    </li>
-    <?php } ?>
+                                                        <img src="<?php echo SITE_URL; ?>images/headericons/roleindex.png"
+                                                            height="30" width="33" alt="images">
 
-</ul>
-</li>
+                                                        <span>Roles</span>
+                                                    </a>
+                                                </li>
+                                            <?php } ?>
 
-<script>
-$(document).ready(function () {
-    $(".dropdown").hover(
-        function () {
-            $(this).find(".dropdown-menu").stop(true, true).slideDown(200);
-        },
-        function () {
-            $(this).find(".dropdown-menu").stop(true, true).slideUp(200);
-        }
-    );
-});
-</script>
 
-                                        
+
+                                            <?php
+                                            $fileurl = "admin/Users/index";
+                                            if (in_array($fileurl, $role_permissions)) {
+                                            ?>
+                                                <li style="margin:0; border-bottom:1px solid #eee;">
+                                                    <a href="<?php echo SITE_URL; ?>admin/Users/index"
+                                                        data-toggle="tooltip"
+                                                        style="
+                                                                display:flex;
+                                                                align-items:center;
+                                                                justify-content:flex-start;
+                                                                gap:12px;
+                                                                padding:12px 18px;
+                                                                text-decoration:none;
+                                                                color:#333;
+                                                                width:100%;
+                                                                transition:0.3s;
+                                                                box-sizing:border-box;
+                                                            "
+                                                        onmouseover="this.style.background='#f7f7f7'"
+                                                        onmouseout="this.style.background='transparent'">
+
+                                                        <img src="<?php echo SITE_URL; ?>images/headericons/usersindex.png"
+                                                            height="30" width="33" alt="images">
+
+                                                        <span>Users</span>
+                                                    </a>
+                                                </li>
+                                            <?php } ?>
+
+
+
+
+
+                                        </ul>
+
+                                        <script>
+                                            document.addEventListener("DOMContentLoaded", function() {
+                                                const dropdownToggle = document.querySelector('.dropdown-toggle');
+                                                const dropdownMenu = document.querySelector('.dropdown-menu');
+
+                                                // Toggle menu on click
+                                                dropdownToggle.addEventListener('click', function(e) {
+                                                    e.stopPropagation();
+                                                    dropdownMenu.style.display = dropdownMenu.style.display === 'block' ? 'none' : 'block';
+                                                });
+
+                                                // Close menu when clicking outside
+                                                document.addEventListener('click', function(e) {
+                                                    if (!dropdownToggle.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                                                        dropdownMenu.style.display = 'none';
+                                                    }
+                                                });
+                                            });
+                                        </script>
+
+
 
                                 </ul>
                             </li>

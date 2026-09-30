@@ -52,9 +52,12 @@ router.delete('/categories/:id', (req, res, next) => ctrl.deleteCategory(req, re
 
 // Products
 router.get('/products', (req, res, next) => ctrl.listProducts(req, res, next));
+router.post('/products', (req, res, next) => ctrl.createProduct(req, res, next));
 router.get('/products/categories', (req, res, next) => ctrl.getCategoryList(req, res, next));
 router.get('/products/uom', (req, res, next) => ctrl.getUomList(req, res, next));
+router.get('/products/finished-processes', (req, res, next) => ctrl.getFinishedProcessList(req, res, next));
 router.get('/products/:id', (req, res, next) => ctrl.getProduct(req, res, next));
+router.put('/products/:id', (req, res, next) => ctrl.updateProduct(req, res, next));
 router.patch('/products/:id/status', (req, res, next) => ctrl.toggleProductStatus(req, res, next));
 
 // Taxes
@@ -67,9 +70,15 @@ router.post('/suppliers', (req, res, next) => ctrl.createSupplier(req, res, next
 router.put('/suppliers/:id', (req, res, next) => ctrl.updateSupplier(req, res, next));
 router.patch('/suppliers/:id/status', (req, res, next) => ctrl.toggleSupplierStatus(req, res, next));
 
+// Roles
+router.get('/roles', (req, res, next) => ctrl.listRoles(req, res, next));
+
 // Users
 router.get('/users', (req, res, next) => ctrl.listUsers(req, res, next));
 router.get('/users/:id', (req, res, next) => ctrl.getUser(req, res, next));
+router.post('/users', (req, res, next) => ctrl.createUser(req, res, next));
+router.put('/users/:id', (req, res, next) => ctrl.updateUser(req, res, next));
+router.delete('/users/:id', (req, res, next) => ctrl.deleteUser(req, res, next));
 router.patch('/users/:id/status', (req, res, next) => ctrl.toggleUserStatus(req, res, next));
 
 module.exports = router;

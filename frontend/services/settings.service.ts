@@ -84,6 +84,10 @@ export const settingsService = {
     const res = await apiClient.get('/settings/products', { params });
     return res.data.data;
   },
+  async getProduct(id: number): Promise<any> {
+    const res = await apiClient.get(`/settings/products/${id}`);
+    return res.data.data;
+  },
   async getProductCategoryList(): Promise<{ id: number; category_name: string }[]> {
     const res = await apiClient.get('/settings/products/categories');
     return res.data.data;
@@ -91,6 +95,16 @@ export const settingsService = {
   async getUomList(): Promise<{ id: number; unit_name: string }[]> {
     const res = await apiClient.get('/settings/products/uom');
     return res.data.data;
+  },
+  async getFinishedProcessList(): Promise<{ id: number; process_name: string }[]> {
+    const res = await apiClient.get('/settings/products/finished-processes');
+    return res.data.data;
+  },
+  async createProduct(data: any): Promise<void> {
+    await apiClient.post('/settings/products', data);
+  },
+  async updateProduct(id: number, data: any): Promise<void> {
+    await apiClient.put(`/settings/products/${id}`, data);
   },
   async toggleProductStatus(id: number, status: string): Promise<void> {
     await apiClient.patch(`/settings/products/${id}/status`, { status });
@@ -124,7 +138,26 @@ export const settingsService = {
     const res = await apiClient.get('/settings/users', { params });
     return res.data.data;
   },
+  async getUser(id: number): Promise<AppUser> {
+    const res = await apiClient.get(`/settings/users/${id}`);
+    return res.data.data;
+  },
   async toggleUserStatus(id: number, status: string): Promise<void> {
     await apiClient.patch(`/settings/users/${id}/status`, { status });
   },
+  async createUser(data: Partial<AppUser> & { password?: string }): Promise<void> {
+    await apiClient.post('/settings/users', data);
+  },
+  async updateUser(id: number, data: Partial<AppUser> & { password?: string }): Promise<void> {
+    await apiClient.put(`/settings/users/${id}`, data);
+  },
+  async deleteUser(id: number): Promise<void> {
+    await apiClient.delete(`/settings/users/${id}`);
+  },
+
+  // Roles
+  async getRoles(): Promise<{ id: number; name: string }[]> {
+    const res = await apiClient.get('/settings/roles');
+    return res.data.data;
+  }
 };

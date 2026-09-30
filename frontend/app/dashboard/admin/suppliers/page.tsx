@@ -189,7 +189,7 @@ export default function SuppliersPage() {
 
       {modal && (
         <Modal title={modal.type === 'add' ? 'Add Supplier' : 'Edit Supplier'} onClose={() => setModal(null)}>
-          <SupplierForm />
+          {SupplierForm()}
         </Modal>
       )}
     </div>

@@ -83,23 +83,27 @@ class AppController extends Controller
         $community = $this->request->session()->read('Auth.User.db');
 
         $company_id = $this->request->session()->read('Auth.User.c_id');
-        if ($role_id != 101 && $role_id != null) {
-            ConnectionManager::drop('default');
-            ConnectionManager::drop($community);
-            ConnectionManager::config($community, [
-                'className' => 'Cake\Database\Connection',
-                'driver' => 'Cake\Database\Driver\Mysql',
-                'persistent' => false,
-                'host' => DBHOSTNAME,
-                'username' => MYSQLUSERNAME,
-                'password' => MYSQLPASSWORD,
-                'database' => $community,
-                'encoding' => 'utf8mb4',
-                'timezone' => 'UTC',
-                'cacheMetadata' => true,
-            ]);
+        if ($role_id != 101 && $role_id != null && !empty($community)) {
+            $configured = \Cake\Datasource\ConnectionManager::configured();
+            if (!in_array($community, $configured)) {
+                \Cake\Datasource\ConnectionManager::config($community, [
+                    'className' => 'Cake\Database\Connection',
+                    'driver' => 'Cake\Database\Driver\Mysql',
+                    'persistent' => false,
+                    'host' => DBHOSTNAME,
+                    'username' => MYSQLUSERNAME,
+                    'password' => MYSQLPASSWORD,
+                    'database' => $community,
+                    'encoding' => 'utf8mb4',
+                    'timezone' => 'UTC',
+                    'cacheMetadata' => true,
+                ]);
+            }
 
-            ConnectionManager::get($community);
+            if (in_array('default', $configured)) {
+                \Cake\Datasource\ConnectionManager::drop('default');
+            }
+            \Cake\Datasource\ConnectionManager::get($community);
             \Cake\Datasource\ConnectionManager::alias($community, 'default');
             date_default_timezone_set('Asia/Kolkata');
         }
@@ -107,21 +111,26 @@ class AppController extends Controller
 
     public function connection($dbs)
     {
-        //    echo $dbs; die;
-        ConnectionManager::config($dbs, [
-            'className' => 'Cake\Database\Connection',
-            'driver' => 'Cake\Database\Driver\Mysql',
-            'persistent' => false,
-            'host' => DBHOSTNAME,
-            'username' => MYSQLUSERNAME,
-            'password' => MYSQLPASSWORD,
-            'database' => $dbs,
-            'encoding' => 'utf8mb4',
-            'timezone' => 'UTC',
-            'cacheMetadata' => true,
-        ]);
-        ConnectionManager::drop('default');
-        ConnectionManager::get($dbs);
+        if (empty($dbs)) return;
+        $configured = \Cake\Datasource\ConnectionManager::configured();
+        if (!in_array($dbs, $configured)) {
+            \Cake\Datasource\ConnectionManager::config($dbs, [
+                'className' => 'Cake\Database\Connection',
+                'driver' => 'Cake\Database\Driver\Mysql',
+                'persistent' => false,
+                'host' => DBHOSTNAME,
+                'username' => MYSQLUSERNAME,
+                'password' => MYSQLPASSWORD,
+                'database' => $dbs,
+                'encoding' => 'utf8mb4',
+                'timezone' => 'UTC',
+                'cacheMetadata' => true,
+            ]);
+        }
+        if (in_array('default', $configured)) {
+            \Cake\Datasource\ConnectionManager::drop('default');
+        }
+        \Cake\Datasource\ConnectionManager::get($dbs);
         \Cake\Datasource\ConnectionManager::alias($dbs, 'default');
     }
 
@@ -387,21 +396,26 @@ class AppController extends Controller
             $user_id = '105';
             $_SESSION['checked_by'] = $user_id;
             if (!empty($db) && $db != $user_db) {
-                ConnectionManager::config($db, [
-                    'className' => 'Cake\Database\Connection',
-                    'driver' => 'Cake\Database\Driver\Mysql',
-                    'persistent' => false,
-                    'host' => DBHOSTNAME,
-                    // 'port'=>'3306',
-                    'username' => MYSQLUSERNAME,
-                    'password' => MYSQLPASSWORD,
-                    'database' => $db,
-                    'encoding' => 'utf8mb4',
-                    'timezone' => 'UTC',
-                    'cacheMetadata' => true,
-                ]);
-                ConnectionManager::drop('default');
-                ConnectionManager::get($db);
+                $configured = \Cake\Datasource\ConnectionManager::configured();
+                if (!in_array($db, $configured)) {
+                    \Cake\Datasource\ConnectionManager::config($db, [
+                        'className' => 'Cake\Database\Connection',
+                        'driver' => 'Cake\Database\Driver\Mysql',
+                        'persistent' => false,
+                        'host' => DBHOSTNAME,
+                        // 'port'=>'3306',
+                        'username' => MYSQLUSERNAME,
+                        'password' => MYSQLPASSWORD,
+                        'database' => $db,
+                        'encoding' => 'utf8mb4',
+                        'timezone' => 'UTC',
+                        'cacheMetadata' => true,
+                    ]);
+                }
+                if (in_array('default', $configured)) {
+                    \Cake\Datasource\ConnectionManager::drop('default');
+                }
+                \Cake\Datasource\ConnectionManager::get($db);
                 \Cake\Datasource\ConnectionManager::alias($db, 'default');
                 date_default_timezone_set('Asia/Kolkata');
                 $this->loadModel('Users');

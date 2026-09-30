@@ -218,40 +218,77 @@
               <div class="col-sm-12">
                 <label for="inputEmail3" style="margin-bottom:10px;">Items</label>
                 <table id="customers">
-                  <thead>
-                    <tr class="totalColumn">
-                      <th width="10%">S.No.</th>
-                      <th width="50%">Raw Material</th>
-                      <th width="30%">Received Qty</th>
-                      <th width="10%">UOM</th>
-                      <!-- <th>Action</th> -->
-                    </tr>
-                  </thead>
                   <tbody id="product_containes">
+
+                    <tr class="totalColumn" style="background-color: #e0e0e0;">
+                      <th colspan="4">Semi-Finished Product</th>
+                    </tr>
+
+                    <?php 
+                      // Get received quantity for this product (Stock IN)
+                      $received = $this->comman->find_first_query("SELECT SUM(quantity) as total_qty FROM st_stock_register WHERE contract_id = '".$reverseindentid['contract_id']."' AND item_id = '".$reverseindentid['finishedproduct_id']."' AND store_type IN ('0', '1') AND reverse_id != '".$reverseindentid['reverse_id']."'");
+                      $received_qty = $received ? $received['total_qty'] : 0;
+                      
+                      $designsheet = $this->comman->find_first_query("SELECT quantity FROM designsheet WHERE contract_id = '".$reverseindentid['contract_id']."' AND item_id = '".$reverseindentid['finishedproduct_id']."'");
+                      $req_qty = $designsheet ? $designsheet['quantity'] : 0;
+                      
+                      $pending_qty = $req_qty - $received_qty;
+
+                      $itemname = $this->comman->getitemcatcom($reverseindentid['finishedproduct_id']);
+                      
+                      // The current reverse quantity
+                      $current_qty = 0;
+                      foreach ($reverseindentdetails as $val) {
+                          if ($val['item_id'] == $reverseindentid['finishedproduct_id']) {
+                              $current_qty = $val['quantity'];
+                          }
+                      }
+                    ?>
+                    <tr class="video_details">
+                      <td width="55%">
+                        <?php echo $this->Form->input('finisheditem_id', array('class' => 'form-control', 'type' => 'hidden', 'value' => $reverseindentid['finishedproduct_id'], 'label' => false, 'autofocus', 'autocomplete' => 'off')); ?>
+                        <?php echo $this->Form->input('item_name', array('class' => 'form-control', 'type' => 'text', 'value' => $itemname['item_name'], 'label' => false, 'autofocus', 'autocomplete' => 'off', 'readonly')); ?>
+                      </td>
+                      <td width="15%">
+                        <?php echo $this->Form->input('unit_name', array('class' => 'form-control', 'type' => 'text', 'value' => $itemname['measurementunit']['unit_name'], 'label' => false, 'autofocus', 'autocomplete' => 'off', 'readonly')); ?>
+                      </td>
+                      <td width="15%">
+                        <input type="text" id="pending_qty" class="form-control" value="<?php echo $pending_qty; ?>" readonly>
+                      </td>
+                      <td width="15%">
+                        <input type="text" onkeypress='return isNumberKey(event)' name="finished_qty" id="receive_qty" value="<?php echo $current_qty; ?>" class="form-control newquan" autocomplete='off' required>
+                      </td>
+                    </tr>
+
+                    <tr class="totalColumn" style="background-color: #e0e0e0;">
+                      <th width="55%">Raw Material</th>
+                      <th width="30%" colspan="2">Received Qty</th>
+                      <th width="15%">UOM</th>
+                    </tr>
 
                     <?php $i = 1;
                     foreach ($reverseindentdetails as $key => $value) {
-                      $itemname = $this->comman->getitemcatcom($value['item_id']);
+                      if ($value['item_id'] == $reverseindentid['finishedproduct_id']) {
+                          continue;
+                      }
+                      $raw_itemname = $this->comman->getitemcatcom($value['item_id']);
                       ?>
                       <tr class="video_details">
-                        <td width="5%">
-                          <?php echo $i; ?>
-                        </td>
-                        <td width="42%">
+                        <td width="55%">
                           <?php echo $this->Form->input('item_id[]', array('class' => 'form-control', 'type' => 'hidden', 'value' => $value['item_id'], 'label' => false, 'autofocus', 'autocomplete' => 'off')); ?>
-
-                          <?php echo $this->Form->input('item_name[]', array('class' => 'form-control', 'type' => 'text', 'value' => $itemname['item_name'], 'label' => false, 'autofocus', 'autocomplete' => 'off', 'readonly')); ?>
+                          <?php echo $this->Form->input('raw_item_name[]', array('class' => 'form-control', 'type' => 'text', 'value' => $raw_itemname['item_name'], 'label' => false, 'autofocus', 'autocomplete' => 'off', 'readonly')); ?>
                         </td>
-                        <td width="16%"><input type="text" onkeypress='return isNumberKey(event)' name="itemquantity[]"
+                        <td width="30%" colspan="2"><input type="text" onkeypress='return isNumberKey(event)' name="itemquantity[]"
                             value="<?php echo $value['quantity'] ?>" class="form-control newquan quntt<?php echo $i; ?>"
                             autocomplete='off'></td>
-                        <td width="5%">
+                        <td width="15%">
                           <?php
-                          echo $this->Form->input('unit_name[]', array('class' => 'form-control', 'type' => 'text', 'value' => $itemname['measurementunit']['unit_name'], 'label' => false, 'autofocus', 'autocomplete' => 'off', 'readonly')); ?>
+                          echo $this->Form->input('raw_unit_name[]', array('class' => 'form-control', 'type' => 'text', 'value' => $raw_itemname['measurementunit']['unit_name'], 'label' => false, 'autofocus', 'autocomplete' => 'off', 'readonly')); ?>
                         </td>
                       </tr>
                       <?php $i++;
                     } ?>
+
                   </tbody>
 
                 </table>
@@ -267,17 +304,14 @@
         <!-- /.box-body -->
         <div class="box-footer">
           <?php
-          if (isset($location['id'])) {
-            echo $this->Form->submit(
-              'Update',
-              array('class' => 'btn btn-info pull-right', 'id' => 'formsubmitbtn', 'title' => 'Update')
-            );
-          } else {
-            echo $this->Form->submit(
-              'Save & Finalize',
-              array('class' => 'btn btn-info pull-right', 'id' => 'formsubmitbtn', 'title' => 'Save & Finalize')
-            );
-          }
+          echo $this->Form->submit(
+            'Save & Finalize',
+            array('name' => 'action', 'value' => 'finalize', 'class' => 'btn btn-success pull-right', 'id' => 'formsubmitbtn', 'style' => 'margin-left: 10px;', 'title' => 'Save & Finalize')
+          );
+          echo $this->Form->submit(
+            'Save as Draft',
+            array('name' => 'action', 'value' => 'draft', 'class' => 'btn btn-warning pull-right', 'id' => 'formdraftbtn', 'title' => 'Save as Draft')
+          );
           ?>
           <?php
           echo $this->Html->link('Back', [
@@ -368,8 +402,30 @@
 
 <script>
   $(document).ready(function () {
+    $('#formsubmitbtn').click(function() {
+        $('#sevice_form').append('<input type="hidden" name="action" value="finalize">');
+    });
+    $('#formdraftbtn').click(function() {
+        $('#sevice_form').append('<input type="hidden" name="action" value="draft">');
+    });
+
     $('#sevice_form').on('submit', function (e) {
-      $("#formsubmitbtn").css("display", "none");
+      var receive_qty = parseFloat($('#receive_qty').val());
+      var pending_qty = parseFloat($('#pending_qty').val());
+
+      if (isNaN(receive_qty) || receive_qty <= 0) {
+          alert('Received Qty must be greater than 0.');
+          e.preventDefault();
+          return false;
+      }
+      if (receive_qty > pending_qty) {
+          alert('Received Qty cannot exceed Design Sheet Qty.');
+          e.preventDefault();
+          return false;
+      }
+
+      $("#formsubmitbtn").prop("disabled", true);
+      $("#formdraftbtn").prop("disabled", true);
     });
   });
 </script>

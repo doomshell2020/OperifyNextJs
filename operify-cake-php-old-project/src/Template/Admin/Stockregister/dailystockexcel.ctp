@@ -70,31 +70,53 @@ $objPHPExcel->setActiveSheetIndex(0)
 
 
 $ii = 4;
+
 $cnt = 1;
 
-if (!empty($dailyStockData)) {
-    foreach ($dailyStockData as $row) {
-        $objPHPExcel->getActiveSheet()->setCellValue('A' . $ii, $row['item_id']);
-        $objPHPExcel->getActiveSheet()->setCellValue('B' . $ii, $row['item_name']);
-        $objPHPExcel->getActiveSheet()->setCellValue('C' . $ii, $row['category_name']);
-        $objPHPExcel->getActiveSheet()->setCellValue('D' . $ii, $row['opening_stock']);
-        $objPHPExcel->getActiveSheet()->setCellValue('E' . $ii, $row['received_stock']);
-        $objPHPExcel->getActiveSheet()->setCellValue('F' . $ii, $row['issued_stock']);
-        $objPHPExcel->getActiveSheet()->setCellValue('G' . $ii, $row['reverse_stock']);
-        $objPHPExcel->getActiveSheet()->setCellValue('H' . $ii, $row['return_stock']);
-        $objPHPExcel->getActiveSheet()->setCellValue('I' . $ii, $row['closing_stock']);
-        
-        // Format numeric columns
-        $columns = ['D', 'E', 'F', 'G', 'H', 'I'];
-        foreach ($columns as $column) {
-            $objPHPExcel->getActiveSheet()->getStyle($column . $ii)
-                ->getNumberFormat()->setFormatCode('0.00');
-            $objPHPExcel->getActiveSheet()->getStyle($column . $ii)
-                ->getAlignment()->setHorizontal(PHPExcel_Style_Alignment::HORIZONTAL_LEFT);
-        }
-        
-        $ii++;
-    }
+
+$toot = 0;
+
+foreach ($categortyname as $categorty) {
+
+	// pr($categorty);
+	$additem = $this->comman->getitembycategory($categorty['id']);
+
+
+	foreach ($additem as $items) {
+		// pr( $items);die;
+		$openingstocks = $this->comman->todayopeningstock($items['id'], $todaydate);
+		$receivedtock = $this->comman->todayrecivedstock($items['id'], $todaydate);
+		$issuedstock = $this->comman->todayissuedtock($items['id'], $todaydate);
+		$reversestock = $this->comman->todayreversestock($items['id'], $todaydate);
+		$returnstock = $this->comman->todayreturnstock($items['id'], $todaydate);
+		// $closingstock = $openingstock + $receivedtock - $issuedstock + $reversestock - $returnstock;
+		// pr($openingstock.'$openingstock');
+		// pr($receivedtock.'$receivedtock');
+		// pr($issuedstock.'$issuedstock');
+		// pr($closingstock.'$closingstock');exit;
+		$openingstock = ($receivedtock - $issuedstock);
+		// $closingstock = $openingstock + $reversestock - $returnstock;
+
+		$closingstocks = $receivedtock - $issuedstock;
+
+		$closingstock = number_format((float)$closingstocks, 2, '.', '');
+		if ($searchdate[1] == '') {
+			if ($receivedtock == 0 && $issuedstock == 0 && $reversestock == 0 && $returnstock == 0) {
+				continue;
+			}
+		}
+
+		$objPHPExcel->getActiveSheet()->setCellValue('A' . $ii, $items['id']);
+		$objPHPExcel->getActiveSheet()->setCellValue('B' . $ii, $items['item_name']);
+		$objPHPExcel->getActiveSheet()->setCellValue('C' . $ii, $categorty['category_name']);
+		$objPHPExcel->getActiveSheet()->setCellValue('D' . $ii, $openingstock);
+		$objPHPExcel->getActiveSheet()->setCellValue('E' . $ii, $receivedtock);
+		$objPHPExcel->getActiveSheet()->setCellValue('F' . $ii, $issuedstock);
+		$objPHPExcel->getActiveSheet()->setCellValue('G' . $ii, $reversestock);
+		$objPHPExcel->getActiveSheet()->setCellValue('H' . $ii, $returnstock);
+		$objPHPExcel->getActiveSheet()->setCellValue('I' . $ii, $closingstock);
+		$ii++;
+	}
 }
 
 

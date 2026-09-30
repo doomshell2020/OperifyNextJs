@@ -13,6 +13,7 @@ import { Loader, AlertCircle, RefreshCw, MoreVertical, Search, FileText, X, Edit
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { DatePicker } from '../../../../components/ui/DatePicker';
+import { formatContractDate } from '../../../../utils/dateFormatter';
 
 export default function PurchaseOrdersPage() {
   const router = useRouter();
@@ -99,11 +100,11 @@ export default function PurchaseOrdersPage() {
         </div>
         <div>
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Date From</label>
-          <DatePicker name="datefrom" value={filters.datefrom} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
+          <DatePicker dateFormat="dd-MM-yyyy" name="datefrom" value={filters.datefrom} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
         </div>
         <div>
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Date To</label>
-          <DatePicker name="dateto" value={filters.dateto} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
+          <DatePicker dateFormat="dd-MM-yyyy" name="dateto" value={filters.dateto} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
         </div>
         <div>
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Status</label>
@@ -161,7 +162,7 @@ export default function PurchaseOrdersPage() {
                     <td className="p-4 font-medium text-cyan-700 cursor-pointer hover:underline" onClick={() => setViewPoId(po.id)}>
                       {po.po_number}
                     </td>
-                    <td className="p-4 text-slate-600">{po.po_date?.split('T')[0]}</td>
+                    <td className="p-4 text-slate-600">{formatContractDate(po.po_date)}</td>
                     <td className="p-4 font-medium text-blue-600 cursor-pointer hover:underline truncate max-w-[200px]" onClick={() => setViewVendorId(po.vendor_id)}>
                       {po.vendor_name}
                     </td>
@@ -175,7 +176,7 @@ export default function PurchaseOrdersPage() {
                     <td className="p-4 text-right text-slate-800 font-bold">
                       {po.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="p-4 text-slate-600">{po.delivery_date?.split('T')[0] || '-'}</td>
+                    <td className="p-4 text-slate-600">{formatContractDate(po.delivery_date) || '-'}</td>
                     <td className="p-4 text-center relative">
                       <button 
                         onClick={() => setOpenDropdownId(openDropdownId === po.id ? null : po.id)}

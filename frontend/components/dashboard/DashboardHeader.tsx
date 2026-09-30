@@ -5,112 +5,19 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import {
-  FolderClosed,
-  CreditCard,
-  FileText,
-  Layers,
-  FileSpreadsheet,
-  ShoppingBag,
-  ClipboardCheck,
-  Truck,
-  ListTodo,
-  RefreshCw,
-  Factory,
-  Calendar,
-  Wrench,
-  Database,
-  Archive,
-  Receipt,
-  Settings,
-  FolderTree,
-  Package,
-  Users,
-  Building,
-  ChevronDown,
-  ChevronRight,
-  Globe,
-  LogOut,
-  LayoutDashboard,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Bell,
+  FolderClosed, CreditCard, FileText, Layers, FileSpreadsheet,
+  ShoppingBag, ClipboardCheck, Truck, RefreshCw, Factory,
+  Calendar, Wrench, Database, Archive, Receipt, Settings,
+  LogOut, LayoutDashboard, Bell, ChevronDown
 } from 'lucide-react';
 
-interface NavItem {
-  title: string;
-  icon: React.ReactNode;
-  path: string;
-}
+export const DashboardSidebar: React.FC<{ collapsed?: boolean }> = () => null;
 
-interface NavGroup {
-  title: string;
-  icon: React.ReactNode;
-  children: NavItem[];
-}
-
-type NavEntry = NavItem | NavGroup;
-
-function isGroup(entry: NavEntry): entry is NavGroup {
-  return 'children' in entry;
-}
-
-const navEntries: NavEntry[] = [
-  { title: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" />, path: '/dashboard' },
-  { title: 'EMD', icon: <FolderClosed className="w-4 h-4" />, path: '/dashboard/emd' },
-  { title: 'Payments', icon: <CreditCard className="w-4 h-4" />, path: '/dashboard/payments' },
-  { title: 'Contract', icon: <FileText className="w-4 h-4" />, path: '/dashboard/contracts' },
-  { title: 'Design Sheet', icon: <Layers className="w-4 h-4" />, path: '/dashboard/design-sheet' },
-  { title: 'Quotation', icon: <FileSpreadsheet className="w-4 h-4" />, path: '/dashboard/quotations' },
-  {
-    title: 'Purchase',
-    icon: <ShoppingBag className="w-4 h-4" />,
-    children: [
-      { title: 'PO', icon: <ShoppingBag className="w-4 h-4" />, path: '/dashboard/purchase/orders' },
-      { title: 'GRN Inspection', icon: <ClipboardCheck className="w-4 h-4" />, path: '/dashboard/purchase/inspections' },
-      { title: 'GRN', icon: <Truck className="w-4 h-4" />, path: '/dashboard/purchase/grn' },
-      { title: 'Indent PO', icon: <FileSpreadsheet className="w-4 h-4" />, path: '/dashboard/purchase/indentpo' },
-    ],
-  },
-  { title: 'Reverse', icon: <RefreshCw className="w-4 h-4" />, path: '/dashboard/reverse' },
-  {
-    title: 'Production',
-    icon: <Factory className="w-4 h-4" />,
-    children: [
-      { title: 'Production Entry', icon: <Factory className="w-4 h-4" />, path: '/dashboard/production/entry' },
-      { title: 'Daily Sheet', icon: <Calendar className="w-4 h-4" />, path: '/dashboard/production/sheet' },
-    ],
-  },
-  { title: 'Maintenance', icon: <Wrench className="w-4 h-4" />, path: '/dashboard/maintenance/breakdowns' },
-  {
-    title: 'Inventory',
-    icon: <Database className="w-4 h-4" />,
-    children: [
-      { title: 'Stock', icon: <Database className="w-4 h-4" />, path: '/dashboard/inventory/stock' },
-      { title: 'Daily Stock', icon: <Archive className="w-4 h-4" />, path: '/dashboard/inventory/daily' },
-    ],
-  },
-  { title: 'JC Challan', icon: <Receipt className="w-4 h-4" />, path: '/dashboard/jc-challan' },
-  {
-    title: 'Settings',
-    icon: <Settings className="w-4 h-4" />,
-    children: [
-      { title: 'Categories', icon: <FolderTree className="w-4 h-4" />, path: '/dashboard/admin/categories' },
-      { title: 'Products', icon: <Package className="w-4 h-4" />, path: '/dashboard/admin/products' },
-      { title: 'Suppliers', icon: <Building className="w-4 h-4" />, path: '/dashboard/admin/suppliers' },
-      { title: 'Users', icon: <Users className="w-4 h-4" />, path: '/dashboard/admin/users' },
-    ],
-  },
-];
-
-export const DashboardSidebar: React.FC<{ collapsed: boolean }> = ({ collapsed }) => {
+export const DashboardTopbar: React.FC = () => {
   const pathname = usePathname();
+  const { user, logout, switchCompany } = useAuth();
+  const [profileOpen, setProfileOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>('https://staging.operify.in/image/logo.png');
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    Purchase: true,
-    Production: false,
-    Inventory: false,
-    Settings: false,
-  });
 
   useEffect(() => {
     import('../../services/apiClient').then(({ default: apiClient }) => {
@@ -128,108 +35,35 @@ export const DashboardSidebar: React.FC<{ collapsed: boolean }> = ({ collapsed }
     });
   }, []);
 
-  const toggleGroup = (title: string) => {
-    setOpenGroups(prev => ({ ...prev, [title]: !prev[title] }));
-  };
+  const navItems = [
+    { title: 'EMD', icon: <FolderClosed className="w-[18px] h-[18px]" />, path: '/dashboard/emd' },
+    { title: 'Payments', icon: <CreditCard className="w-[18px] h-[18px]" />, path: '/dashboard/payments' },
+    { title: 'Contract', icon: <FileText className="w-[18px] h-[18px]" />, path: '/dashboard/contracts' },
+    { title: 'Design Sheet', icon: <Layers className="w-[18px] h-[18px]" />, path: '/dashboard/design-sheet' },
+    { title: 'Quotation', icon: <FileSpreadsheet className="w-[18px] h-[18px]" />, path: '/dashboard/quotations' },
+    { title: 'PO', icon: <ShoppingBag className="w-[18px] h-[18px]" />, path: '/dashboard/purchase/orders' },
+    { title: 'GRN Inspection', icon: <ClipboardCheck className="w-[18px] h-[18px]" />, path: '/dashboard/purchase/inspections' },
+    { title: 'GRN', icon: <Truck className="w-[18px] h-[18px]" />, path: '/dashboard/purchase/grn' },
+    { title: 'Indents', icon: <FileSpreadsheet className="w-[18px] h-[18px]" />, path: '/dashboard/purchase/indentpo' },
+    { title: 'Reverse', icon: <RefreshCw className="w-[18px] h-[18px]" />, path: '/dashboard/reverse' },
+    { title: 'Production', icon: <Factory className="w-[18px] h-[18px]" />, path: '/dashboard/production/entry' },
+    { title: 'Daily Sheet', icon: <Calendar className="w-[18px] h-[18px]" />, path: '/dashboard/production/sheet' },
+    { title: 'Maintenance', icon: <Wrench className="w-[18px] h-[18px]" />, path: '/dashboard/maintenance/breakdowns' },
+    { title: 'Stock', icon: <Database className="w-[18px] h-[18px]" />, path: '/dashboard/inventory/stock' },
+    { title: 'Daily Stock', icon: <Archive className="w-[18px] h-[18px]" />, path: '/dashboard/inventory/daily' },
+    { title: 'JC Challan', icon: <Receipt className="w-[18px] h-[18px]" />, path: '/dashboard/jc-challan' },
+    { title: 'JC Receive', icon: <RefreshCw className="w-[18px] h-[18px]" />, path: '/dashboard/jc-receive' },
+    { title: 'Gate Pass', icon: <Truck className="w-[18px] h-[18px]" />, path: '/dashboard/gatepass' }
+  ];
 
-  const isActive = (path: string) => pathname === path || pathname.startsWith(path + '/');
-  const isGroupActive = (group: NavGroup) => group.children.some(c => isActive(c.path));
+  const settingsMenu = [
+    { title: 'Categories', path: '/dashboard/admin/categories' },
+    { title: 'Products', path: '/dashboard/admin/products' },
+    { title: 'Suppliers', path: '/dashboard/admin/suppliers' },
+    { title: 'Users', path: '/dashboard/admin/roles' }
+  ];
 
-  return (
-    <aside
-      className={`h-full flex flex-col bg-white border-r border-slate-200 transition-all duration-300 ${
-        collapsed ? 'w-[60px]' : 'w-[220px]'
-      }`}
-    >
-      {/* Brand */}
-      <div className={`flex items-center gap-2.5 px-3 py-4 border-b border-slate-100 shrink-0 ${collapsed ? 'justify-center' : ''}`}>
-        <div className="h-8 w-8 flex items-center justify-center shrink-0">
-          <img src={logoUrl} alt="Operify Logo" className="h-full w-full object-contain" />
-        </div>
-        {!collapsed && (
-          <div className="flex flex-col">
-            <span className="font-extrabold text-xs tracking-widest text-slate-900 uppercase leading-none">TIRUPATI</span>
-            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-0.5">ERP Console</span>
-          </div>
-        )}
-      </div>
-
-      {/* Nav Items */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-        {navEntries.map((entry) => {
-          if (isGroup(entry)) {
-            const active = isGroupActive(entry);
-            const open = openGroups[entry.title];
-            return (
-              <div key={entry.title}>
-                <button
-                  onClick={() => toggleGroup(entry.title)}
-                  title={collapsed ? entry.title : undefined}
-                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left text-sm transition-colors ${
-                    active
-                      ? 'text-cyan-700 bg-cyan-50 font-semibold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                  }`}
-                >
-                  <span className="shrink-0">{entry.icon}</span>
-                  {!collapsed && (
-                    <>
-                      <span className="flex-1 font-medium text-xs">{entry.title}</span>
-                      {open ? <ChevronDown className="w-3.5 h-3.5 text-slate-400" /> : <ChevronRight className="w-3.5 h-3.5 text-slate-400" />}
-                    </>
-                  )}
-                </button>
-                {!collapsed && open && (
-                  <div className="mt-0.5 ml-3 pl-3 border-l-2 border-slate-100 space-y-0.5">
-                    {entry.children.map(child => (
-                      <Link
-                        key={child.path}
-                        href={child.path}
-                        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs transition-colors ${
-                          isActive(child.path)
-                            ? 'text-cyan-700 bg-cyan-50 font-semibold'
-                            : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
-                        }`}
-                      >
-                        <span className="shrink-0">{child.icon}</span>
-                        <span>{child.title}</span>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          }
-
-          // Single item
-          const active = isActive(entry.path);
-          return (
-            <Link
-              key={entry.path}
-              href={entry.path}
-              title={collapsed ? entry.title : undefined}
-              className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-colors ${
-                active
-                  ? 'text-cyan-700 bg-cyan-50 font-semibold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-              }`}
-            >
-              <span className="shrink-0">{entry.icon}</span>
-              {!collapsed && <span className="font-medium text-xs">{entry.title}</span>}
-            </Link>
-          );
-        })}
-      </nav>
-    </aside>
-  );
-};
-
-export const DashboardTopbar: React.FC<{
-  collapsed: boolean;
-  onToggle: () => void;
-}> = ({ collapsed, onToggle }) => {
-  const { user, logout, switchCompany } = useAuth();
-  const [profileOpen, setProfileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const formatTenant = (dbName?: string) => {
     if (!dbName) return 'Central';
@@ -241,26 +75,83 @@ export const DashboardTopbar: React.FC<{
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-slate-200 h-14 flex items-center px-4 gap-4 select-none print:hidden">
-      {/* Sidebar Toggle */}
-      <button
-        onClick={onToggle}
-        className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors"
-      >
-        {collapsed ? <PanelLeftOpen className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
-      </button>
+    <header className="bg-[#fff] border-b border-[#ddd] flex items-center justify-between px-1 select-none h-[66px] w-full shadow-[0_1px_2px_rgba(0,0,0,0.03)] z-50 relative">
+      {/* 2. Logo Section */}
+      <Link href="/dashboard" className="flex items-center gap-1.5 shrink-0 justify-start w-[110px] cursor-pointer hover:opacity-80 transition-opacity">
+        <div className="h-[28px] w-[28px] flex items-center justify-center shrink-0">
+          <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
+        </div>
+        <div className="flex flex-col">
+          <span className="font-extrabold text-[12px] tracking-widest text-[#222] uppercase leading-none">TIRUPATI</span>
+        </div>
+      </Link>
 
-      {/* Page title area — flex spacer */}
-      <div className="flex-1" />
+      {/* 3. & 8. Main Navigation */}
+      <nav className="flex-1 min-w-0 flex items-center overflow-x-auto overflow-y-hidden no-scrollbar px-1 h-full">
+        {navItems.map((item) => {
+          const isActive = pathname === item.path || pathname.startsWith(item.path + '/');
+          return (
+            <Link
+              key={item.title}
+              href={item.path}
+              className={`flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] shrink-0 border-b-[2px] transition-colors ${
+                isActive ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'
+              }`}
+            >
+              {React.cloneElement(item.icon as React.ReactElement, {
+                className: `w-[18px] h-[18px] ${isActive ? 'text-[#1683D8]' : 'text-[#555]'}`
+              })}
+              <span className="text-[11px] font-semibold text-center whitespace-nowrap leading-none">{item.title}</span>
+            </Link>
+          );
+        })}
+      </nav>
 
-      {/* Right: DB Pill + Notifications + Profile */}
-      <div className="flex items-center gap-3">
-        {/* Tenant DB Switcher */}
+      {/* 7. Right Section */}
+      <div className="flex items-center gap-[6px] shrink-0 ml-auto justify-end h-full relative">
+        
+        {/* 11. Settings Dropdown Moved out of Nav to avoid clipping */}
+        <div className="relative flex items-center h-full shrink-0 mr-2">
+          <button
+            onClick={() => setSettingsOpen(!settingsOpen)}
+            className={`flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] border-b-[2px] transition-colors ${
+              pathname.includes('/admin/') ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'
+            }`}
+          >
+            <Settings className={`w-[18px] h-[18px] ${pathname.includes('/admin/') ? 'text-[#1683D8]' : 'text-[#555]'}`} />
+            <span className="text-[11px] font-semibold text-center whitespace-nowrap leading-none">Settings</span>
+          </button>
+          
+          {settingsOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} />
+              <div className="absolute left-1/2 -translate-x-1/2 top-[55px] w-[130px] bg-white border border-[#ccc] shadow-[0_2px_8px_rgba(0,0,0,0.1)] rounded-sm py-1 z-50">
+                {settingsMenu.map((sm) => (
+                  <Link
+                    key={sm.title}
+                    href={sm.path}
+                    onClick={() => setSettingsOpen(false)}
+                    className="flex items-center px-3 py-1.5 text-[10px] text-[#222] hover:bg-[#f5f5f5] transition-colors font-medium"
+                  >
+                    <span className="w-3 h-3 mr-2 text-[#555] flex items-center justify-center">
+                       {sm.title === 'Categories' && '▦'}
+                       {sm.title === 'Products' && '📦'}
+                       {sm.title === 'Suppliers' && '👤'}
+                       {sm.title === 'Users' && '👥'}
+                    </span>
+                    {sm.title}
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
         {user?.companies && user.companies.length > 1 ? (
           <select 
             value={user.db} 
             onChange={(e) => switchCompany(e.target.value)}
-            className="flex items-center bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-extrabold text-slate-700 tracking-wide outline-none cursor-pointer focus:ring-1 focus:ring-cyan-500"
+            className="flex items-center bg-white border border-[#ccc] rounded-[2px] px-1 py-1 text-[10px] text-[#222] outline-none cursor-pointer hover:border-[#999] h-[26px] w-[140px]"
           >
             {user.companies.map(c => (
               <option key={c.id} value={c.school_database}>
@@ -269,48 +160,43 @@ export const DashboardTopbar: React.FC<{
             ))}
           </select>
         ) : (
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-[10px] font-extrabold text-slate-700 tracking-wide">
-            <Database className="w-3 h-3 text-slate-400" />
-            {formatTenant(user?.db)}
+          <div className="flex items-center gap-1 bg-white border border-[#ccc] rounded-[2px] px-1 py-1 text-[10px] text-[#222] h-[26px] w-[140px] overflow-hidden whitespace-nowrap text-ellipsis">
+            <Database className="w-[10px] h-[10px] text-[#555] shrink-0" />
+            <span className="truncate">{formatTenant(user?.db)}</span>
           </div>
         )}
-
-        {/* Notifications */}
-        <button className="relative p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors">
-          <Bell className="w-5 h-5" />
-        </button>
 
         {/* Profile */}
         <div className="relative">
           <button
             onClick={() => setProfileOpen(!profileOpen)}
-            className="h-8 w-8 flex items-center justify-center rounded-lg bg-gradient-to-tr from-cyan-500 to-purple-600 text-white font-bold text-sm shadow-sm focus:outline-none cursor-pointer"
+            className="flex items-center justify-center h-[34px] w-[34px] rounded-full bg-[#f1f3f6] text-[#222] font-bold text-[12px] hover:bg-[#e2e8f0] transition-colors focus:outline-none border border-[#ccc]"
           >
             {user?.user_name ? user.user_name.charAt(0).toUpperCase() : 'U'}
           </button>
           {profileOpen && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 z-50">
-                <div className="px-3 py-2 border-b border-slate-100 mb-1">
-                  <p className="text-xs font-semibold text-slate-800">{user?.user_name}</p>
-                  <p className="text-[10px] text-slate-400 truncate">{user?.email}</p>
+              <div className="absolute right-0 top-full mt-1 w-[150px] bg-white border border-[#ccc] shadow-[0_2px_8px_rgba(0,0,0,0.1)] rounded-sm p-1 z-50">
+                <div className="px-2 py-2 border-b border-[#eee] mb-1">
+                  <p className="text-[10px] font-bold text-[#222] truncate">{user?.user_name}</p>
+                  <p className="text-[9px] text-[#666] truncate">{user?.email}</p>
                 </div>
                 
                 <Link
                   href="/dashboard/admin/profile"
                   onClick={() => setProfileOpen(false)}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-xs text-slate-700 hover:bg-slate-50 transition cursor-pointer font-medium mb-1"
+                  className="w-full flex items-center gap-2 px-2 py-1.5 text-left text-[10px] text-[#222] hover:bg-[#f5f5f5] transition cursor-pointer font-medium mb-1"
                 >
-                  <Settings className="w-4 h-4" />
+                  <Settings className="w-[12px] h-[12px] text-[#555]" />
                   Profile Settings
                 </Link>
 
                 <button
                   onClick={logout}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-xs text-rose-600 hover:bg-rose-50 transition cursor-pointer font-medium"
+                  className="w-full flex items-center gap-2 px-2 py-1.5 text-left text-[10px] text-[#ff0000] hover:bg-[#ffeeee] transition cursor-pointer font-medium"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-[12px] h-[12px] text-[#ff0000]" />
                   Logout
                 </button>
               </div>

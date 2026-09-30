@@ -64,6 +64,71 @@ class SettingsRepository {
     );
     return rows[0] || null;
   }
+  async checkItemExists(dbPool, item_name) {
+    const rows = await dbPool.query(
+      `SELECT id FROM st_additem WHERE item_name = :item_name LIMIT 1`,
+      { replacements: { item_name: item_name.trim().toUpperCase() }, type: QueryTypes.SELECT }
+    );
+    return rows.length > 0;
+  }
+  async createProduct(dbPool, item) {
+    const result = await dbPool.query(
+      `INSERT INTO st_additem (
+         item_name, category_id, uom, item_isbn, sale_price, discount, weight, volume, min_order_qty,
+         itemtype, finishedprocess_id, productprocess_id, cname, status, added_time
+       ) VALUES (
+         :item_name, :category_id, :uom, :item_isbn, :sale_price, :discount, :weight, :volume, :min_order_qty,
+         :itemtype, :finishedprocess_id, :productprocess_id, :cname, 'Y', :added_time
+       )`,
+      {
+        replacements: {
+          item_name: item.item_name.toUpperCase(),
+          category_id: item.category_id || null,
+          uom: item.uom || null,
+          item_isbn: item.item_isbn || null,
+          sale_price: item.sale_price || 0,
+          discount: item.discount || 0,
+          weight: item.weight || null,
+          volume: item.volume || null,
+          min_order_qty: item.min_order_qty || null,
+          itemtype: item.itemtype || 'RawMaterial',
+          finishedprocess_id: item.finishedprocess_id || null,
+          productprocess_id: item.productprocess_id || null,
+          cname: item.cname || '1',
+          added_time: new Date()
+        },
+        type: QueryTypes.INSERT
+      }
+    );
+    return result[0];
+  }
+  async checkItemExistsForEdit(dbPool, item_name, id) {
+    const rows = await dbPool.query(
+      `SELECT id FROM st_additem WHERE item_name = :item_name AND id != :id LIMIT 1`,
+      { replacements: { item_name: item_name.trim().toUpperCase(), id }, type: QueryTypes.SELECT }
+    );
+    return rows.length > 0;
+  }
+  async updateProduct(dbPool, id, item) {
+    await dbPool.query(
+      `UPDATE st_additem 
+       SET item_name = :item_name, 
+           category_id = :category_id, 
+           uom = :uom, 
+           updated_time = :updated_time 
+       WHERE id = :id`,
+      {
+        replacements: {
+          item_name: item.item_name.toUpperCase(),
+          category_id: item.category_id || null,
+          uom: item.uom || null,
+          updated_time: new Date(),
+          id
+        },
+        type: QueryTypes.UPDATE
+      }
+    );
+  }
   async toggleProductStatus(dbPool, id, status) {
     await dbPool.query(`UPDATE st_additem SET status = :status WHERE id = :id`, { replacements: { status, id }, type: QueryTypes.UPDATE });
   }
@@ -142,10 +207,93 @@ class SettingsRepository {
   async toggleUserStatus(dbPool, id, status) {
     await dbPool.query(`UPDATE users SET is_status = :status WHERE id = :id`, { replacements: { status, id }, type: QueryTypes.UPDATE });
   }
+  async toggleUserStatusCentral(centralPool, mobile, status) {
+    await centralPool.query(`UPDATE users SET is_status = :status WHERE mobile = :mobile`, { replacements: { status, mobile }, type: QueryTypes.UPDATE });
+  }
+  async getUserByMobile(dbPool, mobile) {
+    const rows = await dbPool.query(`SELECT id FROM users WHERE mobile = :mobile LIMIT 1`, { replacements: { mobile }, type: QueryTypes.SELECT });
+    return rows[0] || null;
+  }
+  async createUser(dbPool, data) {
+    const { user_name, email, mobile, password, role_id, c_id, academic_year, db, board, is_admin, confirm_pass } = data;
+    const now = new Date();
+    const replacements = {
+      user_name, c_id: c_id || 1, academic_year: academic_year || '', email: email || '', 
+      password: password || '', confirm_pass: confirm_pass || '', now, 
+      role_id: role_id || null, db: db || '', board: board || '', mobile: mobile || '', is_admin: is_admin || 'N'
+    };
+    const result = await dbPool.query(
+      `INSERT INTO users (user_name, c_id, academic_year, email, password, confirm_pass, created, role_id, db, board, mobile, is_admin, is_status)
+       VALUES (:user_name, :c_id, :academic_year, :email, :password, :confirm_pass, :now, :role_id, :db, :board, :mobile, :is_admin, 'Y')`,
+      { replacements, type: QueryTypes.INSERT }
+    );
+    return result[0];
+  }
+  
+  async createUserCentral(centralPool, data) {
+    const { user_name, email, mobile, password, role_id, c_id, academic_year, db, board, is_admin, confirm_pass } = data;
+    const now = new Date();
+    const replacements = {
+      user_name, c_id: c_id || 1, academic_year: academic_year || '', email: email || '', 
+      password: password || '', confirm_pass: confirm_pass || '', now, 
+      role_id: role_id || null, db: db || '', board: board || '', mobile: mobile || '', is_admin: is_admin || 'N', tech_id: 0
+    };
+    await centralPool.query(
+      `INSERT INTO users (user_name, c_id, academic_year, email, tech_id, password, confirm_pass, created, role_id, db, board, mobile)
+       VALUES (:user_name, :c_id, :academic_year, :email, :tech_id, :password, :confirm_pass, :now, :role_id, :db, :board, :mobile)`,
+      { replacements, type: QueryTypes.INSERT }
+    );
+  }
+  
+  async updateUser(dbPool, id, data) {
+    let q = `UPDATE users SET user_name = :user_name, email = :email, mobile = :mobile, role_id = :role_id`;
+    if (data.password) {
+      q += `, password = :password, confirm_pass = :confirm_pass`;
+    }
+    q += ` WHERE id = :id`;
+    await dbPool.query(q, {
+      replacements: { ...data, id },
+      type: QueryTypes.UPDATE
+    });
+  }
+
+  async updateUserCentral(centralPool, oldMobile, data) {
+    let q = `UPDATE users SET user_name = :user_name, email = :email, mobile = :new_mobile, role_id = :role_id`;
+    if (data.password) {
+      q += `, password = :password, confirm_pass = :confirm_pass`;
+    }
+    q += ` WHERE mobile = :old_mobile`;
+    await centralPool.query(q, {
+      replacements: { ...data, old_mobile: oldMobile, new_mobile: data.mobile },
+      type: QueryTypes.UPDATE
+    });
+  }
+
+  async deleteUser(dbPool, id) {
+    await dbPool.query(`DELETE FROM users WHERE id = :id`, { replacements: { id }, type: QueryTypes.DELETE });
+  }
+
+  async deleteUserCentral(centralPool, mobile) {
+    // We delete central DB user by mobile to keep sync
+    await centralPool.query(`DELETE FROM users WHERE mobile = :mobile`, { replacements: { mobile }, type: QueryTypes.DELETE });
+  }
+
+  // ─── ROLES ──────────────────────────────────────────────────────────────────
+  async getRoles(dbPool) {
+    // Return all roles so the frontend can display correct names in the table
+    // The frontend dropdown will exclude 1, 6, 101, 105 as per the old CakePHP project logic
+    return await dbPool.query(
+      `SELECT id, name, status, created FROM roles ORDER BY name ASC`,
+      { type: QueryTypes.SELECT }
+    );
+  }
 
   // ─── HELPERS ────────────────────────────────────────────────────────────────
   async getCategoryList(dbPool) {
     return await dbPool.query(`SELECT id, category_name FROM st_categorymaster WHERE status='Y' ORDER BY category_name ASC`, { type: QueryTypes.SELECT });
+  }
+  async getFinishedProcessList(dbPool) {
+    return await dbPool.query(`SELECT id, process_name FROM finishedproduct_process ORDER BY id ASC`, { type: QueryTypes.SELECT });
   }
   async getUomList(dbPool) {
     return await dbPool.query(`SELECT id, unit_name FROM st_measurementunits ORDER BY unit_name ASC`, { type: QueryTypes.SELECT });

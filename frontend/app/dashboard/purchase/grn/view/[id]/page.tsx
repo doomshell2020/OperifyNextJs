@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { grnService } from '@/services/grn.service';
 import { ArrowLeft, Printer, Loader2, AlertCircle } from 'lucide-react';
 import { formatQty, formatAmt } from '@/utils/formatters';
+import { formatContractDate } from '@/utils/dateFormatter';
 
 export default function ViewGrnPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -73,14 +74,14 @@ export default function ViewGrnPage({ params }: { params: Promise<{ id: string }
             <h2 className="text-2xl font-bold text-slate-800 uppercase tracking-wider">Goods Received Note</h2>
             <div className="mt-4 space-y-1">
               <p className="text-sm"><span className="text-slate-500 font-medium w-24 inline-block">GRN No:</span> <span className="font-semibold text-slate-800">{grn.id}</span></p>
-              <p className="text-sm"><span className="text-slate-500 font-medium w-24 inline-block">Inward Date:</span> <span className="font-semibold text-slate-800">{grn.inwarddate?.split('T')[0]}</span></p>
+              <p className="text-sm"><span className="text-slate-500 font-medium w-24 inline-block">Inward Date:</span> <span className="font-semibold text-slate-800">{formatContractDate(grn.inwarddate)}</span></p>
               <p className="text-sm"><span className="text-slate-500 font-medium w-24 inline-block">Status:</span> <span className={`font-semibold ${grn.status === 'C' ? 'text-emerald-600' : 'text-amber-600'}`}>{grn.status === 'C' ? 'Completed' : 'Open'}</span></p>
             </div>
           </div>
           <div className="text-right text-sm space-y-1">
             <p><span className="text-slate-500 font-medium">PO Number:</span> <span className="font-semibold text-slate-800">{grn.purchaseorder_id}</span></p>
             <p><span className="text-slate-500 font-medium">Bill No:</span> <span className="font-semibold text-slate-800">{grn.bill_no}</span></p>
-            <p><span className="text-slate-500 font-medium">Bill Date:</span> <span className="font-semibold text-slate-800">{grn.bill_date?.split('T')[0]}</span></p>
+            <p><span className="text-slate-500 font-medium">Bill Date:</span> <span className="font-semibold text-slate-800">{formatContractDate(grn.bill_date)}</span></p>
           </div>
         </div>
 

@@ -139,9 +139,13 @@ class UsersController extends AppController
         mysqli_select_db($db2, $DB_DST_NAME) or die($db2->error);
         $queries = explode(';', $buf);
         foreach ($queries as $query) {
-            if (!mysqli_query($db2, $query))
-                die($db2->error);
+            if (!empty(trim($query))) {
+                if (!mysqli_query($db2, $query))
+                    die($db2->error);
+            }
         }
+        mysqli_close($db1);
+        mysqli_close($db2);
         return;
     }
 

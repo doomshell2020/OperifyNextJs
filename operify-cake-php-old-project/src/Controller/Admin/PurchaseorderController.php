@@ -59,31 +59,13 @@ class PurchaseorderController extends AppController
         }
 
         if ($reqdata) {
-            $allpodata = $this->Purchaseorder->find()->where([$apk])->order(['Purchaseorder.id' => 'DESC'])->toarray();
+            $podata = $this->Purchaseorder->find()->where([$apk])->order(['Purchaseorder.id' => 'DESC']);
         } else {
-            $allpodata = $this->Purchaseorder->find('all')->where(['Purchaseorder.status IN' => ['Y', 'R']])->order(['Purchaseorder.id' => 'DESC']);
+            $podata = $this->Purchaseorder->find('all')->where(['Purchaseorder.status IN' => ['Y', 'R']])->order(['Purchaseorder.id' => 'DESC']);
         }
 
-        $podata = [];
-        foreach ($allpodata as $value) {
-            // to check is it last revised or not
-            $podata1 = $this->Purchaseorder->find('all')->where(['Purchaseorder.purchaseorder_id' => $value['purchaseorder_id']])->order(['Purchaseorder.id' => 'DESC'])->first();
-            if ($value['id'] != $podata1['id']) {
-                continue;
-            } else {
-                $podata[] = $value;
-            }
-        }
-
-        if ($reqdata['type'] == 'deli') {
-            usort($podata, function ($a, $b) {
-                return strtotime($b['delivery_date']) - strtotime($a['delivery_date']);
-            });
-        }
-
-        $paginatedData = $this->paginateArray($podata, 50);
-        $this->set('podata', $paginatedData['data']);
-        $this->set('paging', $paginatedData['paging']);
+        $podata = $this->paginate($podata)->toArray();
+        $this->set('podata', $podata);
     }
 
     // public function add()
@@ -735,26 +717,15 @@ class PurchaseorderController extends AppController
             $apk['Purchaseorder.purchaseorder_id IN'] = 0;
         }
         $this->request->session()->write('apk', $apk);
-        $allpodata = $this->Purchaseorder->find()->where([$apk])->order(['Purchaseorder.id' => 'DESC'])->toarray();
-
-        $podata = [];
-        foreach ($allpodata as $value) {
-            $podata1 = $this->Purchaseorder->find('all')->where(['Purchaseorder.purchaseorder_id' => $value['purchaseorder_id']])->order(['Purchaseorder.id' => 'DESC'])->first();
-            if ($value['id'] != $podata1['id']) {
-                continue;
-            } else {
-                $podata[] = $value;
-            }
-        }
+        
+        $podata = $this->Purchaseorder->find()->where([$apk])->order(['Purchaseorder.id' => 'DESC']);
 
         if ($reqdata['type'] == 'deli') {
-            usort($podata, function ($a, $b) {
-                return strtotime($b['delivery_date']) - strtotime($a['delivery_date']);
-            });
+            $podata->order(['Purchaseorder.delivery_date' => 'DESC']);
         }
-        $paginatedData = $this->paginateArray($podata, 50);
-        $this->set('podata', $paginatedData['data']);
-        $this->set('paging', $paginatedData['paging']);
+        
+        $podata = $this->paginate($podata)->toArray();
+        $this->set('podata', $podata);
     }
 
 
@@ -2034,27 +2005,7 @@ class PurchaseorderController extends AppController
     }
 
 
-    // for custom pagenation
-    private function paginateArray($data, $limit)
-    {
-        $page = $this->request->query('page') ?? 1;
-        $total = count($data);
-        $pages = ceil($total / $limit);
-        $offset = ($page - 1) * $limit;
 
-        $paginatedData = array_slice($data, $offset, $limit);
-        return [
-            'data' => $paginatedData,
-            'paging' => [
-                'page' => $page,
-                'total' => $total,
-                'pages' => $pages,
-                'limit' => $limit,
-                'prev' => $page > 1 ? $page - 1 : null,
-                'next' => $page < $pages ? $page + 1 : null,
-            ]
-        ];
-    }
 
     public function getPoDetails()
     {

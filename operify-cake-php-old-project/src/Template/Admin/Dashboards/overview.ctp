@@ -14,8 +14,10 @@
     #myPlot15,
     #myPlot16,
     #myPlot17 {
-        width: 480px !important;
+        width: 100% !important;
+        max-width: 480px !important;
         height: auto !important;
+        margin: 0 auto !important;
     }
 
     .col-xs-12 h6 {
@@ -28,6 +30,11 @@
 
     .col-sm-6 h6 {
         color: Red !important;
+    }
+
+    .box.ovrviw .col {
+        flex: 1 1 0%;
+        padding: 0 5px;
     }
 </style>
 
@@ -48,14 +55,11 @@
         </ol>
     </section>
     <section class="content">
-        <div class="row ">
+        <div class="row">
             <div class="col-xs-12">
-                <div class="box ovrviw">
+                <div class="box ovrviw" style="padding: 15px;">
                     <div class="row align-items-start">
-
-                        <div class="row ">
-
-                            <div class="col">
+                        <div class="col">
                                 <div class="headerdata card  text-white" style="background:#355c6e;">
                                     <div class="card-header border-white">
                                         <h5>Contract(<?php echo $contractcount; ?>)</h5>
@@ -146,13 +150,13 @@
                                 </div>
                             </div>
 
-                        </div>
                         <!--------------------------------Purchase Order ----------------------------------->
 
                         <div class="col-sm-8" style="margin-top:45px ;">
                             <h6>Last Five Purchase Order Request</h6>
-                            <table id="mainten" class=" table table-bordered table-striped" width="100%">
-                                <thead>
+                            <div class="table-responsive">
+                                <table id="mainten" class="table table-bordered table-striped" width="100%">
+                                    <thead>
                                     <tr>
                                         <th width="07%">PO Id</th>
                                         <th width="10%">Genrated Date</th>
@@ -226,6 +230,7 @@
                                     <?php } ?>
                                 </tbody>
                             </table>
+                            </div>
                         </div>
 
                         <div class="col-sm-4" style="margin-top: 45px;">
@@ -236,7 +241,7 @@
 
                         <!-----------------------------------------Production Orders---------------------------->
 
-                        <div class="col-sm-4" style="margin-bottom: 45px;">
+                        <div class="col-sm-4" style="margin-top: 45px; margin-bottom: 45px;">
                             <div class="col-sm-12 chart_pie_style">
                                 <canvas id="myPlot15" style="width: 100%;max-width: 700px;display: block;" width="700" height="350" class="chartjs-render-monitor"></canvas>
                             </div>
@@ -244,8 +249,9 @@
 
                         <div class="col-sm-8" style="margin-top: 45px;margin-bottom: 45px;">
                             <h6>Last Five Production Orders</h6>
-                            <table class="table table-bordered table-striped" width="100%">
-                                <thead>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" width="100%">
+                                    <thead>
                                     <tr>
                                         <th width="04%">PO NO.</th>
                                         <th width="10%">Date Created</th>
@@ -290,13 +296,15 @@
                                     <?php } ?>
                                 </tbody>
                             </table>
+                            </div>
                         </div>
                         <!-----------------------------------------Maintenance---------------------------->
 
 
                         <div class="col-sm-8" style="margin-bottom: 45px;">
                             <h6>Last Five Maintenance Request</h6>
-                            <table id="mainten" class=" table table-bordered table-striped">
+                            <div class="table-responsive">
+                                <table id="mainten" class=" table table-bordered table-striped">
                                 <thead>
                                     <tr>
                                         <th width="10%">Date</th>
@@ -347,6 +355,7 @@
                                     } ?>
                                 </tbody>
                             </table>
+                            </div>
                         </div>
 
                         <div class="col-sm-4" style="margin-bottom: 45px;">
@@ -358,7 +367,8 @@
 
                         <div class="col-sm-6" style="margin-bottom: 45px;">
                             <h6>Last Five Inspection</h6>
-                            <table class="table table-bordered table-striped">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped">
                                 <thead>
                                     <tr>
                                         <th>S.No</th>
@@ -395,11 +405,13 @@
                                     <?php } ?>
                                 </tbody>
                             </table>
+                            </div>
                         </div>
                         <div class="col-sm-6" style="margin-bottom: 45px;">
                             <h6>Last Five GRN(Goods Recived) Request</h6>
-                            <table id="mainten" class="table table-bordered table-striped" width="100%">
-                                <thead>
+                            <div class="table-responsive">
+                                <table id="mainten" class="table table-bordered table-striped" width="100%">
+                                    <thead>
                                     <tr>
                                         <th width="08%">GRN No.</th>
                                         <th width="06%">PO Id</th>
@@ -455,6 +467,7 @@
                                     <?php } ?>
                                 </tbody>
                             </table>
+                            </div>
                         </div>
 
                     </div>

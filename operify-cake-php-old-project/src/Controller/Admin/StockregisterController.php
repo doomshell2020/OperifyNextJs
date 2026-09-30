@@ -423,83 +423,48 @@ class StockregisterController extends AppController
         $conn = \Cake\Datasource\ConnectionManager::get('default');
         $itemIdsStr = implode(',', $productIds);
 
-        // 1. Opening Balances on $date (Matches CommanHelper::stockregisteropening2 / _getConsolidatedStock)
-        $sqlOpening = "
-            SELECT item_id, 
-            SUM(CASE WHEN store_type IN ('0','1','3') THEN quantity ELSE 0 END) as grn_sum,
-            SUM(CASE WHEN store_type IN ('2','4') THEN quantity ELSE 0 END) as indent_sum
+        // Fetch cumulative sums up to the given date
+        $sql = "
+            SELECT item_id, store_type, SUM(quantity) as total_qty 
             FROM st_stock_register 
-            WHERE item_id IN ($itemIdsStr) AND issue_date < :date
-            GROUP BY item_id
+            WHERE status != 'N' AND DATE(created) <= :date AND item_id IN ($itemIdsStr) 
+            GROUP BY item_id, store_type
         ";
-        $openingData = $conn->execute($sqlOpening, ['date' => $date])->fetchAll('assoc');
-        $openingLookup = [];
-        foreach ($openingData as $row) {
-            $openingLookup[$row['item_id']] = round((float)$row['grn_sum'] - (float)$row['indent_sum'], 2);
-        }
 
-        // 2. Today's Received & Reverse (Uses DATE(issue_date) like CommanHelper::stockregisteropeningrecivied)
-        $sqlReceived = "
-            SELECT item_id, 
-            SUM(CASE WHEN store_type IN ('0','1') THEN quantity ELSE 0 END) as received_qty,
-            SUM(CASE WHEN store_type IN ('3') THEN quantity ELSE 0 END) as reverse_qty
-            FROM st_stock_register
-            WHERE status != 'N' AND item_id IN ($itemIdsStr) AND store_type IN ('0','1','3') 
-              AND DATE(issue_date) = :date
-            GROUP BY item_id
-        ";
-        $receivedData = $conn->execute($sqlReceived, ['date' => $date])->fetchAll('assoc');
-        $receivedLookup = [];
-        foreach ($receivedData as $row) {
-            $receivedLookup[$row['item_id']] = $row;
-        }
+        $stockData = $conn->execute($sql, ['date' => $date])->fetchAll('assoc');
 
-        // 3. Today's Issued & Return (Uses DATE(created) like CommanHelper::stockregisteropeningdispatched)
-        $sqlIssued = "
-            SELECT item_id, 
-            SUM(CASE WHEN store_type IN ('2') THEN quantity ELSE 0 END) as issued_qty,
-            SUM(CASE WHEN store_type IN ('4') THEN quantity ELSE 0 END) as return_qty
-            FROM st_stock_register
-            WHERE status != 'N' AND item_id IN ($itemIdsStr) AND store_type IN ('2','4') 
-              AND DATE(created) = :date
-            GROUP BY item_id
-        ";
-        $issuedData = $conn->execute($sqlIssued, ['date' => $date])->fetchAll('assoc');
-        $issuedLookup = [];
-        foreach ($issuedData as $row) {
-            $issuedLookup[$row['item_id']] = $row;
+        $stockLookup = [];
+        foreach ($stockData as $row) {
+            $stockLookup[$row['item_id']][$row['store_type']] = (float)$row['total_qty'];
         }
 
         $dailyStockData = [];
         foreach ($products as $product) {
             $pId = $product->id;
-            
-            $opening = $openingLookup[$pId] ?? 0.0;
-            $received = isset($receivedLookup[$pId]) ? (float)$receivedLookup[$pId]['received_qty'] : 0.0;
-            $reverse = isset($receivedLookup[$pId]) ? (float)$receivedLookup[$pId]['reverse_qty'] : 0.0;
-            $issued = isset($issuedLookup[$pId]) ? (float)$issuedLookup[$pId]['issued_qty'] : 0.0;
-            $return = isset($issuedLookup[$pId]) ? (float)$issuedLookup[$pId]['return_qty'] : 0.0;
+            $storeStats = $stockLookup[$pId] ?? [];
 
-            // Closing formula matching Stock Register EXACTLY
-            // Stock Register: Opening + (Received + Reverse) - (Issued + Return)
-            $closing = $opening + $received + $reverse - $issued - $return;
+            // Received includes 0, 1, 3
+            $received = ($storeStats['0'] ?? 0) + ($storeStats['1'] ?? 0) + ($storeStats['3'] ?? 0);
 
-            if ($opening == 0 && $received == 0 && $issued == 0 && $reverse == 0 && $return == 0 && $closing == 0) {
-                if (empty($category_ids) || in_array('All', $category_ids)) {
-                    continue; 
-                }
-            }
+            // Issued includes 2, 4
+            $issued = ($storeStats['2'] ?? 0) + ($storeStats['4'] ?? 0);
+
+            // Reverse is 3, Return is 4 (based on CommanHelper logic for todayreversestock and todayreturnstock)
+            $reverse = $storeStats['3'] ?? 0;
+            $return = $storeStats['4'] ?? 0;
+
+            $opening = $received - $issued;
 
             $dailyStockData[] = [
                 'item_id' => $pId,
                 'item_name' => $product->item_name,
                 'category_name' => isset($product->itemcategory) ? $product->itemcategory->category_name : '',
-                'opening_stock' => number_format(round($opening, 2), 2, '.', ''),
-                'received_stock' => number_format(round($received, 2), 2, '.', ''),
-                'issued_stock' => number_format(round($issued, 2), 2, '.', ''),
-                'reverse_stock' => number_format(round($reverse, 2), 2, '.', ''),
-                'return_stock' => number_format(round($return, 2), 2, '.', ''),
-                'closing_stock' => number_format(round($closing, 2), 2, '.', '')
+                'opening_stock' => round($opening, 2),
+                'received_stock' => round($received, 2),
+                'issued_stock' => round($issued, 2),
+                'reverse_stock' => round($reverse, 2),
+                'return_stock' => round($return, 2),
+                'closing_stock' => round($opening, 2)
             ];
         }
 
@@ -512,6 +477,7 @@ class StockregisterController extends AppController
     {
         $this->loadModel('Additem');
         $this->loadModel('Itemcategory');
+
         $this->loadModel('SitesettingsDetails');
 
         $site_details = $this->SitesettingsDetails->find('all')->where(['status' => 'Y'])->first();
@@ -527,8 +493,33 @@ class StockregisterController extends AppController
             $categoryIds = !empty($searchdate) ? $searchdate[1] : [];
         }
 
-        $dailyStockData = $this->_getDailyStockAsOfDate(date('Y-m-d', strtotime($date)), $categoryIds);
-        $this->set(compact('dailyStockData', 'searchdate'));
+        if (!empty($categoryIds)) {
+            if (in_array('All', $categoryIds, true)) {
+                $categortyname = $this->Itemcategory
+                    ->find('all')
+                    ->order(['Itemcategory.category_name' => 'ASC'])
+                    ->where(['Itemcategory.id NOT IN' => 25])
+                    ->toArray();
+            } else {
+
+                $categortyname = $this->Itemcategory
+                    ->find('all')
+                    ->where(['Itemcategory.id IN' => $categoryIds, 'Itemcategory.id NOT IN' => 25])
+                    ->order(['Itemcategory.category_name' => 'ASC'])
+                    ->toArray();
+            }
+            $this->set(compact('categortyname', 'searchdate'));
+            // Optionally clear session if you want, but since we use POST now it's less critical.
+            $this->request->session()->delete('searchdate');
+        } else {
+            $searchdate = date('Y-m-d');
+            $categortyname = $this->Itemcategory
+                ->find('all')
+                ->order(['Itemcategory.category_name' => 'ASC'])
+                ->toArray();
+
+            $this->set(compact('categortyname', 'searchdate'));
+        }
     }
 
 
@@ -616,54 +607,25 @@ class StockregisterController extends AppController
         $conn = \Cake\Datasource\ConnectionManager::get('default');
         $itemIdsStr = implode(',', $productIds);
 
-        // 1. Opening Balances on $datefrom (Matches CommanHelper::stockregisteropening2)
-        $sqlOpening = "
-            SELECT item_id, 
-            SUM(CASE WHEN store_type IN ('0','1','3') THEN quantity ELSE 0 END) as grn_sum,
-            SUM(CASE WHEN store_type IN ('2','4') THEN quantity ELSE 0 END) as indent_sum
-            FROM st_stock_register 
-            WHERE item_id IN ($itemIdsStr) AND issue_date < :datefrom
-            GROUP BY item_id
-        ";
-        $openingData = $conn->execute($sqlOpening, ['datefrom' => $datefrom])->fetchAll('assoc');
-        $openingLookup = [];
-        foreach ($openingData as $row) {
-            $openingLookup[$row['item_id']] = round((float)$row['grn_sum'] - (float)$row['indent_sum'], 2);
-        }
+        // Execute a single hyper-optimized query to fetch all stock movements for the selected products
+        $sql = "SELECT item_id, store_type, DATE(COALESCE(delivery_date, issue_date, created)) as grn_date, DATE(COALESCE(issue_date, created)) as indent_date, SUM(quantity) as total_qty FROM st_stock_register WHERE status != 'N' AND item_id IN ($itemIdsStr) GROUP BY item_id, store_type, grn_date, indent_date";
 
-        // 2. Received Stock (Matches CommanHelper::stockregisteropeningrecivied)
-        $sqlReceived = "
-            SELECT item_id, DATE(issue_date) as t_date, SUM(quantity) as qty
-            FROM st_stock_register
-            WHERE status != 'N' AND item_id IN ($itemIdsStr) AND store_type IN ('0','1','3') 
-              AND DATE(issue_date) >= :datefrom AND DATE(issue_date) <= :dateto
-            GROUP BY item_id, DATE(issue_date)
-        ";
-        $receivedData = $conn->execute($sqlReceived, ['datefrom' => $datefrom, 'dateto' => $dateto2])->fetchAll('assoc');
-        $receivedLookup = [];
-        foreach ($receivedData as $row) {
-            $receivedLookup[$row['item_id']][$row['t_date']] = round((float)$row['qty'], 2);
-        }
+        $stockData = $conn->execute($sql)->fetchAll('assoc');
 
-        // 3. Dispatched Stock (Matches CommanHelper::stockregisteropeningdispatched)
-        $sqlDispatched = "
-            SELECT item_id, DATE(created) as t_date, SUM(quantity) as qty
-            FROM st_stock_register
-            WHERE status != 'N' AND item_id IN ($itemIdsStr) AND store_type IN ('2','4') 
-              AND DATE(created) >= :datefrom AND DATE(created) <= :dateto
-            GROUP BY item_id, DATE(created)
-        ";
-        $dispatchedData = $conn->execute($sqlDispatched, ['datefrom' => $datefrom, 'dateto' => $dateto2])->fetchAll('assoc');
-        $dispatchedLookup = [];
-        foreach ($dispatchedData as $row) {
-            $dispatchedLookup[$row['item_id']][$row['t_date']] = round((float)$row['qty'], 2);
+        // Build an efficient lookup table in memory
+        $stockLookup = [];
+        foreach ($stockData as $row) {
+            $pid = $row['item_id'];
+            if (!isset($stockLookup[$pid])) {
+                $stockLookup[$pid] = [];
+            }
+            $stockLookup[$pid][] = $row;
         }
 
         $date_from_time = strtotime($datefrom);
         $date_to_time = strtotime($dateto2);
 
         $consolidatedData = [];
-        $previousClosingStock = [];
 
         for ($i = $date_from_time; $i <= $date_to_time; $i += 86400) {
             $currDate = date('Y-m-d', $i);
@@ -671,19 +633,44 @@ class StockregisterController extends AppController
             foreach ($products as $product) {
                 $pId = $product->id;
 
-                if ($i == $date_from_time) {
-                    $openingStock = $openingLookup[$pId] ?? 0.0;
-                } else {
-                    $openingStock = $previousClosingStock[$pId] ?? 0.0;
+                $openingStock = 0;
+                $receivedStock = 0;
+                $dispatchedStock = 0;
+
+                if (isset($stockLookup[$pId])) {
+                    foreach ($stockLookup[$pId] as $row) {
+                        $storeType = (string)$row['store_type'];
+                        $qty = (float)$row['total_qty'];
+                        $grnDate = $row['grn_date'];
+                        $indentDate = $row['indent_date'];
+
+                        // GRN / Received
+                        if ($storeType === '0' || $storeType === '1' || $storeType === '3') {
+                            if ($grnDate < $currDate) {
+                                $openingStock += $qty;
+                            } elseif ($grnDate == $currDate) {
+                                $receivedStock += $qty;
+                            }
+                        }
+
+                        // Indent / Dispatched
+                        if ($storeType === '2' || $storeType === '4') {
+                            if ($indentDate < $currDate) {
+                                $openingStock -= $qty;
+                            } elseif ($indentDate == $currDate) {
+                                $dispatchedStock += $qty;
+                            }
+                        }
+                    }
                 }
 
-                $receivedStock = $receivedLookup[$pId][$currDate] ?? 0.0;
-                $dispatchedStock = $dispatchedLookup[$pId][$currDate] ?? 0.0;
-
+                $openingStock = round($openingStock, 2);
+                $receivedStock = round($receivedStock, 2);
+                $dispatchedStock = round($dispatchedStock, 2);
                 $closingStock = round($openingStock + $receivedStock - $dispatchedStock, 2);
-                $previousClosingStock[$pId] = $closingStock;
 
                 if ($openingStock == 0 && $receivedStock == 0 && $dispatchedStock == 0 && $closingStock == 0) {
+                    // Do not continue; show all items even with 0 stock as per user request
                     continue;
                 }
 

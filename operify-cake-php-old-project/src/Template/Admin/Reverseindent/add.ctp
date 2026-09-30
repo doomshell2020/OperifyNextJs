@@ -234,15 +234,6 @@
               <div class="col-sm-12">
                 <label for="inputEmail3" style="margin-bottom:10px;">Items</label>
                 <table id="customers">
-                  <thead>
-                    <tr class="totalColumn">
-                      <!-- <th width = "10%">S.No.</th> -->
-                      <th width = "55%">Raw Material</th>
-                      <th width = "30%">Received Qty</th>
-                      <th width = "15%">UOM</th>
-                      <!-- <th>Action</th> -->
-                    </tr>
-                  </thead>
                   <tbody id="product_containes">
                     <!-- Data from AJAX request will be populated here -->
                   </tbody>
@@ -268,7 +259,11 @@
           } else {
             echo $this->Form->submit(
               'Save & Finalize',
-              array('class' => 'btn btn-info pull-right', 'id' => 'formsubmitbtn', 'title' => 'Save & Finalize')
+              array('name' => 'action', 'value' => 'finalize', 'class' => 'btn btn-success pull-right', 'id' => 'formsubmitbtn', 'style' => 'margin-left: 10px;', 'title' => 'Save & Finalize')
+            );
+            echo $this->Form->submit(
+              'Save as Draft',
+              array('name' => 'action', 'value' => 'draft', 'class' => 'btn btn-warning pull-right', 'id' => 'formdraftbtn', 'title' => 'Save as Draft')
             );
           }
           ?>
@@ -292,8 +287,33 @@
 
 <script>
   $(document).ready(function () {
+    $('#formsubmitbtn').click(function() {
+        $('#sevice_form').append('<input type="hidden" name="action" value="finalize">');
+    });
+    $('#formdraftbtn').click(function() {
+        $('#sevice_form').append('<input type="hidden" name="action" value="draft">');
+    });
+
     $('#sevice_form').on('submit', function (e) {
-      $("#formsubmitbtn").css("display", "none");
+      var receive_qty = parseFloat($('#receive_qty').val());
+      var pending_qty = parseFloat($('#pending_qty').val());
+
+      if (isNaN(receive_qty) || receive_qty <= 0) {
+          alert('Received Qty must be greater than 0.');
+          e.preventDefault();
+          return false;
+      }
+      var pending_val = $('#pending_qty').val();
+      if (pending_val !== 'N/A') {
+          if (receive_qty > pending_qty) {
+              alert('Received Qty cannot exceed Design Sheet Qty.');
+              e.preventDefault();
+              return false;
+          }
+      }
+
+      $("#formsubmitbtn").prop("disabled", true);
+      $("#formdraftbtn").prop("disabled", true);
     });
   });
 </script>
@@ -339,7 +359,7 @@
   function getcontractfinished(contract_id) {
     $.ajax({
       type: 'POST',
-      url: '<?php echo ADMIN_URL; ?>production/getcontractfinished',
+      url: '<?php echo ADMIN_URL; ?>reverseindent/getcontractfinished',
       data: {
         'contract_id': contract_id,
       },

@@ -1,7 +1,8 @@
 const repo = require('./settings.repository');
 const fs = require('fs');
 const path = require('path');
-const db = require('../../config/db');
+const { centralSequelize } = require('../../config/sequelize');
+const bcrypt = require('bcryptjs');
 
 class SettingsController {
   // ─── LOGO SETTINGS ─────────────────────────────────────────
@@ -195,6 +196,67 @@ class SettingsController {
       res.json({ success: true, data });
     } catch (e) { next(e); }
   }
+  async createProduct(req, res, next) {
+    try {
+      if (!req.body.item_name) {
+        return res.status(400).json({ success: false, message: 'Item name is required' });
+      }
+      
+      const exists = await repo.checkItemExists(req.dbPool, req.body.item_name);
+      if (exists) {
+        return res.status(400).json({ success: false, message: 'Your entered Item already exists.' });
+      }
+
+      let sale_price = parseFloat(req.body.sale_price || 0);
+      let discount = parseFloat(req.body.discount || 0);
+      let final_sale_price = sale_price - discount;
+
+      const productprocess_id = Array.isArray(req.body.productprocess_id) 
+        ? req.body.productprocess_id.join(',') 
+        : (req.body.productprocess_id || '');
+
+      const payload = {
+        ...req.body,
+        sale_price: final_sale_price,
+        productprocess_id
+      };
+      
+      await repo.createProduct(req.dbPool, payload);
+      res.json({ success: true, message: 'Item added successfully.' });
+    } catch (e) {
+      next(e);
+    }
+  }
+  async updateProduct(req, res, next) {
+    try {
+      if (!req.body.item_name) {
+        return res.status(400).json({ success: false, message: 'Item name is required' });
+      }
+      
+      const id = req.params.id;
+      const exists = await repo.checkItemExistsForEdit(req.dbPool, req.body.item_name, id);
+      if (exists) {
+        return res.status(400).json({ success: false, message: 'Your entered Item already exists.' });
+      }
+
+      const payload = {
+        item_name: req.body.item_name,
+        category_id: req.body.category_id,
+        uom: req.body.uom
+      };
+      
+      await repo.updateProduct(req.dbPool, id, payload);
+      res.json({ success: true, message: 'Item name successfully updated.' });
+    } catch (e) {
+      next(e);
+    }
+  }
+  async getFinishedProcessList(req, res, next) {
+    try {
+      const data = await repo.getFinishedProcessList(req.dbPool);
+      res.json({ success: true, data });
+    } catch (e) { next(e); }
+  }
   async toggleProductStatus(req, res, next) {
     try {
       const { status } = req.body;
@@ -280,8 +342,131 @@ class SettingsController {
   async toggleUserStatus(req, res, next) {
     try {
       const { status } = req.body;
-      await repo.toggleUserStatus(req.dbPool, req.params.id, status);
+      const id = req.params.id;
+      
+      const oldUser = await repo.getUserById(req.dbPool, id);
+      await repo.toggleUserStatus(req.dbPool, id, status);
+      
+      if (oldUser && oldUser.mobile) {
+        try {
+          await repo.toggleUserStatusCentral(centralSequelize, oldUser.mobile, status);
+        } catch (centralErr) {
+          console.error('Error syncing status toggle to central DB:', centralErr);
+        }
+      }
+      
       res.json({ success: true, message: 'Status updated' });
+    } catch (e) { next(e); }
+  }
+  
+  async createUser(req, res, next) {
+    try {
+      const { user_name, email, mobile, password, role_id } = req.body;
+      if (!user_name || !email || !password || !role_id) {
+        return res.status(400).json({ success: false, message: 'Required fields are missing' });
+      }
+
+      // Check mobile exists in tenant
+      if (mobile) {
+        const existing = await repo.getUserByMobile(req.dbPool, mobile);
+        if (existing) {
+          return res.status(400).json({ success: false, message: 'The mobile number already exists. Please use a different number.' });
+        }
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const is_admin = role_id >= 100 ? 'Y' : 'N';
+      const c_id = req.user?.c_id || 1;
+      const academic_year = req.user?.academic_year || '2023-2024';
+      const dbName = req.user?.db || 'default';
+      const board = req.user?.board || '1';
+      
+      const payload = {
+        user_name, email, mobile, password: hashedPassword, role_id, 
+        c_id, academic_year, db: dbName, board, is_admin, confirm_pass: password
+      };
+
+      const newUserId = await repo.createUser(req.dbPool, payload);
+
+      // Sync to central DB as required by old CakePHP logic
+      try {
+        await repo.createUserCentral(centralSequelize, payload);
+      } catch (centralErr) {
+        console.error('Error syncing user to central DB:', centralErr);
+      }
+      
+      res.json({ success: true, message: 'User has been saved.', id: newUserId });
+    } catch (e) { next(e); }
+  }
+
+  async updateUser(req, res, next) {
+    try {
+      const { user_name, email, mobile, password, role_id } = req.body;
+      const id = req.params.id;
+
+      if (!user_name || !email || !role_id) {
+        return res.status(400).json({ success: false, message: 'Required fields are missing' });
+      }
+
+      // We need old user to know the old mobile if we want to sync properly, 
+      // but if mobile is not updated, we use the current mobile.
+      const oldUser = await repo.getUserById(req.dbPool, id);
+      if (!oldUser) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      // Check mobile exists
+      if (mobile) {
+        const existing = await repo.getUserByMobile(req.dbPool, mobile);
+        if (existing && existing.id != id) {
+          return res.status(400).json({ success: false, message: 'The mobile number already exists. Please use a different number.' });
+        }
+      }
+
+      const payload = { user_name, email, mobile, role_id };
+      
+      if (password) {
+        payload.password = await bcrypt.hash(password, 10);
+        payload.confirm_pass = password;
+      }
+
+      await repo.updateUser(req.dbPool, id, payload);
+
+      // Sync to central DB
+      try {
+        await repo.updateUserCentral(centralSequelize, oldUser.mobile, payload);
+      } catch (centralErr) {
+        console.error('Error syncing updated user to central DB:', centralErr);
+      }
+
+      res.json({ success: true, message: 'User has been updated.' });
+    } catch (e) { next(e); }
+  }
+
+  async deleteUser(req, res, next) {
+    try {
+      const id = req.params.id;
+      const oldUser = await repo.getUserById(req.dbPool, id);
+      
+      await repo.deleteUser(req.dbPool, id);
+
+      if (oldUser && oldUser.mobile) {
+        try {
+          await repo.deleteUserCentral(centralSequelize, oldUser.mobile);
+        } catch (centralErr) {
+          console.error('Error deleting user from central DB:', centralErr);
+        }
+      }
+
+      res.json({ success: true, message: 'User deleted successfully' });
+    } catch (e) { next(e); }
+  }
+
+  // ─── ROLES ──────────────────────────────────────────────
+  async listRoles(req, res, next) {
+    try {
+      const data = await repo.getRoles(req.dbPool);
+      res.json({ success: true, data });
     } catch (e) { next(e); }
   }
 }
