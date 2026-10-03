@@ -334,12 +334,12 @@ class PurchaseOrderRepository {
           poprimary_id,
           item_id: item.item_id,
           tax_id: item.tax_id || null,
-          item_amt: item.item_amt || 0,
-          item_qty: item.item_qty || 0,
-          item_base_price: item.item_base_price || 0,
+          item_amt: item.rate !== undefined ? item.rate : (item.item_amt || 0),
+          item_qty: item.order_qty !== undefined ? item.order_qty : (item.item_qty || 0),
+          item_base_price: item.price !== undefined ? item.price : (item.item_base_price || 0),
           tax_percentage: item.tax_percentage || 0,
-          item_tax_amt: item.item_tax_amt || 0,
-          item_total_amount: item.item_total_amount || 0
+          item_tax_amt: item.tax_amt !== undefined ? item.tax_amt : (item.item_tax_amt || 0),
+          item_total_amount: item.amount !== undefined ? item.amount : (item.item_total_amount || 0)
         },
         type: QueryTypes.INSERT,
         transaction

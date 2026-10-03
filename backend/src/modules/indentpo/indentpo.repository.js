@@ -1,5 +1,19 @@
 const { QueryTypes } = require('sequelize');
 
+async function getFirstRow(dbPool, primaryQuery, fallbackQuery) {
+  try {
+    const rows = await dbPool.query(primaryQuery, { type: QueryTypes.SELECT });
+    return rows[0] || null;
+  } catch (error) {
+    if (!fallbackQuery || error?.original?.code !== 'ER_BAD_FIELD_ERROR') {
+      throw error;
+    }
+
+    const rows = await dbPool.query(fallbackQuery, { type: QueryTypes.SELECT });
+    return rows[0] || null;
+  }
+}
+
 class IndentpoRepository {
   /**
    * Get the next available indentpo ID (MAX + 1, starting at 1001)
@@ -250,7 +264,8 @@ class IndentpoRepository {
   async getIndentpoDetail(dbPool, indentId) {
     const header = await dbPool.query(
       `SELECT 
-         i.id, i.indent_id, i.issue_date, i.issued_name, i.created,
+         i.id, i.indent_id, i.contract_id, i.finishedproduct_id, i.machine_id,
+         i.issue_date, i.issued_name, i.created, i.updated,
          c.title as contract_name, c.workorder,
          a.item_name as product_name,
          m.machine_name,
@@ -279,6 +294,29 @@ class IndentpoRepository {
     );
 
     return { ...header[0], items };
+  }
+
+  async getIndentpoPdfDetail(dbPool, indentId) {
+    const detail = await this.getIndentpoDetail(dbPool, indentId);
+    if (!detail) return null;
+
+    const siteDetails = await getFirstRow(
+      dbPool,
+      'SELECT * FROM sitesettings_details WHERE status = "Y" LIMIT 1',
+      'SELECT * FROM sitesettings_details LIMIT 1'
+    );
+
+    const siteSetting = await getFirstRow(
+      dbPool,
+      'SELECT * FROM sitesettings WHERE status = "Y" LIMIT 1',
+      'SELECT * FROM sitesettings LIMIT 1'
+    );
+
+    return {
+      ...detail,
+      site_details: siteDetails,
+      sitesetting: siteSetting
+    };
   }
 }
 

@@ -1,5 +1,6 @@
 const { QueryTypes } = require('sequelize');
 const indentpoService = require('./indentpo.service');
+const { generateIndentpoPDF } = require('./indentpo.pdf');
 
 class IndentpoController {
   async getNextIndentId(req, res, next) {
@@ -127,6 +128,20 @@ class IndentpoController {
         return res.status(404).json({ error: 'IndentPO not found' });
       }
       res.json(detail);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async downloadPdf(req, res, next) {
+    try {
+      const { indent_id } = req.params;
+      const detail = await indentpoService.getIndentpoPdfDetail(req.dbPool, indent_id);
+      const pdfBuffer = await generateIndentpoPDF(detail, req.user?.db);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="Indent_Details_${indent_id}.pdf"`);
+      res.end(pdfBuffer, 'binary');
     } catch (err) {
       next(err);
     }

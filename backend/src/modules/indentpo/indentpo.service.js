@@ -98,6 +98,14 @@ class IndentpoService {
 
     return { ...detail, items: enrichedItems };
   }
+
+  async getIndentpoPdfDetail(dbPool, indentId) {
+    const detail = await indentpoRepository.getIndentpoPdfDetail(dbPool, indentId);
+    if (!detail) {
+      throw new Error('Indentpo not found');
+    }
+    return detail;
+  }
 }
 
 module.exports = new IndentpoService();

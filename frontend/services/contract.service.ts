@@ -12,10 +12,12 @@ export interface ContractListItem {
   status: 'Y' | 'N';
   added_time: string;
   vendor_name: string;
+  designsheet_count?: number;
 }
 
 export interface ContractItemProduct {
   id: number;
+  product_id: number | string;
   price: string;
   quantity: string;
   item_name: string;
@@ -37,6 +39,7 @@ export interface ContractDetailsData {
     issuedate: string;
     vendor_name: string;
     gst_number: string;
+    supplier_id?: number | string;
   };
   items: ContractItemProduct[];
 }
@@ -51,6 +54,7 @@ export interface CreateContractPayload {
   supplier_id: string | number;
   title: string;
   workorder: string;
+  cost: string;
   operation_cost: string;
   labour_cost: string;
   issuedate: string;
@@ -87,6 +91,16 @@ class ContractService {
 
   async createContract(data: CreateContractPayload): Promise<any> {
     const response = await apiClient.post('/contracts', data);
+    return response.data;
+  }
+
+  async updateContract(id: number | string, data: CreateContractPayload): Promise<any> {
+    const response = await apiClient.put(`/contracts/${id}`, data);
+    return response.data;
+  }
+
+  async deleteContract(id: number | string): Promise<any> {
+    const response = await apiClient.delete(`/contracts/${id}`);
     return response.data;
   }
 

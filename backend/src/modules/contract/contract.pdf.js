@@ -13,26 +13,42 @@ function formatDate(dateString) {
   return `${day}-${monthNames[d.getMonth()]}-${year}`;
 }
 
-async function generateContractPDF(contractData, tenantDb = 'default') {
-  const { contract, items, productionOrders, inspectionReports } = contractData;
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
-  // Resolve Logo
-  let logoSrc = 'https://staging.operify.in/image/logo.png';
-  try {
-    const dirPath = path.join(__dirname, '../../../public/uploads/logos');
-    if (fs.existsSync(dirPath)) {
-      const files = fs.readdirSync(dirPath);
-      const logoFile = files.find(f => f.startsWith(`${tenantDb}_logo.`));
-      if (logoFile) {
-        const logoPath = path.join(dirPath, logoFile);
-        const ext = path.extname(logoFile).substring(1); // e.g. png
-        const base64Data = fs.readFileSync(logoPath).toString('base64');
-        logoSrc = `data:image/${ext};base64,${base64Data}`;
-      }
+function resolveLogo(siteDetails, tenantDb) {
+  const dirPath = path.join(__dirname, '../../../public/uploads/logos');
+  const candidates = [
+    siteDetails?.small_logo,
+    siteDetails?.logo,
+    `${tenantDb}_logo.png`,
+    `${tenantDb}_logo.jpg`,
+    'd80960ce77aede66a5c3c8eef8dfafda.png',
+    'tirupati_tppl_logo.png'
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    const logoPath = path.join(dirPath, candidate);
+    if (fs.existsSync(logoPath)) {
+      const ext = path.extname(candidate).substring(1).toLowerCase() || 'png';
+      const mime = ext === 'jpg' || ext === 'jpeg' ? 'jpeg' : ext;
+      return `data:image/${mime};base64,${fs.readFileSync(logoPath).toString('base64')}`;
     }
-  } catch(e) {
-    console.error('Error loading logo for PDF:', e);
   }
+
+  return '';
+}
+
+async function generateContractPDF(contractData, tenantDb = 'default') {
+  const { contract, items, productionOrders, inspectionReports, site_details: siteDetails = {}, sitesetting = {} } = contractData;
+  const logoSrc = resolveLogo(siteDetails, tenantDb);
+  const companyName = sitesetting.first_name || siteDetails.company_name || 'TIRUPATI PLASTOMATICS PVT. LTD.';
 
   let html = `
   <!DOCTYPE html>
@@ -42,80 +58,111 @@ async function generateContractPDF(contractData, tenantDb = 'default') {
     <style>
       body {
         font-family: Arial, sans-serif;
-        font-size: 11px;
+        font-size: 8px;
         margin: 0;
-        padding: 20px;
+        padding: 0;
         color: #000;
       }
       table {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 15px;
+        margin-bottom: 0;
       }
       th, td {
         border: 1px solid #000;
-        padding: 4px 6px;
+        padding: 3px;
         text-align: left;
+        vertical-align: top;
+        font-size: 8px;
+        line-height: 10px;
       }
       th {
-        background-color: #f2f2f2;
         font-weight: bold;
       }
       .header-table {
         border: 1px solid #000;
-        margin-bottom: 10px;
         width: 100%;
       }
       .header-table td {
         border: none;
       }
+      .legacy-header {
+        position: relative;
+        height: 96px;
+        border-bottom: 1px solid #000;
+      }
+      .legacy-logo {
+        position: absolute;
+        top: 25px;
+        left: 16px;
+        height: 42px;
+        max-width: 110px;
+        object-fit: contain;
+      }
+      .legacy-company {
+        position: absolute;
+        left: 16px;
+        bottom: 9px;
+        font-size: 10px;
+        line-height: 12px;
+        font-weight: bold;
+        color: #000;
+      }
+      .legacy-address {
+        position: absolute;
+        top: 4px;
+        right: 0;
+        width: 50%;
+        text-align: center;
+        font-size: 7px;
+        line-height: 9px;
+        color: #000;
+      }
       .title-box {
         text-align: center;
-        font-size: 14px;
+        font-size: 10px;
+        line-height: 15px;
         font-weight: bold;
-        border: 1px solid #000;
-        padding: 5px;
-        background-color: #f2f2f2;
-        margin-bottom: 10px;
+        border-bottom: 1px solid #000;
+        padding: 0;
+        height: 15px;
       }
       .section-title {
         text-align: center;
-        font-size: 12px;
+        font-size: 10px;
         font-weight: bold;
-        margin: 10px 0;
+        margin: 10px 0 2px;
       }
       .no-data {
         text-align: center;
-        font-style: italic;
       }
+      .logo { display: block; height: 62px; max-width: 150px; object-fit: contain; }
+      .company { display: block; font-size: 10px; font-weight: bold; }
     </style>
   </head>
   <body>
-    <!-- Header -->
     <table class="header-table">
-      <tr>
-        <td style="width: 30%; vertical-align: top;">
-          <img src="${logoSrc}" alt="Logo" style="max-height: 50px;">
-          <div style="font-weight: bold; font-size: 14px; margin-top: 10px;">TIRUPATI PLASTOMATICS PVT. LTD.</div>
-        </td>
-        <td style="width: 70%; text-align: right; vertical-align: top; font-size: 10px;">
-          B-141(A), Rd Number 9D, Vishwakarma Industrial Area, Jaipur,<br>
-          Rajasthan 302013<br>
-          <b>Phone:</b> 9829287189<br>
-          <b>Email:</b> contact@tirupatiplastomatics.com<br>
-          <b>Website:</b> www.tirupatiplastomatics.com
-        </td>
-      </tr>
+      <tr><td colspan="2" style="border: none; padding: 0;">
+        <div class="legacy-header">
+          ${logoSrc ? `<img src="${logoSrc}" alt="Logo" class="legacy-logo">` : ''}
+          <div class="legacy-company">${escapeHtml(companyName)}</div>
+          <div class="legacy-address">
+            ${escapeHtml(siteDetails.address1 || '')}<br>
+            <b>Phone</b> :${escapeHtml(siteDetails.phone || '')}<br>
+            <b>Email</b> : <u>${escapeHtml(siteDetails.email || '')}</u><br>
+            <b>Website</b> :&nbsp;${escapeHtml(siteDetails.website || '')}
+          </div>
+        </div>
+      </td></tr>
+      <tr><td colspan="2" style="border: none; padding: 0;"><div class="title-box">Contract Details </div></td></tr>
     </table>
-
-    <div class="title-box">Contract Details</div>
 
     <table>
       <tr>
-        <td colspan="2"><b>Work Order:-</b> ${contract.workorder || ''}</td>
+        <td colspan="2"><b>Work Order:-</b> ${escapeHtml(contract.workorder || '')}</td>
       </tr>
       <tr>
-        <td style="width: 50%;"><b>Title:-</b> ${contract.title || ''}</td>
+        <td style="width: 50%;"><b>Title:-</b> ${escapeHtml(contract.title || '')}</td>
         <td style="width: 50%;"><b>Issue Date:-</b> ${formatDate(contract.issuedate)}</td>
       </tr>
       <tr>
@@ -123,7 +170,7 @@ async function generateContractPDF(contractData, tenantDb = 'default') {
         <td><b>Contract End Date:-</b> ${formatDate(contract.contract_end_date)}</td>
       </tr>
       <tr>
-        <td><b>Supplier Name:-</b> ${contract.vendor_name || ''}</td>
+        <td><b>Supplier Name:-</b> ${escapeHtml(contract.vendor_name || '')}</td>
         <td><b>Cost:-</b> ${formatAmt(contract.cost)}</td>
       </tr>
       <tr>
@@ -141,7 +188,7 @@ async function generateContractPDF(contractData, tenantDb = 'default') {
       html += `
       <table>
         <tr>
-          <td><b>Product:-</b> ${item.item_name || ''}</td>
+          <td style="width:31.5%;"><b>Product:-</b> ${escapeHtml(item.item_name || '')}</td>
           <td><b>Quantity:-</b> ${formatQty(item.quantity)} ${item.uom || ''}</td>
           <td><b>Planned Qty:-</b> ${formatQty(item.planned_qty)} ${item.uom || ''}</td>
           <td><b>Prep Qty:-</b> ${formatQty(item.prepared_qty)} ${item.uom || ''}</td>
@@ -157,14 +204,14 @@ async function generateContractPDF(contractData, tenantDb = 'default') {
         <table>
           <thead>
             <tr>
-              <th colspan="4" style="text-align: center;">Raw Material</th>
+              <th colspan="5" style="text-align: center;">Raw Material</th>
             </tr>
             <tr>
-              <th style="width: 5%;">No.</th>
-              <th style="width: 45%;">Item Name</th>
+              <th style="width: 4%;">No.</th>
+              <th style="width: 54%;">Item Name</th>
               <th style="width: 16%; text-align: right;">Qty(As per Design)</th>
-              <th style="width: 17%; text-align: right;">Issued Qty</th>
-              <th style="width: 17%; text-align: right;">Pending Qty</th>
+              <th style="width: 13%; text-align: right;">Issued Qty</th>
+              <th style="width: 13%; text-align: right;">Pending Qty</th>
             </tr>
           </thead>
           <tbody>
@@ -173,7 +220,7 @@ async function generateContractPDF(contractData, tenantDb = 'default') {
           html += `
             <tr>
               <td>${idx + 1}.</td>
-              <td>${rm.item_name}</td>
+              <td>${escapeHtml(rm.item_name)}</td>
               <td style="text-align: right;">${formatQty(rm.as_per_design)}</td>
               <td style="text-align: right;">${formatQty(rm.total_issued)}</td>
               <td style="text-align: right;">${formatQty(rm.pending_qty)}</td>
@@ -184,7 +231,7 @@ async function generateContractPDF(contractData, tenantDb = 'default') {
               html += `
                 <tr>
                   <td></td>
-                  <td>${issued.item_name}</td>
+                  <td>${escapeHtml(issued.item_name)}</td>
                   <td></td>
                   <td style="text-align: right;">${formatQty(issued.issued_qty)}</td>
                   <td></td>
@@ -229,12 +276,12 @@ async function generateContractPDF(contractData, tenantDb = 'default') {
         <tr>
           <td>${po.po_id || ''}</td>
           <td>${formatDate(po.issuedate)}</td>
-          <td>${po.product_name || ''}</td>
+          <td>${escapeHtml(po.product_name || '')}</td>
           <td style="text-align: right;">${formatQty(po.plannedqty)}</td>
           <td style="text-align: right;">${formatQty(po.prepared_qty)}</td>
           <td>${formatDate(po.startdate)}</td>
           <td>${formatDate(po.enddate)}</td>
-          <td>${po.status || ''}</td>
+          <td>${po.status === 'C' ? 'Close' : 'Open'}</td>
         </tr>
       `;
     });
@@ -264,7 +311,7 @@ async function generateContractPDF(contractData, tenantDb = 'default') {
       html += `
         <tr>
           <td>${ir.s_no || ''}</td>
-          <td>${ir.inspector_name || ''}</td>
+          <td>${escapeHtml(ir.inspector_name || '')}</td>
           <td>${formatDate(ir.inspection_date)}</td>
         </tr>
       `;

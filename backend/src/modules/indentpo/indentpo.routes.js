@@ -18,6 +18,7 @@ router.get('/designsheet', indentpoController.getDesignSheetDetails);
 // CRUD
 router.post('/', indentpoController.saveIndentpo);
 router.get('/', indentpoController.listIndentpo);
+router.get('/:indent_id/pdf', indentpoController.downloadPdf);
 router.get('/:indent_id/detail', indentpoController.getIndentpoDetail);
 router.get('/view-details/:id', indentpoController.getIndentPoDetails);
 

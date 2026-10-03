@@ -1,4 +1,5 @@
 const JobChallanService = require('./jobChallan.service');
+const { generateJobChallanPDF } = require('./jobChallan.pdf');
 
 class JobChallanController {
 
@@ -20,6 +21,17 @@ class JobChallanController {
     try {
       const data = await JobChallanService.getDetail(req.dbName, req.params.id);
       res.json({ success: true, data });
+    } catch (err) { next(err); }
+  }
+
+  async downloadPdf(req, res, next) {
+    try {
+      const data = await JobChallanService.getDetail(req.dbName, req.params.id);
+      const pdfBuffer = await generateJobChallanPDF(data);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="JC-${req.params.id}.pdf"`);
+      res.end(pdfBuffer, 'binary');
     } catch (err) { next(err); }
   }
 

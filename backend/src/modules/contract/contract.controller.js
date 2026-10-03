@@ -95,6 +95,61 @@ class ContractController {
         data: { id: contractId }
       });
     } catch (err) {
+      if (err.statusCode) {
+        return res.status(err.statusCode).json({ success: false, message: err.message });
+      }
+      next(err);
+    }
+  }
+
+  async updateContract(req, res, next) {
+    try {
+      const dbPool = req.dbPool;
+      const { id } = req.params;
+      const contractId = parseInt(id, 10);
+      if (isNaN(contractId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid contract ID provided.'
+        });
+      }
+
+      await contractService.updateContract(dbPool, contractId, req.body);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Contract successfully updated.'
+      });
+    } catch (err) {
+      if (err.statusCode) {
+        return res.status(err.statusCode).json({ success: false, message: err.message });
+      }
+      next(err);
+    }
+  }
+
+  async deleteContract(req, res, next) {
+    try {
+      const dbPool = req.dbPool;
+      const { id } = req.params;
+      const contractId = parseInt(id, 10);
+      if (isNaN(contractId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid contract ID provided.'
+        });
+      }
+
+      await contractService.deleteContract(dbPool, contractId);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Contract deleted successfully'
+      });
+    } catch (err) {
+      if (err.statusCode) {
+        return res.status(err.statusCode).json({ success: false, message: err.message });
+      }
       next(err);
     }
   }

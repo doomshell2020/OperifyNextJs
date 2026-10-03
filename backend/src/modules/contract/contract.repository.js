@@ -63,7 +63,7 @@ class ContractRepository {
 
     const contract = await contracts.findOne({
       attributes: [
-        'id', 'title', 'workorder', 'cost', 'operation_cost', 'labour_cost', 'description', 'status', 'contract_start_date', 'contract_end_date', 'issuedate',
+        'id', 'supplier_id', 'title', 'workorder', 'cost', 'operation_cost', 'labour_cost', 'description', 'status', 'contract_start_date', 'contract_end_date', 'issuedate',
         [col('vendor.name'), 'vendor_name'],
         [fn('COALESCE', col('vendor.gst_number'), 'N/A'), 'gst_number']
       ],
@@ -78,6 +78,25 @@ class ContractRepository {
     });
 
     return contract || null;
+  }
+
+  async titleExists(dbPool, title, excludeId = null) {
+    const where = { title };
+    if (excludeId) where.id = { [Op.ne]: excludeId };
+    return await dbPool.models.contracts.count({ where }) > 0;
+  }
+
+  async vendorExists(dbPool, supplierId) {
+    if (!supplierId) return false;
+    return await dbPool.models.vendors.count({
+      where: { id: supplierId, status: 'Y' }
+    }) > 0;
+  }
+
+  async countDesignSheets(dbPool, contractId) {
+    return await dbPool.models.designsheet.count({
+      where: { contract_id: contractId }
+    });
   }
 
   async findItemsByContractId(dbPool, contractId) {
@@ -214,8 +233,8 @@ class ContractRepository {
     return { vendors, items };
   }
 
-  async createContract(dbConnection, data) {
-    const contract = await dbConnection.models.contracts.create({
+  async createContract(dbPool, data, transaction) {
+    const contract = await dbPool.models.contracts.create({
       supplier_id: data.supplier_id || null,
       title: data.title || null,
       workorder: data.workorder || null,
@@ -226,17 +245,88 @@ class ContractRepository {
       contract_start_date: data.contract_start_date || null,
       contract_end_date: data.contract_end_date || null,
       description: data.description || null,
+      added_time: new Date(),
       status: 'Y'
-    });
+    }, { transaction });
     return contract.id;
   }
 
-  async addFinishedProduct(dbConnection, contractId, product) {
-    await dbConnection.models.bom_finisedproduct.create({
+  async updateContract(dbPool, contractId, data, transaction) {
+    await dbPool.models.contracts.update({
+      supplier_id: data.supplier_id || null,
+      title: data.title || null,
+      workorder: data.workorder || null,
+      cost: data.cost || null,
+      operation_cost: data.operation_cost || null,
+      labour_cost: data.labour_cost || null,
+      issuedate: data.issuedate || null,
+      contract_start_date: data.contract_start_date || null,
+      contract_end_date: data.contract_end_date || null,
+      description: data.description || null,
+      added_time: new Date()
+    }, {
+      where: { id: contractId },
+      transaction
+    });
+  }
+
+  async upsertBom(dbPool, contractId, data, transaction) {
+    const bomPayload = {
+      contract_id: contractId,
+      comment: data.description || null,
+      operation_cost: data.operation_cost || null,
+      labour_cost: data.labour_cost || null,
+      created: data.issuedate || new Date()
+    };
+
+    const existing = await dbPool.models.bom.findOne({
+      where: { contract_id: String(contractId) },
+      transaction
+    });
+
+    if (existing) {
+      await existing.update(bomPayload, { transaction });
+      return existing.id;
+    }
+
+    const bom = await dbPool.models.bom.create(bomPayload, { transaction });
+    return bom.id;
+  }
+
+  async replaceFinishedProducts(dbPool, contractId, products, transaction) {
+    await dbPool.models.bom_finisedproduct.destroy({
+      where: { contract_id: contractId },
+      transaction
+    });
+
+    for (const product of products || []) {
+      if (product.product_id) {
+        await this.addFinishedProduct(dbPool, contractId, product, transaction);
+      }
+    }
+  }
+
+  async addFinishedProduct(dbPool, contractId, product, transaction) {
+    await dbPool.models.bom_finisedproduct.create({
       contract_id: contractId,
       product_id: product.product_id,
       price: product.price || '0',
       quantity: product.quantity || '0'
+    }, { transaction });
+  }
+
+  async deleteContractCascade(dbPool, contractId, transaction) {
+    await dbPool.models.bom.destroy({
+      where: { contract_id: String(contractId) },
+      transaction
+    });
+    await dbPool.models.bom_finisedproduct.destroy({
+      where: { contract_id: contractId },
+      transaction
+    });
+    await dbPool.models.contracts.destroy({
+      where: { id: contractId },
+      transaction
     });
   }
 }

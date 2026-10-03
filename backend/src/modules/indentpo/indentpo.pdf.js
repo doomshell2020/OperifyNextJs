@@ -21,8 +21,13 @@ function formatDate(dateString) {
 }
 
 function formatQty(value) {
-  const amount = Number(value || 0);
-  return amount.toFixed(2);
+  return Number(value || 0).toFixed(2);
+}
+
+function titleName(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/\b\w/g, char => char.toUpperCase());
 }
 
 function getLogoSrc(siteDetails, tenantDb) {
@@ -48,23 +53,18 @@ function getLogoSrc(siteDetails, tenantDb) {
   return '';
 }
 
-async function generateReverseIndentPDF(details, tenantDb = 'default') {
+async function generateIndentpoPDF(details, tenantDb = 'default') {
   const siteDetails = details.site_details || {};
   const siteSetting = details.sitesetting || {};
   const logoSrc = getLogoSrc(siteDetails, tenantDb);
   const companyName = siteSetting.first_name || siteDetails.company_name || 'TIRUPATI PLASTOMATICS PVT. LTD.';
-  const address = siteDetails.address1 || '';
-  const phone = siteDetails.phone || '';
-  const email = siteDetails.email || '';
-  const website = siteDetails.website || '';
-  const updatedDate = formatDate(details.updated);
 
   const itemRows = (details.items || []).map((item, index) => `
     <tr>
       <th width="8%">${index + 1}.</th>
-      <td width="62%">${escapeHtml(item.item_name || '')}</td>
+      <td width="62%">${escapeHtml(item.raw_material_name || item.item_name || '')}</td>
       <td width="20%" style="text-align:right;">${formatQty(item.quantity)}</td>
-      <td width="10%">${escapeHtml(item.uom || '')}</td>
+      <td width="10%">${escapeHtml(item.unit_name || item.uom || '-')}</td>
     </tr>
   `).join('') || `
     <tr>
@@ -171,19 +171,19 @@ async function generateReverseIndentPDF(details, tenantDb = 'default') {
                 ${logoSrc ? `<img src="${logoSrc}" alt="" class="legacy-logo" />` : ''}
                 <div class="legacy-company">${escapeHtml(companyName)}</div>
                 <div class="legacy-address">
-                  ${escapeHtml(address)}<br>
-                  <b>Phone</b> :${escapeHtml(phone)}<br>
-                  <b>Email</b> : <u>${escapeHtml(email)}</u><br>
-                  <b>Website</b> :&nbsp;${escapeHtml(website)}
+                  ${escapeHtml(siteDetails.address1 || '')}<br>
+                  <b>Phone</b> :${escapeHtml(siteDetails.phone || '')}<br>
+                  <b>Email</b> : <u>${escapeHtml(siteDetails.email || '')}</u><br>
+                  <b>Website</b> :&nbsp;${escapeHtml(siteDetails.website || '')}
                 </div>
               </div>
 
-              <h3 class="title">Reverse Indent Details</h3>
+              <h3 class="title">Indent Details</h3>
 
               <table>
                 <thead>
                   <tr>
-                    <td><b>Reverse Id :-</b> ${escapeHtml(details.reverse_id || '')}</td>
+                    <td><b>Indent Id :-</b> ${escapeHtml(details.indent_id || '')}</td>
                     <td><b>Contract name :-</b> ${escapeHtml(details.contract_name || '')}(${escapeHtml(details.workorder || '')})</td>
                   </tr>
                   <tr>
@@ -191,11 +191,7 @@ async function generateReverseIndentPDF(details, tenantDb = 'default') {
                     <td><b>Machine Name :-</b> ${escapeHtml(details.machine_name || '')}</td>
                   </tr>
                   <tr>
-                    <td><b>Received By :-</b> ${escapeHtml(details.received_name || '')}</td>
-                    <td><b>Received Date :-</b> ${formatDate(details.issue_date)}</td>
-                  </tr>
-                  <tr>
-                    <td><b>Last Updated Date :-</b> ${updatedDate}</td>
+                    <td><b>Issue Date :-</b> ${formatDate(details.issue_date)}</td>
                     <td></td>
                   </tr>
                 </thead>
@@ -210,7 +206,7 @@ async function generateReverseIndentPDF(details, tenantDb = 'default') {
             <tr>
               <th width="8%"><strong>S.No.</strong></th>
               <th width="62%"><strong>Item</strong></th>
-              <th width="20%"><strong>Received Qty</strong></th>
+              <th width="20%"><strong>Issue Qty</strong></th>
               <th width="10%"><strong>UOM</strong></th>
             </tr>
           </thead>
@@ -222,9 +218,9 @@ async function generateReverseIndentPDF(details, tenantDb = 'default') {
         <table class="signatures">
           <thead>
             <tr>
-              <th width="33%"><strong>INDENTER</strong></th>
-              <td width="33%" style="text-align:center;"><strong>ISSUED BY</strong></td>
-              <td width="34%" style="text-align:right;"><strong>RECEIVED BY</strong></td>
+              <th width="33%"><strong><span>${escapeHtml(titleName(details.created_by))}</span><br>INDENTER</strong></th>
+              <td width="33%" style="text-align:center;"><strong><span>${escapeHtml(titleName(details.issued_name))}</span><br>ISSUED BY</strong></td>
+              <td width="34%" style="text-align:right;"><strong><span></span><br>RECEIVED BY</strong></td>
             </tr>
           </thead>
         </table>
@@ -250,5 +246,5 @@ async function generateReverseIndentPDF(details, tenantDb = 'default') {
 }
 
 module.exports = {
-  generateReverseIndentPDF
+  generateIndentpoPDF
 };

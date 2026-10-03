@@ -92,6 +92,11 @@ export default function AddContractPage() {
       return;
     }
 
+    if (!cost || !operationCost || !labourCost || !issuedate || !startDate || !endDate) {
+      toast.error('Please fill all required contract fields');
+      return;
+    }
+
     // Filter out empty product rows
     const validProducts = products.filter(p => p.product_id && p.quantity);
 
@@ -111,7 +116,9 @@ export default function AddContractPage() {
     const payload: CreateContractPayload = {
       supplier_id: matchedSupplier.id,
       title,
-      workorder,      issuedate,
+      workorder,
+      cost,
+      issuedate,
       operation_cost: operationCost,
       labour_cost: labourCost,
       contract_start_date: startDate,
@@ -277,6 +284,7 @@ export default function AddContractPage() {
                 value={endDate}
                 onChange={e => setEndDate(e.target.value)}
                 className="w-full px-3 py-1.5 border border-slate-300 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition text-sm text-slate-800"
+                required
               />
             </div>
           </div>

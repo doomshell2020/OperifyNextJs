@@ -18,6 +18,7 @@ export interface PurchaseOrderHoverData {
 
 export interface PurchaseOrderItem {
   id: number;
+  item_id: number;
   item_name: string;
   order_qty: number;
   pending_qty: number;
@@ -40,9 +41,54 @@ export interface PurchaseOrderDetailsData {
     status: string;
     vendor_name: string;
     gst_number: string;
+    pancard_number?: string;
+    vendor_address?: string;
+    vendor_phone?: string;
+    vendor_email?: string;
+    remark?: string;
+    payment_term?: string;
+    freight?: number;
     total_amount: number;
   };
   items: PurchaseOrderItem[];
+  site_details?: {
+    logo?: string;
+    small_logo?: string;
+    company_name?: string;
+    address1?: string;
+    address2?: string;
+    phone?: string;
+    email?: string;
+    website?: string;
+    gst_no?: string;
+    pan_number?: string;
+  };
+  payment_terms?: Array<{
+    id: number;
+    description: string;
+  }>;
+  officer?: {
+    name?: string;
+    mobile?: string;
+    designation?: string;
+  };
+  schedules?: Array<{
+    id: number;
+    item_id: number;
+    item_qty: number;
+    delivery_date: string;
+    remark?: string;
+  }>;
+  grns?: Array<{
+    id: number;
+    grn_number: string;
+    bill_no: string;
+    bill_date: string;
+    inward_date: string;
+    total_qty: number;
+    total_amt: number;
+    items: PurchaseOrderItem[];
+  }>;
 }
 
 export interface PurchaseOrderListItem {

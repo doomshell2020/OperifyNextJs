@@ -63,10 +63,28 @@ export default function ContractDetailsPrintPage() {
   }
 
   return (
-    <div className="bg-white text-slate-900 w-full mx-auto p-8 max-w-5xl text-sm" style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}>
-      <h3 className="text-xl font-extrabold text-center mb-6">Contract Details</h3>
+    <div className="bg-white text-black w-full mx-auto p-8 max-w-5xl text-[8px] leading-[10px] font-sans" style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' }}>
+      <div className="border border-black mb-4">
+        <div className="relative h-[96px] border-b border-black">
+          <img
+            src="http://localhost:5000/public/uploads/logos/d80960ce77aede66a5c3c8eef8dfafda.png"
+            alt=""
+            className="absolute top-[25px] left-4 h-[42px] max-w-[110px] object-contain"
+          />
+          <div className="absolute left-4 bottom-[9px] font-bold text-[10px] leading-3">
+            TIRUPATI PLASTOMATICS PVT. LTD.
+          </div>
+          <div className="absolute top-1 right-0 w-1/2 text-center text-[7px] leading-[9px]">
+            B-141(A), Rd Number 9D, Vishwakarma Industrial Area, Jaipur, Rajasthan 302013<br />
+            <b>Phone</b> :9829287189<br />
+            <b>Email</b> : <u>contact@tirupatiplastomatics.com</u><br />
+            <b>Website</b> : www.tirupatiplastomatics.com
+          </div>
+        </div>
+        <h3 className="text-center text-[10px] leading-[15px] h-[15px] font-bold border-b border-black">Contract Details</h3>
+      </div>
 
-      <div className="grid grid-cols-2 gap-y-4 gap-x-8 mb-8 text-sm">
+      <div className="grid grid-cols-2 gap-y-1 gap-x-8 mb-4 text-[8px]">
           <div><span className="font-bold">Work Order:- </span>{contractData.contract.workorder}</div>
           <div><span className="font-bold">Title:- </span>{contractData.contract.title}</div>
           <div><span className="font-bold">Issue Date:- </span>{formatDate(contractData.contract.issuedate)}</div>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import contractService, { ContractFilters } from '../../../services/contract.service';
 import { ContractDetailsModal } from '../../../components/dashboard/ContractDetailsModal';
@@ -73,6 +74,17 @@ export default function ContractsPage() {
     setFilters(empty);
     setActiveFilters(empty);
     setPage(1);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure do you want to delete this Contract')) return;
+    try {
+      await contractService.deleteContract(id);
+      toast.success('Contract deleted successfully');
+      refetch();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to delete contract');
+    }
   };
 
   return (
@@ -249,13 +261,13 @@ export default function ContractsPage() {
                   </td>
                   <td className="px-3 py-2 border-b text-center">
                     <div className="flex items-center justify-center gap-2">
-                      {(c as any).designsheet_count === 0 && (hasPermission('contracts:edit') || hasPermission('legacy:admin/contracts/edit')) && (
-                        <button className="text-[#1683D8] hover:text-blue-800" title="Edit">
+                      {(c.designsheet_count || 0) === 0 && (hasPermission('contracts:edit') || hasPermission('legacy:admin/contracts/edit')) && (
+                        <Link href={`/dashboard/contracts/edit/${c.id}`} className="text-[#1683D8] hover:text-blue-800" title="Edit">
                           <Edit className="w-4 h-4" />
-                        </button>
+                        </Link>
                       )}
-                      {(c as any).designsheet_count === 0 && (hasPermission('contracts:delete') || hasPermission('legacy:admin/contracts/delete')) && (
-                        <button className="text-rose-600 hover:text-rose-800" title="Delete">
+                      {(c.designsheet_count || 0) === 0 && (hasPermission('contracts:delete') || hasPermission('legacy:admin/contracts/delete')) && (
+                        <button onClick={() => handleDelete(c.id)} className="text-rose-600 hover:text-rose-800" title="Delete">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       )}

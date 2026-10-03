@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { designsheetService } from '../../../../../services/designsheet.service';
-import { formatDate, formatContractDate } from '../../../../../utils/dateFormatter';
+import { formatContractDate } from '../../../../../utils/dateFormatter';
 
 export default function PrintDesignSheetPage() {
   const { designsheetno } = useParams() as { designsheetno: string };
@@ -22,54 +22,72 @@ export default function PrintDesignSheetPage() {
 
   const { designsheet, designsheetdetails, sitesetting, site_details } = data;
 
+  const logoSrc = 'http://localhost:5000/public/uploads/logos/d80960ce77aede66a5c3c8eef8dfafda.png';
+
   return (
-    <div className="p-8 bg-white max-w-4xl mx-auto text-black font-sans print:p-0">
-      <div className="text-center mb-6 border-b-2 border-black pb-4">
-        {sitesetting?.logo && (
-            <img src={`/${sitesetting.logo}`} alt="Logo" className="h-16 mx-auto mb-2" />
-        )}
-        <h1 className="text-2xl font-bold uppercase">{site_details?.company_name || 'COMPANY NAME'}</h1>
-        <p className="text-sm">{site_details?.address1}</p>
-        <p className="text-sm">GSTIN: {site_details?.gst_no} | STATE: {site_details?.state_code}</p>
-        <h2 className="text-xl font-bold mt-4 underline uppercase">Production Sheet</h2>
+    <div className="bg-white max-w-4xl mx-auto text-black font-sans text-[8px] leading-[10px] p-8 print:p-0">
+      <style>{`
+        @media print {
+          @page { size: A4 portrait; margin: 10mm; }
+          body { margin: 0; background: #fff; }
+        }
+      `}</style>
+
+      <div className="border border-black">
+        <div className="relative h-[96px] border-b border-black">
+          <img src={logoSrc} alt="" className="absolute top-[25px] left-4 h-[42px] max-w-[110px] object-contain" />
+          <div className="absolute left-4 bottom-[9px] font-bold text-[10px] leading-3">
+            {sitesetting?.first_name || site_details?.company_name || 'TIRUPATI PLASTOMATICS PVT. LTD.'}
+          </div>
+          <div className="absolute top-1 right-0 w-1/2 text-center text-[7px] leading-[9px]">
+            {site_details?.address1}<br />
+            <b>Phone</b> :{site_details?.phone}<br />
+            <b>Email</b> : <u>{site_details?.email}</u><br />
+            <b>Website</b> : {site_details?.website}
+          </div>
+        </div>
+        <h2 className="text-center text-[10px] leading-[15px] h-[15px] font-bold border-b border-black">Design Sheet Details</h2>
+        <table className="w-full border-collapse">
+          <tbody>
+            <tr>
+              <td className="w-1/2 p-[3px]"><b>Design Sheet No:-</b> {designsheet?.designsheetno}</td>
+              <td className="w-1/2 p-[3px]"><b>Issue Date:-</b> {designsheet?.datefrom ? formatContractDate(designsheet.datefrom) : ''}</td>
+            </tr>
+            <tr>
+              <td className="w-1/2 p-[3px]"><b>Contract:-</b> {designsheet?.contract_no}</td>
+              <td className="w-1/2 p-[3px]"><b>Finished Product:-</b> {designsheet?.item_name}</td>
+            </tr>
+            <tr>
+              <td className="w-1/2 p-[3px]"><b>Quantity:-</b> {designsheet?.quantity} KM</td>
+              <td className="w-1/2 p-[3px]"></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
-        <div><span className="font-bold">Production Sheet No:</span> {designsheet?.designsheetno}</div>
-        <div><span className="font-bold">Date:</span> {designsheet?.datefrom ? formatContractDate(designsheet.datefrom) : ''}</div>
-        <div><span className="font-bold">Contract No:</span> {designsheet?.contract_no}</div>
-        <div><span className="font-bold">Item Name:</span> {designsheet?.item_name}</div>
-        <div><span className="font-bold">Total Quantity:</span> {designsheet?.quantity}</div>
-      </div>
-
-      <table className="w-full text-left border-collapse border border-black text-sm">
+      <h6 className="text-center text-[10px] leading-3 font-bold mt-3 mb-0.5">Raw Material</h6>
+      <table className="w-full text-left border-collapse border border-black text-[8px]">
         <thead>
           <tr>
-            <th className="border border-black p-2 bg-gray-100">S.No.</th>
-            <th className="border border-black p-2 bg-gray-100">Item Group</th>
-            <th className="border border-black p-2 bg-gray-100">Item Name</th>
-            <th className="border border-black p-2 bg-gray-100">Item Qty per KM</th>
-            <th className="border border-black p-2 bg-gray-100">Total Item Qty</th>
+            <th className="border border-black p-[3px] w-[5%]">S.No.</th>
+            <th className="border border-black p-[3px] w-[61%]">Item Name</th>
+            <th className="border border-black p-[3px] w-[13%] text-right">Qty(Per KM)</th>
+            <th className="border border-black p-[3px] w-[11%]">Total Qty</th>
+            <th className="border border-black p-[3px] w-[10%]">UOM</th>
           </tr>
         </thead>
         <tbody>
           {designsheetdetails?.map((item: any, idx: number) => (
             <tr key={item.id}>
-              <td className="border border-black p-2 text-center">{idx + 1}</td>
-              <td className="border border-black p-2 text-center">{item.is_group === '1' ? 'YES' : 'NO'}</td>
-              <td className="border border-black p-2">{item.item_name}</td>
-              <td className="border border-black p-2 text-right">{item.km_item_qty}</td>
-              <td className="border border-black p-2 text-right">{item.item_qty} {item.uom}</td>
+              <td className="border border-black p-[3px] font-bold">{idx + 1}.</td>
+              <td className="border border-black p-[3px]">{item.item_name}</td>
+              <td className="border border-black p-[3px] text-right">{Number(item.km_item_qty || 0).toFixed(2)}</td>
+              <td className="border border-black p-[3px]">{Number(item.item_qty || 0).toFixed(2)}</td>
+              <td className="border border-black p-[3px]">{item.uom}</td>
             </tr>
           ))}
         </tbody>
       </table>
-
-      <div className="mt-16 flex justify-between text-sm font-bold">
-        <div>Prepared By</div>
-        <div>Checked By</div>
-        <div>Authorized Signatory</div>
-      </div>
     </div>
   );
 }

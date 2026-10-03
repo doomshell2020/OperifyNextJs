@@ -16,40 +16,51 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 10,
+    position: 'relative',
+    height: 96,
+    padding: 0,
     borderBottomWidth: 1,
     borderBottomColor: '#000',
   },
   logoBlock: {
-    width: '40%',
+    position: 'absolute',
+    left: 16,
+    top: 25,
   },
   logo: {
-    width: 60,
-    height: 60,
-    marginBottom: 10,
+    width: 42,
+    height: 42,
   },
   companyName: {
-    fontSize: 11,
+    position: 'absolute',
+    left: 16,
+    bottom: 9,
+    fontSize: 10,
+    lineHeight: 1.2,
     fontFamily: 'Helvetica-Bold',
   },
   companyInfo: {
-    width: '60%',
-    textAlign: 'right',
-    lineHeight: 1.4,
+    position: 'absolute',
+    top: 4,
+    right: 0,
+    width: '50%',
+    textAlign: 'center',
+    fontSize: 7,
+    lineHeight: 1.25,
   },
   bold: {
     fontFamily: 'Helvetica-Bold',
   },
   titleRow: {
-    padding: 5,
+    height: 15,
+    padding: 0,
     borderBottomWidth: 1,
     borderBottomColor: '#000',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
-    fontSize: 12,
+    fontSize: 10,
     fontFamily: 'Helvetica-Bold',
   },
   detailsRow: {
@@ -75,10 +86,6 @@ const styles = StyleSheet.create({
   detailValue: {
     flex: 1,
   },
-  // Table widths to perfectly align with footer
-  // SNo: 5%, Item: 25% -> Total 30%
-  // Order: 10%, Rec: 10%, Rate: 10%, Price: 12%, TaxR: 8%, TaxA: 10% -> Total 60%
-  // Amount: 10%
   tableHeaderRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
@@ -96,15 +103,15 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     textAlign: 'center',
   },
-  colSNo: { width: '5%', borderRightWidth: 1, borderRightColor: '#000', padding: 3 },
-  colItem: { width: '25%', borderRightWidth: 1, borderRightColor: '#000', padding: 3, textAlign: 'left' },
-  colOrderQty: { width: '10%', borderRightWidth: 1, borderRightColor: '#000', padding: 3 },
-  colRecQty: { width: '10%', borderRightWidth: 1, borderRightColor: '#000', padding: 3 },
-  colRate: { width: '10%', borderRightWidth: 1, borderRightColor: '#000', padding: 3 },
-  colPrice: { width: '12%', borderRightWidth: 1, borderRightColor: '#000', padding: 3 },
-  colTaxRate: { width: '8%', borderRightWidth: 1, borderRightColor: '#000', padding: 3 },
-  colTaxAmt: { width: '10%', borderRightWidth: 1, borderRightColor: '#000', padding: 3 },
-  colAmount: { width: '10%', padding: 3, textAlign: 'right' },
+  colSNo: { width: '4%', borderRightWidth: 1, borderRightColor: '#000', padding: 3 },
+  colItem: { width: '18.12%', borderRightWidth: 1, borderRightColor: '#000', padding: 3, textAlign: 'left' },
+  colOrderQty: { width: '11.76%', borderRightWidth: 1, borderRightColor: '#000', padding: 3 },
+  colRecQty: { width: '11.76%', borderRightWidth: 1, borderRightColor: '#000', padding: 3 },
+  colRate: { width: '9.6%', borderRightWidth: 1, borderRightColor: '#000', padding: 3, textAlign: 'right' },
+  colPrice: { width: '15.96%', borderRightWidth: 1, borderRightColor: '#000', padding: 3, textAlign: 'right' },
+  colTaxRate: { width: '9.6%', borderRightWidth: 1, borderRightColor: '#000', padding: 3 },
+  colTaxAmt: { width: '9.6%', borderRightWidth: 1, borderRightColor: '#000', padding: 3, textAlign: 'right' },
+  colAmount: { width: '9.6%', padding: 3, textAlign: 'right' },
   
   footerRow: {
     flexDirection: 'row',
@@ -112,7 +119,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#000',
   },
   footerLabel: {
-    width: '90%',
+    width: '71.2%',
     padding: 3,
     borderRightWidth: 1,
     borderRightColor: '#000',
@@ -121,10 +128,19 @@ const styles = StyleSheet.create({
     fontSize: 8,
   },
   footerValue: {
-    width: '10%',
+    width: '18.8%',
     padding: 3,
     textAlign: 'right',
     fontSize: 8,
+  },
+  footerTaxStatus: {
+    width: '10%',
+    padding: 3,
+    borderRightWidth: 1,
+    borderRightColor: '#000',
+    textAlign: 'center',
+    fontSize: 7,
+    fontFamily: 'Helvetica-Bold',
   },
   wordsColLabel: {
     width: '30%',
@@ -193,10 +209,17 @@ export const GrnPdf: React.FC<GrnPdfProps> = ({ data }) => {
   if (!grn) return <Document><Page size="A4"><Text>No data</Text></Page></Document>;
 
   
-  const taxExcludedAmount = (items || []).reduce((sum: number, item: any) => sum + ((Number(item.quantity) || 0) * (Number(item.rate) || 0)), 0);
-  const totalTax = (items || []).reduce((sum: number, item: any) => sum + (Number(item.tax) || 0), 0);
   const freightCharges = Number(grn.freight) || 0; 
-  const totalAmount = taxExcludedAmount + totalTax + freightCharges;
+  const itemAmountTotal = (items || []).reduce((sum: number, item: any) => {
+    const qty = Number(item.quantity) || 0;
+    const rate = Number(item.rate) || 0;
+    const price = item.cost_price !== undefined && item.cost_price !== null ? Number(item.cost_price) : qty * rate;
+    const taxAmt = item.tax !== undefined && item.tax !== null ? Number(item.tax) : 0;
+    const amount = item.amount !== undefined && item.amount !== null ? Number(item.amount) : price + taxAmt;
+    return sum + amount;
+  }, 0);
+  const hasTaxIncludedItem = (items || []).some((item: any) => Number(item.cost_price) === Number(item.amount));
+  const totalAmount = itemAmountTotal + freightCharges;
 
   return (
     <Document>
@@ -207,14 +230,13 @@ export const GrnPdf: React.FC<GrnPdfProps> = ({ data }) => {
           <View style={styles.headerRow}>
             <View style={styles.logoBlock}>
               <Image 
-                src="http://localhost:5000/public/uploads/logos/tirupati_tppl_logo.png" 
+                src="http://localhost:5000/public/uploads/logos/d80960ce77aede66a5c3c8eef8dfafda.png" 
                 style={styles.logo}
               />
-              <Text style={styles.companyName}>TIRUPATI PLASTOMATICS PVT. LTD.</Text>
             </View>
+            <Text style={styles.companyName}>TIRUPATI PLASTOMATICS PVT. LTD.</Text>
             <View style={styles.companyInfo}>
-              <Text>B-141(A), Rd Number 9D, Vishwakarma Industrial Area,</Text>
-              <Text>Jaipur, Rajasthan 302013</Text>
+              <Text>B-141(A), Rd Number 9D, Vishwakarma Industrial Area, Jaipur, Rajasthan 302013</Text>
               <Text><Text style={styles.bold}>Phone : </Text>9829287189</Text>
               <Text><Text style={styles.bold}>Email : </Text>contact@tirupatiplastomatics.com</Text>
               <Text><Text style={styles.bold}>Website : </Text>www.tirupatiplastomatics.com</Text>
@@ -300,10 +322,11 @@ export const GrnPdf: React.FC<GrnPdfProps> = ({ data }) => {
             );
           })}
 
-          {/* Footer: Amount Tax Excluded */}
+          {/* Footer: Amount */}
           <View style={styles.footerRow}>
-            <Text style={styles.footerLabel}>Amount Tax Excluded</Text>
-            <Text style={styles.footerValue}>{formatAmt(taxExcludedAmount)}</Text>
+            <Text style={styles.footerLabel}>Amount</Text>
+            <Text style={styles.footerTaxStatus}>{hasTaxIncludedItem ? 'Tax\nIncluded' : 'Tax\nExcluded'}</Text>
+            <Text style={styles.footerValue}>{formatAmt(itemAmountTotal)}</Text>
           </View>
 
           {/* Footer: Freight Charges */}

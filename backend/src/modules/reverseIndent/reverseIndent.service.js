@@ -1,5 +1,19 @@
 const { QueryTypes } = require('sequelize');
 
+async function getFirstRow(dbPool, primaryQuery, fallbackQuery) {
+  try {
+    const rows = await dbPool.query(primaryQuery, { type: QueryTypes.SELECT });
+    return rows[0] || null;
+  } catch (error) {
+    if (!fallbackQuery || error?.original?.code !== 'ER_BAD_FIELD_ERROR') {
+      throw error;
+    }
+
+    const rows = await dbPool.query(fallbackQuery, { type: QueryTypes.SELECT });
+    return rows[0] || null;
+  }
+}
+
 class ReverseIndentService {
   async getNextReverseId(dbPool) {
     const rows = await dbPool.query('SELECT reverse_id FROM reverseindent ORDER BY id DESC LIMIT 1', { type: QueryTypes.SELECT });
@@ -110,6 +124,7 @@ class ReverseIndentService {
       SELECT 
         r.*,
         c.title as contract_name,
+        c.workorder,
         p.item_name as product_name,
         m.machine_name
       FROM reverseindent r
@@ -120,6 +135,18 @@ class ReverseIndentService {
     `, { replacements: [reverse_id], type: QueryTypes.SELECT });
 
     if (headerRows.length === 0) return null;
+
+    const siteDetails = await getFirstRow(
+      dbPool,
+      'SELECT * FROM sitesettings_details WHERE status = "Y" LIMIT 1',
+      'SELECT * FROM sitesettings_details LIMIT 1'
+    );
+
+    const siteSetting = await getFirstRow(
+      dbPool,
+      'SELECT * FROM sitesettings WHERE status = "Y" LIMIT 1',
+      'SELECT * FROM sitesettings LIMIT 1'
+    );
 
     const items = await dbPool.query(`
       SELECT 
@@ -134,6 +161,8 @@ class ReverseIndentService {
 
     return {
       ...headerRows[0],
+      site_details: siteDetails,
+      sitesetting: siteSetting,
       items
     };
   }

@@ -1,5 +1,5 @@
 const { getTenantModels, getTenantSequelize } = require('../../config/sequelize');
-const { Op } = require('sequelize');
+const { Op, QueryTypes } = require('sequelize');
 
 class JobChallanService {
 
@@ -334,25 +334,69 @@ class JobChallanService {
 
   // ─── GET DETAIL ───────────────────────────────────────────────────────────
   async getDetail(dbName, id) {
-    const models = await getTenantModels(dbName);
+    const sequelize = await getTenantSequelize(dbName);
     const parsedId = parseInt(id);
     if (!parsedId || isNaN(parsedId)) throw new Error('Invalid Job Challan ID');
 
-    const challan = await models.job_challans.findByPk(parsedId, {
-      include: [
-        { model: models.vendors, as: 'vendor' },
-        {
-          model: models.job_challan_items,
-          as:    'job_challan_items',
-          include: [{ model: models.st_additem, as: 'item' }]
-        }
-      ]
+    const challanRows = await sequelize.query(`
+      SELECT 
+        jc.*,
+        v.name AS vendor_name,
+        v.address AS vendor_address,
+        v.gst_number AS vendor_gst_no
+      FROM job_challans jc
+      LEFT JOIN vendors v ON v.id = jc.sub_contractors_id
+      WHERE jc.id = :id
+      LIMIT 1
+    `, {
+      replacements: { id: parsedId },
+      type: QueryTypes.SELECT
     });
+
+    const challan = challanRows[0];
     if (!challan) throw new Error('Job Challan not found');
 
-    const site_details = await models.sitesettings_details.findOne({ where: { status: 'Y' } });
+    const items = await sequelize.query(`
+      SELECT 
+        jci.*,
+        COALESCE(jci.total_amount, jci.amount + COALESCE(jci.tax_amount, 0)) AS total,
+        a.item_name AS master_item_name,
+        mu.unit_name
+      FROM job_challan_items jci
+      LEFT JOIN st_additem a ON a.id = jci.item_id
+      LEFT JOIN st_measurementunits mu ON mu.id = a.uom
+      WHERE jci.challan_id = :id
+      ORDER BY jci.id ASC
+    `, {
+      replacements: { id: parsedId },
+      type: QueryTypes.SELECT
+    });
 
-    return { challan, site_details };
+    const siteRows = await sequelize.query('SELECT * FROM sitesettings_details LIMIT 1', { type: QueryTypes.SELECT });
+    const settingRows = await sequelize.query('SELECT * FROM sitesettings LIMIT 1', { type: QueryTypes.SELECT });
+
+    challan.vendor = {
+      id: challan.sub_contractors_id,
+      name: challan.vendor_name,
+      address: challan.vendor_address,
+      gst_no: challan.vendor_gst_no
+    };
+    challan.job_challan_items = items.map(item => ({
+      ...item,
+      return_type: item.return_type || 'RawMaterial',
+      total: item.total,
+      item: {
+        id: item.item_id,
+        item_name: item.item_name || item.master_item_name,
+        unit_name: item.unit_name
+      }
+    }));
+
+    return {
+      challan,
+      site_details: siteRows[0] || null,
+      sitesetting: settingRows[0] || null
+    };
   }
 
   // ─── DELETE (with JC Receive guard) ─────────────────────────────────────

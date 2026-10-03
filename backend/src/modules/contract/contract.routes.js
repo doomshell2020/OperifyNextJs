@@ -13,5 +13,7 @@ router.post('/', contractController.createContract);
 router.get('/form-data', contractController.getFormData);
 router.get('/:id/details', contractController.getDetails);
 router.get('/:id/pdf', contractController.exportPDF);
+router.put('/:id', contractController.updateContract);
+router.delete('/:id', contractController.deleteContract);
 
 module.exports = router;

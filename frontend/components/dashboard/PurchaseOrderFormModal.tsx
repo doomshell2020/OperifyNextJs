@@ -150,7 +150,7 @@ export function PurchaseOrderFormModal({ poId, onClose }: PurchaseOrderFormModal
 
             <div className="mb-6">
               <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Remarks</label>
-              <textarea name="remarks" value={formData.remarks || ''} onChange={handlePoChange} className="w-full border p-2 rounded" rows={2} />
+              <textarea name="remark" value={formData.remark || ''} onChange={handlePoChange} className="w-full border p-2 rounded" rows={2} />
             </div>
 
             <h3 className="text-sm font-bold text-slate-800 mb-2">Items</h3>

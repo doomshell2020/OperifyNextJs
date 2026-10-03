@@ -18,6 +18,7 @@ router.get('/vendor-gst',        jobChallanController.getVendorGst.bind(jobChall
 // Core CRUD
 router.get('/',    jobChallanController.list.bind(jobChallanController));
 router.post('/',   jobChallanController.create.bind(jobChallanController));
+router.get('/:id/pdf', jobChallanController.downloadPdf.bind(jobChallanController));
 router.get('/:id', jobChallanController.getDetail.bind(jobChallanController));
 router.delete('/:id', jobChallanController.remove.bind(jobChallanController));
 

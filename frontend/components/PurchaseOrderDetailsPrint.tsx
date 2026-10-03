@@ -20,29 +20,28 @@ export const PurchaseOrderDetailsPrint: React.FC<PurchaseOrderDetailsPrintProps>
       <table className="w-full border-collapse border border-black mb-4">
         <tbody>
           <tr>
-            <td className="p-3 border-r border-black w-1/2 align-bottom">
-              {data.site_details?.logo ? (
+            <td colSpan={2} className="p-0 border-b border-black">
+              <div className="relative h-[96px]">
                 <img 
-                  src={`${baseUrl}/public/uploads/logos/${data.site_details.logo}`} 
+                  src={`${baseUrl}/public/uploads/logos/${data.site_details?.small_logo || data.site_details?.logo || 'd80960ce77aede66a5c3c8eef8dfafda.png'}`} 
                   alt="Logo" 
-                  className="h-14 object-contain mb-4 ml-6"
-                  onError={(e) => { (e.target as HTMLImageElement).src = `${baseUrl}/public/uploads/logos/tirupati_tppl_logo.png`; }}
+                  className="absolute top-[25px] left-4 h-[42px] max-w-[110px] object-contain"
+                  onError={(e) => { (e.target as HTMLImageElement).src = `${baseUrl}/public/uploads/logos/d80960ce77aede66a5c3c8eef8dfafda.png`; }}
                 />
-              ) : null}
-              <div className="font-bold text-sm uppercase">
+              <div className="absolute left-4 bottom-[9px] font-bold text-[10px] leading-3 uppercase">
                 {data.site_details?.company_name || 'TIRUPATI PLASTOMATICS PVT. LTD.'}
               </div>
-            </td>
-            <td className="p-2 text-right text-[11px] align-top w-1/2">
-              <div>{data.site_details?.address1 || 'B-141(A), Rd Number 9D, Vishwakarma Industrial Area, Jaipur,'}</div>
-              <div>{data.site_details?.address2 || 'Rajasthan 302013'}</div>
-              <div className="font-bold">Phone : {data.site_details?.phone || '9829287189'}</div>
-              <div><span className="font-bold">Email : </span> <u>{data.site_details?.email || 'contact@tirupatiplastomatics.com'}</u></div>
-              <div><span className="font-bold">Website : </span> <u>{data.site_details?.website || 'www.tirupatiplastomatics.com'}</u></div>
+              <div className="absolute top-1 right-0 w-1/2 text-center text-[7px] leading-[9px]">
+                <div>{data.site_details?.address1 || 'B-141(A), Rd Number 9D, Vishwakarma Industrial Area, Jaipur, Rajasthan 302013'}</div>
+                <div><span className="font-bold">Phone : </span>{data.site_details?.phone || '9829287189'}</div>
+                <div><span className="font-bold">Email : </span> <u>{data.site_details?.email || 'contact@tirupatiplastomatics.com'}</u></div>
+                <div><span className="font-bold">Website : </span> <u>{data.site_details?.website || 'www.tirupatiplastomatics.com'}</u></div>
+              </div>
+            </div>
             </td>
           </tr>
           <tr>
-            <td colSpan={2} className="p-1 font-bold text-sm border-t border-black text-center bg-gray-50 print:bg-transparent">
+            <td colSpan={2} className="p-0 h-[15px] leading-[15px] font-bold text-[10px] border-b border-black text-center bg-gray-50 print:bg-transparent">
               Purchase Order Details
             </td>
           </tr>
