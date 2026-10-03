@@ -79,8 +79,8 @@ export default function IndentDetailPage() {
 
   const { items, is_temp } = data;
   const firstItem = items[0];
-  const createdBy = firstItem?.created_by ?? 'N/A';
-  const createdDate = firstItem?.added_time ?? null;
+  const createdBy = (firstItem as any)?.created_by ?? 'N/A';
+  const createdDate = (firstItem as any)?.added_time ?? null;
   const totalQty = items.reduce((s, i) => s + Number(i.quantity), 0);
 
   return (
@@ -194,4 +194,5 @@ export default function IndentDetailPage() {
     </div>
   );
 }
+
 
