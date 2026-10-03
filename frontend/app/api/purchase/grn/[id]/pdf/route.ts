@@ -39,7 +39,7 @@ export async function GET(
     }
 
     // Render the React PDF component to a stream
-    const stream = await renderToStream(React.createElement(GrnPdf, { data: data.data }));
+    const stream = await renderToStream(React.createElement(GrnPdf, { data: data.data } as any) as any);
 
     // Create a Node.js ReadableStream from the pdf stream
     const webStream = new ReadableStream({
@@ -65,3 +65,4 @@ export async function GET(
     );
   }
 }
+

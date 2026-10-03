@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import contractService, { ContractFilters } from '../../../services/contract.service';
 import { ContractDetailsModal } from '../../../components/dashboard/ContractDetailsModal';
+import { usePermission } from '../../../contexts/PermissionContext';
 import { 
   FileText, 
   Search, 
@@ -26,6 +27,7 @@ import { DatePicker } from '../../../components/ui/DatePicker';
 import { formatContractDate } from '../../../utils/dateFormatter';
 
 export default function ContractsPage() {
+  const { hasPermission } = usePermission();
   // Filters state
   const [filters, setFilters] = useState<ContractFilters>({
     contract_name: '',
@@ -38,12 +40,19 @@ export default function ContractsPage() {
   const [activeFilters, setActiveFilters] = useState<ContractFilters>({});
   const [selectedContractId, setSelectedContractId] = useState<number | null>(null);
 
+  const [page, setPage] = useState(1);
+  const limit = 20;
+
   // Fetch contracts
-  const { data: contracts, isLoading, isError, refetch } = useQuery({
-    queryKey: ['contracts', activeFilters],
-    queryFn: () => contractService.getContracts(activeFilters),
+  const { data: paginatedData, isLoading, isError, refetch } = useQuery({
+    queryKey: ['contracts', activeFilters, page],
+    queryFn: () => contractService.getContracts({ ...activeFilters, page, limit }),
     staleTime: 5 * 60 * 1000
   });
+
+  const contracts = paginatedData?.data || [];
+  const total = paginatedData?.total || 0;
+  const totalPages = Math.ceil(total / limit);
 
   // Fetch selected contract details
   const { data: details, isLoading: detailsLoading, isError: detailsError } = useQuery({
@@ -56,12 +65,14 @@ export default function ContractsPage() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setActiveFilters({ ...filters });
+    setPage(1);
   };
 
   const handleReset = () => {
     const empty = { contract_name: '', vendor_name: '', cost: '', datefrom: '', dateto: '' };
     setFilters(empty);
     setActiveFilters(empty);
+    setPage(1);
   };
 
   return (
@@ -172,12 +183,14 @@ export default function ContractsPage() {
             Reset
           </button>
           <div className="flex-1"></div>
-          <a
-            href="/dashboard/contracts/add"
-            className="px-4 py-1.5 bg-[#1683D8] hover:bg-[#2563eb] text-white rounded-[3px] text-xs font-semibold cursor-pointer h-8 flex items-center justify-center"
-          >
-            + Add
-          </a>
+          {(hasPermission('contracts:add') || hasPermission('legacy:admin/contracts/add')) && (
+            <a
+              href="/dashboard/contracts/add"
+              className="px-4 py-1.5 bg-[#1683D8] hover:bg-[#2563eb] text-white rounded-[3px] text-xs font-semibold cursor-pointer h-8 flex items-center justify-center"
+            >
+              + Add
+            </a>
+          )}
         </div>
       </form>
 
@@ -236,12 +249,16 @@ export default function ContractsPage() {
                   </td>
                   <td className="px-3 py-2 border-b text-center">
                     <div className="flex items-center justify-center gap-2">
-                      <button className="text-[#1683D8] hover:text-blue-800" title="Edit">
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button className="text-rose-600 hover:text-rose-800" title="Delete">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {(c as any).designsheet_count === 0 && (hasPermission('contracts:edit') || hasPermission('legacy:admin/contracts/edit')) && (
+                        <button className="text-[#1683D8] hover:text-blue-800" title="Edit">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      )}
+                      {(c as any).designsheet_count === 0 && (hasPermission('contracts:delete') || hasPermission('legacy:admin/contracts/delete')) && (
+                        <button className="text-rose-600 hover:text-rose-800" title="Delete">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                       <button
                         onClick={async () => {
                           try {
@@ -264,6 +281,33 @@ export default function ContractsPage() {
               ))}
             </tbody>
           </table>
+          
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-[#ccc] bg-[#f9f9f9]">
+              <span className="text-xs text-[#555]">
+                Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total} entries
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1 bg-white border border-[#ccc] text-xs text-[#333] hover:bg-[#eee] disabled:opacity-50 disabled:cursor-not-allowed rounded-sm"
+                >
+                  Previous
+                </button>
+                <span className="px-3 py-1 text-xs text-[#333] font-semibold">
+                  Page {page} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-3 py-1 bg-white border border-[#ccc] text-xs text-[#333] hover:bg-[#eee] disabled:opacity-50 disabled:cursor-not-allowed rounded-sm"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -278,3 +322,4 @@ export default function ContractsPage() {
     </div>
   );
 }
+

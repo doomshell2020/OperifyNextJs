@@ -145,7 +145,21 @@ class PurchaseOrderRepository {
       };
     });
 
-    return { po, items: updatedItemRows, site_details, grns };
+    // Fetch Delivery Schedules
+    const scheduleQuery = `
+      SELECT 
+        id,
+        item_id,
+        item_qty,
+        DATE(delivery_date) as delivery_date,
+        delivery_note as remark
+      FROM po_delivery_note
+      WHERE poprimary_id = :poId
+      ORDER BY delivery_date ASC
+    `;
+    const schedules = await dbPool.query(scheduleQuery, { replacements: { poId: po.id }, type: QueryTypes.SELECT });
+
+    return { po, items: updatedItemRows, site_details, grns, schedules };
   }
 
   async getItemHistory(dbPool, itemId) {
@@ -315,30 +329,36 @@ class PurchaseOrderRepository {
     }
   }
 
-  async addDeliveryNote(dbPool, poprimary_id, po_number, vendor_id, items, remarks, transaction) {
-    for (const item of items) {
-      // If received_qty > 0
-      if (item.received_qty > 0) {
-        // Construct the note capturing accepted/rejected and remarks
-        const finalNote = `Accepted: ${item.accepted_qty || 0}, Rejected: ${item.rejected_qty || 0}. Remarks: ${remarks || ''}`;
+  async addDeliveryNote(dbPool, poprimary_id, po_number, vendor_id, schedules, remark, transaction) {
+    // Delete existing schedules for this PO
+    await dbPool.query(`DELETE FROM po_delivery_note WHERE poprimary_id = :poprimary_id`, {
+      replacements: { poprimary_id }, type: QueryTypes.DELETE, transaction
+    });
 
-        const query = `
-          INSERT INTO po_delivery_note 
-          (po_id, poprimary_id, vendor_id, item_id, item_qty, delivery_date, delivery_note)
-          VALUES (:po_number, :poprimary_id, :vendor_id, :item_id, :item_qty, CURRENT_TIMESTAMP, :delivery_note)
-        `;
-        await dbPool.query(query, {
-          replacements: {
-            po_number,
-            poprimary_id,
-            vendor_id,
-            item_id: item.item_id,
-            item_qty: item.received_qty,
-            delivery_note: finalNote
-          },
-          type: QueryTypes.INSERT,
-          transaction
-        });
+    for (const schedule of schedules) {
+      if (schedule.inwarddate && schedule.inwarddate.trim() !== '') {
+        for (const item of schedule.items) {
+          if (item.qty > 0) {
+            const query = `
+              INSERT INTO po_delivery_note 
+              (po_id, poprimary_id, vendor_id, item_id, item_qty, delivery_date, delivery_note)
+              VALUES (:po_number, :poprimary_id, :vendor_id, :item_id, :item_qty, :delivery_date, :delivery_note)
+            `;
+            await dbPool.query(query, {
+              replacements: {
+                po_number,
+                poprimary_id,
+                vendor_id,
+                item_id: item.item_id,
+                item_qty: item.qty,
+                delivery_date: schedule.inwarddate,
+                delivery_note: remark || ''
+              },
+              type: QueryTypes.INSERT,
+              transaction
+            });
+          }
+        }
       }
     }
   }

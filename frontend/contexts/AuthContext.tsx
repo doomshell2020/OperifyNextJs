@@ -72,7 +72,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(user);
         
         // Redirect to admin dashboards base on role ID
-        router.push('/dashboard');
+        if (user.role_id === 101) {
+          router.push('/admin/permission');
+        } else {
+          router.push('/dashboard');
+        }
       }
     } catch (err: any) {
       setUser(null);

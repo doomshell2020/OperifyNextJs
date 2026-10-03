@@ -1,5 +1,5 @@
 'use client';
-import { formatDate } from '../../../../utils/dateFormatter';
+import { formatDate } from '@/utils/dateFormatter';
 
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -205,3 +205,4 @@ export default function ContractDetailsPrintPage() {
     </div>
   );
 }
+

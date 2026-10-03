@@ -10,22 +10,29 @@ class ContractController {
         vendor_name,
         cost,
         datefrom,
-        dateto
+        dateto,
+        page = 1,
+        limit = 10
       } = req.query;
+
+      const offset = (Number(page) - 1) * Number(limit);
 
       const filters = {
         contract_name: contract_name ? String(contract_name).trim() : undefined,
         vendor_name: vendor_name ? String(vendor_name).trim() : undefined,
         cost: cost || undefined,
         datefrom: datefrom || undefined,
-        dateto: dateto || undefined
+        dateto: dateto || undefined,
+        limit,
+        offset
       };
 
-      const contracts = await contractService.getContractsList(dbPool, filters);
+      const result = await contractService.getContractsList(dbPool, filters);
 
       return res.status(200).json({
         success: true,
-        data: contracts
+        data: result.rows,
+        total: result.count
       });
     } catch (err) {
       next(err);

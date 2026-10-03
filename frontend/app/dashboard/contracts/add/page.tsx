@@ -111,9 +111,7 @@ export default function AddContractPage() {
     const payload: CreateContractPayload = {
       supplier_id: matchedSupplier.id,
       title,
-      workorder,
-      cost,
-      issuedate,
+      workorder,      issuedate,
       operation_cost: operationCost,
       labour_cost: labourCost,
       contract_start_date: startDate,
@@ -388,3 +386,4 @@ export default function AddContractPage() {
     </main>
   );
 }
+

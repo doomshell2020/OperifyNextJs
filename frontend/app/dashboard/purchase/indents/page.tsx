@@ -4,9 +4,9 @@ import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import indentService, { IndentSummary } from '../../../../services/indent.service';
-import {
 import { DatePicker } from '../../../../components/ui/DatePicker';
-import {  formatDate , formatContractDate } from '../../../../utils/dateFormatter';
+import { formatDate, formatContractDate } from '../../../../utils/dateFormatter';
+import {
   ListTodo,
   Plus,
   Search,
@@ -321,3 +321,4 @@ export default function IndentsListPage() {
     </div>
   );
 }
+

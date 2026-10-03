@@ -9,7 +9,7 @@ exports.index = async (req, res, next) => {
     const { contract_id, datestart, dateto, page = 1, limit = 20 } = req.query;
     
     let query = `
-      SELECT d.*, c.title as contract_title, c.workorder, a.item_name 
+      SELECT d.*, c.title as contract_title, c.workorder, a.item_name, (SELECT COUNT(*) FROM indentpo i WHERE i.contract_id = d.contract_id AND i.finishedproduct_id = d.item_id) as indentpo_count
       FROM designsheet d
       LEFT JOIN contracts c ON d.contract_id = c.id
       LEFT JOIN st_additem a ON d.item_id = a.id
@@ -32,7 +32,7 @@ exports.index = async (req, res, next) => {
       params.dateto = dateto;
     }
     
-    let countQuery = query.replace('SELECT d.*, c.title as contract_title, c.workorder, a.item_name', 'SELECT COUNT(*) as total');
+    let countQuery = query.replace('SELECT d.*, c.title as contract_title, c.workorder, a.item_name, (SELECT COUNT(*) FROM indentpo i WHERE i.contract_id = d.contract_id AND i.finishedproduct_id = d.item_id) as indentpo_count', 'SELECT COUNT(*) as total');
     
     query += ' ORDER BY d.id DESC LIMIT :limit OFFSET :offset';
     const offset = (page - 1) * limit;

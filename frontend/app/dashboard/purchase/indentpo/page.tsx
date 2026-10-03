@@ -122,7 +122,7 @@ export default function IndentPoListPage() {
                     <td className="px-6 py-4">
                       <div 
                         className="text-blue-600 font-medium cursor-pointer hover:underline"
-                        onClick={() => setSelectedContractId(indent.contract_id)}
+                        onClick={() => setSelectedContractId(indent.contract_id || null)}
                       >
                         {indent.contract_name}
                       </div>
@@ -269,3 +269,4 @@ function IndentDetailsModal({ id, onClose }: { id: number, onClose: () => void }
     </div>
   );
 }
+

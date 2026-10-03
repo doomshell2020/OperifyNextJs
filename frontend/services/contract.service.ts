@@ -70,6 +70,13 @@ export interface ContractFilters {
   cost?: string;
   datefrom?: string;
   dateto?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface PaginatedContracts {
+  data: ContractListItem[];
+  total: number;
 }
 
 class ContractService {
@@ -83,16 +90,21 @@ class ContractService {
     return response.data;
   }
 
-  async getContracts(filters: ContractFilters = {}): Promise<ContractListItem[]> {
+  async getContracts(filters: ContractFilters = {}): Promise<PaginatedContracts> {
     const params = new URLSearchParams();
     if (filters.contract_name) params.append('contract_name', filters.contract_name);
     if (filters.vendor_name) params.append('vendor_name', filters.vendor_name);
     if (filters.cost) params.append('cost', filters.cost);
     if (filters.datefrom) params.append('datefrom', filters.datefrom);
     if (filters.dateto) params.append('dateto', filters.dateto);
+    if (filters.page) params.append('page', filters.page.toString());
+    if (filters.limit) params.append('limit', filters.limit.toString());
 
     const response = await apiClient.get(`/contracts?${params.toString()}`);
-    return response.data.data;
+    return {
+      data: response.data.data,
+      total: response.data.total
+    };
   }
 
   async getDetails(id: number | string): Promise<ContractDetailsData> {

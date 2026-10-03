@@ -287,7 +287,8 @@ export default function GrnIndexPage() {
 
       {isPoModalOpen && selectedPoId && (
         <PurchaseOrderDetailsModal
-          poNumber={selectedPoId}
+          id={selectedPoId}
+          isOpen={isPoModalOpen}
           onClose={() => {
             setIsPoModalOpen(false);
             setSelectedPoId(null);
@@ -308,3 +309,5 @@ export default function GrnIndexPage() {
     </main>
   );
 }
+
+

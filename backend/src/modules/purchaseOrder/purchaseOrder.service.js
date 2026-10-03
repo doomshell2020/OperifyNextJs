@@ -54,8 +54,8 @@ class PurchaseOrderService {
   async addDeliveryNote(dbPool, id, data) {
     const transaction = await dbPool.transaction();
     try {
-      const { po_number, vendor_id, items, remarks } = data;
-      await purchaseOrderRepository.addDeliveryNote(dbPool, id, po_number, vendor_id, items, remarks, transaction);
+      const { po_number, vendor_id, schedules, remark } = data;
+      await purchaseOrderRepository.addDeliveryNote(dbPool, id, po_number, vendor_id, schedules, remark, transaction);
 
       await transaction.commit();
       return { success: true };

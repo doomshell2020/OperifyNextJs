@@ -80,6 +80,13 @@ class AuthService {
       board: tenantUser.board || null
     };
 
+    // Get assigned companies and permissions
+    const assignedCompanies = await authRepository.getAssignedCompanies(centralUser);
+    const permissions = await authRepository.getUserPermissions(tenantUser.role_id);
+
+    // Add permissions to token payload
+    tokenPayload.permissions = permissions;
+
     const accessToken = jwt.sign(
       tokenPayload,
       process.env.JWT_SECRET || 'super_secret_key',
@@ -92,9 +99,6 @@ class AuthService {
       { expiresIn: '7d' }
     );
 
-    // Get assigned companies
-    const assignedCompanies = await authRepository.getAssignedCompanies(centralUser);
-
     return {
       user: {
         id: tenantUser.id,
@@ -103,7 +107,8 @@ class AuthService {
         mobile: tenantUser.mobile,
         role_id: tenantUser.role_id,
         db: tenantDbName,
-        companies: assignedCompanies
+        companies: assignedCompanies,
+        permissions
       },
       accessToken,
       refreshToken
@@ -140,20 +145,24 @@ class AuthService {
         board: centralUser.board || null
       };
 
+      // Get assigned companies and permissions
+      const assignedCompanies = await authRepository.getAssignedCompanies(centralUser);
+      const permissions = await authRepository.getUserPermissions(centralUser.role_id);
+
+      tokenPayload.permissions = permissions;
+
       const newAccessToken = jwt.sign(
         tokenPayload,
         process.env.JWT_SECRET || 'super_secret_key',
         { expiresIn: '2h' }
       );
 
-      // Return both access token and updated user details so frontend can update its context
-      const assignedCompanies = await authRepository.getAssignedCompanies(centralUser);
-
       return { 
         accessToken: newAccessToken,
         user: {
           ...tokenPayload,
-          companies: assignedCompanies
+          companies: assignedCompanies,
+          permissions
         }
       };
     } catch (err) {
@@ -192,6 +201,9 @@ class AuthService {
       board: centralUser.board || null
     };
 
+    const permissions = await authRepository.getUserPermissions(centralUser.role_id);
+    tokenPayload.permissions = permissions;
+
     const accessToken = jwt.sign(
       tokenPayload,
       process.env.JWT_SECRET || 'super_secret_key',
@@ -207,7 +219,8 @@ class AuthService {
     return {
       user: {
         ...tokenPayload,
-        companies: assignedCompanies
+        companies: assignedCompanies,
+        permissions
       },
       accessToken,
       refreshToken

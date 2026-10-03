@@ -304,8 +304,8 @@ export function PrintPurchaseOrder({ poId, onClose }: PrintPurchaseOrderProps) {
                             const rate = parseFloat(item.rate as any);
                             const taxPct = parseFloat(item.tax_percentage as any);
                             const basePrice = qty * rate;
-                            const taxAmt = basePrice * (taxPct / 100);
-                            const total = basePrice + taxAmt;
+                            const taxAmt = parseFloat(item.tax_amt as any) || (basePrice * (taxPct / 100));
+                            const total = parseFloat(item.amount as any) || (basePrice + taxAmt);
 
                             return (
                               <tr key={idx}>
@@ -616,20 +616,57 @@ export function PrintPurchaseOrder({ poId, onClose }: PrintPurchaseOrderProps) {
                       <table width="100%" cellPadding="0" cellSpacing="0">
                         <tbody>
                           <tr>
-                            <td width="43%" style={{ borderTop: '1px solid #000', borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '24px', lineHeight: '24px', fontSize: '10px', fontWeight: 'bold', textAlign: 'left', paddingLeft: '4px' }}>ITEM</td>
-                            <td width="17%" style={{ borderTop: '1px solid #000', borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '24px', lineHeight: '24px', fontSize: '10px', fontWeight: 'bold', textAlign: 'center' }}>PO Qty</td>
-                            <td width="20%" style={{ borderTop: '1px solid #000', borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '24px', lineHeight: '24px', fontSize: '10px', textAlign: 'center', fontWeight: 'bold' }}>DATE</td>
-                            <td width="20%" style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '24px', lineHeight: '24px', fontSize: '10px', textAlign: 'center', fontWeight: 'bold' }}>QTY</td>
+                            <td width="30%" style={{ borderTop: '1px solid #000', borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '24px', lineHeight: '24px', fontSize: '10px', fontWeight: 'bold', textAlign: 'left', paddingLeft: '4px' }}>ITEM</td>
+                            <td width="10%" style={{ borderTop: '1px solid #000', borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '24px', lineHeight: '24px', fontSize: '10px', fontWeight: 'bold', textAlign: 'center' }}>PO Qty</td>
+                            {(() => {
+                               const uniqueDates = Array.from(new Set((data.schedules || []).map((s: any) => s.delivery_date)));
+                               if (uniqueDates.length === 0) {
+                                 return (
+                                   <>
+                                     <td width="30%" style={{ borderTop: '1px solid #000', borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '24px', lineHeight: '24px', fontSize: '10px', textAlign: 'center', fontWeight: 'bold' }}>DATE</td>
+                                     <td width="30%" style={{ borderTop: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '24px', lineHeight: '24px', fontSize: '10px', textAlign: 'center', fontWeight: 'bold' }}>QTY</td>
+                                   </>
+                                 );
+                               }
+                               const dateColWidth = 60 / (uniqueDates.length * 2);
+                               return uniqueDates.map((date, i) => (
+                                 <React.Fragment key={i}>
+                                   <td width={`${dateColWidth}%`} style={{ borderTop: '1px solid #000', borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '24px', lineHeight: '24px', fontSize: '10px', textAlign: 'center', fontWeight: 'bold' }}>DATE</td>
+                                   <td width={`${dateColWidth}%`} style={{ borderTop: '1px solid #000', borderRight: i === uniqueDates.length - 1 ? 'none' : '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '24px', lineHeight: '24px', fontSize: '10px', textAlign: 'center', fontWeight: 'bold' }}>QTY</td>
+                                 </React.Fragment>
+                               ));
+                            })()}
                           </tr>
 
                           {data.items.map((item, idx) => {
                             const qty = parseFloat(item.order_qty as any);
+                            const uniqueDates = Array.from(new Set((data.schedules || []).map((s: any) => s.delivery_date)));
+
                             return (
                               <tr key={idx}>
                                 <td style={{ borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '24px', lineHeight: '24px', fontSize: '10px', textAlign: 'left', paddingLeft: '4px' }}>{item.item_name}</td>
                                 <td style={{ borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '24px', lineHeight: '24px', fontSize: '10px', textAlign: 'center' }}>{qty}</td>
-                                <td style={{ borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '24px', lineHeight: '24px', fontSize: '10px', textAlign: 'center' }}>{data.po.delivery_date ? data.po.delivery_date.split('T')[0].split('-').reverse().join('-') : '-'}</td>
-                                <td style={{ borderBottom: '1px solid #000', color: '#000', height: '24px', lineHeight: '24px', fontSize: '10px', textAlign: 'center' }}>{qty}</td>
+                                {(() => {
+                                  if (uniqueDates.length === 0) {
+                                    return (
+                                      <>
+                                        <td style={{ borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '24px', lineHeight: '24px', fontSize: '10px', textAlign: 'center' }}>{data.po.delivery_date ? data.po.delivery_date.split('T')[0].split('-').reverse().join('-') : '-'}</td>
+                                        <td style={{ borderBottom: '1px solid #000', color: '#000', height: '24px', lineHeight: '24px', fontSize: '10px', textAlign: 'center' }}>{qty}</td>
+                                      </>
+                                    );
+                                  }
+                                  
+                                  return uniqueDates.map((date: any, i) => {
+                                    const scheduleItem = data.schedules.find((s: any) => s.delivery_date === date && s.item_id === item.item_id);
+                                    const scheduleQty = scheduleItem ? scheduleItem.item_qty : '';
+                                    return (
+                                      <React.Fragment key={i}>
+                                        <td style={{ borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '24px', lineHeight: '24px', fontSize: '10px', textAlign: 'center' }}>{scheduleQty ? new Date(date).toLocaleDateString('en-GB').replace(/\//g, '-') : ''}</td>
+                                        <td style={{ borderRight: i === uniqueDates.length - 1 ? 'none' : '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '24px', lineHeight: '24px', fontSize: '10px', textAlign: 'center' }}>{scheduleQty || ''}</td>
+                                      </React.Fragment>
+                                    )
+                                  });
+                                })()}
                               </tr>
                             );
                           })}

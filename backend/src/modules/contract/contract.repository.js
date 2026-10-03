@@ -33,10 +33,11 @@ class ContractRepository {
 
     const isInnerJoin = Object.keys(vendorWhere).length > 0;
 
-    return await contracts.findAll({
+    return await contracts.findAndCountAll({
       attributes: [
         'id', 'title', 'workorder', 'cost', 'contract_start_date', 'contract_end_date', 'issuedate', 'description', 'status', 'added_time',
-        [col('vendor.name'), 'vendor_name']
+        [col('vendor.name'), 'vendor_name'],
+        [literal(`(SELECT COUNT(*) FROM designsheet WHERE contract_id = contracts.id)`), 'designsheet_count']
       ],
       include: [{
         model: vendors,
@@ -47,6 +48,8 @@ class ContractRepository {
       }],
       where,
       order: [['id', 'DESC']],
+      limit: filters.limit ? parseInt(filters.limit, 10) : undefined,
+      offset: filters.offset ? parseInt(filters.offset, 10) : undefined,
       raw: true
     });
   }

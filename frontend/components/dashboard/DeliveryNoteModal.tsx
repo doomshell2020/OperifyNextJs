@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import purchaseOrderService, { PurchaseOrderDetailsData, PurchaseOrderItem } from '../../services/purchaseOrder.service';
-import { Loader, X, Save, AlertCircle } from 'lucide-react';
+import purchaseOrderService, { PurchaseOrderItem } from '../../services/purchaseOrder.service';
+import { Loader, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface DeliveryNoteModalProps {
   poId: number;
@@ -12,140 +13,256 @@ interface DeliveryNoteModalProps {
 
 export function DeliveryNoteModal({ poId, onClose }: DeliveryNoteModalProps) {
   const queryClient = useQueryClient();
-  const [remarks, setRemarks] = useState('');
-  const [items, setItems] = useState<(PurchaseOrderItem & { received_qty?: number; accepted_qty?: number; rejected_qty?: number })[]>([]);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['purchase-order-details', poId],
     queryFn: () => purchaseOrderService.getDetails(poId),
     enabled: !!poId,
   });
 
+  const [remark, setRemark] = useState('');
+  const [schedules, setSchedules] = useState<any[]>(
+    Array(4).fill(null).map(() => ({ inwarddate: '', items: {} }))
+  );
+
   useEffect(() => {
     if (data) {
-      setItems(data.items.map(i => ({ ...i, received_qty: 0, accepted_qty: 0, rejected_qty: 0 })));
+      if (data.po.remark) setRemark(data.po.remark);
+      
+      const newSchedules = Array(4).fill(null).map(() => ({ inwarddate: '', items: {} }));
+      
+      data.items.forEach((item: any) => {
+        for (let i = 0; i < 4; i++) {
+          newSchedules[i].items[item.item_id] = 0;
+        }
+      });
+
+      if (data.schedules && data.schedules.length > 0) {
+        // Group by date
+        const dateGroups = Array.from(new Set(data.schedules.map((s: any) => s.delivery_date)));
+        
+        dateGroups.forEach((date: any, index: number) => {
+          if (index < 4) {
+            newSchedules[index].inwarddate = date.split('T')[0];
+            const itemsForDate = data.schedules.filter((s: any) => s.delivery_date === date);
+            itemsForDate.forEach((s: any) => {
+              newSchedules[index].items[s.item_id] = Number(s.item_qty);
+            });
+          }
+        });
+        
+        if (data.schedules[0] && data.schedules[0].remark) {
+           setRemark(data.schedules[0].remark);
+        }
+      }
+
+      setSchedules(newSchedules);
     }
   }, [data]);
 
   const addDeliveryMutation = useMutation({
     mutationFn: (payload: any) => purchaseOrderService.addDeliveryNote(poId, payload),
     onSuccess: () => {
+      toast.success('Delivery Schedule added successfully.');
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
       queryClient.invalidateQueries({ queryKey: ['purchase-order-details', poId] });
       onClose();
     }
   });
 
-  const handleItemChange = (index: number, field: string, value: string) => {
-    const val = parseFloat(value) || 0;
-    const newItems = [...items];
-    (newItems[index] as any)[field] = val;
-    setItems(newItems);
+  const handleDateChange = (index: number, val: string) => {
+    let isDuplicate = false;
+    for (let i = 0; i < 4; i++) {
+      if (i !== index && schedules[i].inwarddate === val && val !== '') {
+        isDuplicate = true;
+        break;
+      }
+    }
+    if (isDuplicate) {
+      alert("Each date must be unique. Please select different dates.");
+      return;
+    }
+    const newSchedules = [...schedules];
+    newSchedules[index].inwarddate = val;
+    setSchedules(newSchedules);
   };
 
-  const handleSave = () => {
-    if (!data) return;
+  const handleQtyChange = (dateIndex: number, itemId: number, val: string) => {
+    const qty = parseFloat(val) || 0;
     
-    const payload = {
-      po_number: data.po.po_number,
-      vendor_id: (data.po as any).vendor_id, // We need to make sure we have vendor_id if required by backend, else backend can infer it. 
-      // Actually backend needs vendor_id. But our GET /details doesn't return vendor_id.
-      // Wait, getDetails query in backend does not select vendor_id!
-      // Let's rely on backend to just use whatever is sent, or modify backend to not strictly need it.
-      // We will pass undefined if not available.
-      items: items.filter(i => (i.received_qty || 0) > 0),
-      remarks
-    };
-    addDeliveryMutation.mutate(payload);
+    let sum = 0;
+    for (let i = 0; i < 4; i++) {
+      if (i === dateIndex) {
+        sum += qty;
+      } else {
+        sum += schedules[i].items[itemId] || 0;
+      }
+    }
+    
+    const item = data?.items.find((i: any) => i.item_id === itemId);
+    const totalQty = Number(item?.order_qty) || 0;
+
+    if (sum > totalQty) {
+      alert(`Total schedule quantity can not be greater then ${totalQty}`);
+      const maxQty = totalQty - (sum - qty);
+      const newSchedules = [...schedules];
+      newSchedules[dateIndex].items[itemId] = maxQty;
+      setSchedules(newSchedules);
+      return;
+    }
+
+    const newSchedules = [...schedules];
+    newSchedules[dateIndex].items[itemId] = qty;
+    setSchedules(newSchedules);
   };
 
-  if (!poId) return null;
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!data) return;
+
+    let formValid = true;
+    
+    data.items.forEach((item: any) => {
+      let sum = 0;
+      let dateValid = true;
+      for (let i = 0; i < 4; i++) {
+        const qty = schedules[i].items[item.item_id] || 0;
+        if (qty > 0 && !schedules[i].inwarddate) {
+          alert(`Date${i + 1} cannot be blank`);
+          dateValid = false;
+          formValid = false;
+          break;
+        }
+        sum += qty;
+      }
+      if (dateValid && sum < Number(item.order_qty)) {
+        alert(`Total quantity cannot be less than ${item.order_qty}`);
+        formValid = false;
+      }
+    });
+
+    if (!formValid) return;
+
+    const payloadSchedules = schedules.map(s => {
+      return {
+        inwarddate: s.inwarddate,
+        items: Object.keys(s.items).map(itemId => ({ item_id: Number(itemId), qty: s.items[Number(itemId)] }))
+      }
+    });
+
+    addDeliveryMutation.mutate({
+      po_number: data.po.po_number,
+      vendor_id: (data.po as any).vendor_id,
+      remark,
+      schedules: payloadSchedules
+    });
+  };
+
+  if (!poId || isLoading || !data) {
+    return (
+      <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40">
+        <Loader className="w-8 h-8 animate-spin text-white" />
+      </div>
+    );
+  }
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white border border-slate-200 shadow-2xl rounded-2xl max-w-4xl w-full p-6 flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]">
-        
-        <div className="absolute top-4 right-4 z-10 flex gap-2">
-          <button
-            onClick={handleSave}
-            disabled={addDeliveryMutation.isPending || isLoading}
-            className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded font-bold shadow-sm transition cursor-pointer text-sm disabled:opacity-50"
-          >
-            {addDeliveryMutation.isPending ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save Note
-          </button>
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 bg-white border border-slate-200 rounded transition cursor-pointer shadow-sm"
-          >
-            <X className="w-4 h-4" />
+    <div className="fixed inset-0 z-[10000] flex justify-center items-start overflow-y-auto bg-black/40 pt-10 pb-10">
+      <div className="bg-white rounded w-[95%] max-w-[1200px] shadow-lg relative">
+        <div className="bg-[#00c0ef] border-[#0097bc] text-white p-3 border-b flex justify-between items-center rounded-t">
+          <h3 className="m-0 text-[18px] font-normal flex items-center gap-2">
+             <i className="fa fa-plus-square"></i> Delivery Note For Purchase Order id : {data.po.po_number}
+          </h3>
+          <button onClick={onClose} className="text-white hover:text-gray-200">
+             <X className="w-5 h-5" />
           </button>
         </div>
-
-        <h2 className="text-xl font-bold text-slate-800 mb-6">
-          Add Delivery Note
-        </h2>
-
-        {isLoading && (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-500">
-            <Loader className="w-8 h-8 animate-spin mb-4 text-indigo-500" />
-            <p>Loading PO items...</p>
-          </div>
-        )}
-
-        {isError && (
-          <div className="flex flex-col items-center justify-center py-20 text-red-500 bg-red-50 rounded-xl">
-            <AlertCircle className="w-10 h-10 mb-2" />
-            <p className="font-semibold">Failed to load PO items</p>
-          </div>
-        )}
-
-        {!isLoading && !isError && data && (
-          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-            <div className="mb-6">
-              <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Remarks</label>
-              <textarea 
-                value={remarks} 
-                onChange={(e) => setRemarks(e.target.value)} 
-                className="w-full border p-2 rounded" 
-                rows={2} 
-                placeholder="Optional delivery remarks..."
-              />
+        
+        <form onSubmit={handleSubmit} className="p-4" style={{ fontFamily: '"Source Sans Pro", "Helvetica Neue", Helvetica, Arial, sans-serif' }}>
+          <div className="flex flex-wrap -mx-3 mb-4">
+            <div className="w-full md:w-1/4 px-3 mb-4 md:mb-0">
+              <label className="block text-sm font-bold mb-2">PO Date <strong className="text-red-600">*</strong></label>
+              <input type="text" readOnly value={new Date(data.po.po_date).toLocaleDateString('en-GB').replace(/\//g, '-')} className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100" />
             </div>
+            <div className="w-full md:w-1/4 px-3 mb-4 md:mb-0">
+              <label className="block text-sm font-bold mb-2">Expected Delivery Date<strong className="text-red-600">*</strong></label>
+              <input type="text" readOnly value={new Date(data.po.delivery_date).toLocaleDateString('en-GB').replace(/\//g, '-')} className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100" />
+            </div>
+            <div className="w-full md:w-1/4 px-3">
+              <label className="block text-sm font-bold mb-2">Supplier <strong className="text-red-600">*</strong></label>
+              <input type="text" readOnly value={data.po.vendor_name} className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-100" />
+            </div>
+          </div>
 
-            <h3 className="text-sm font-bold text-slate-800 mb-2">Receive Items</h3>
-            <div className="border border-slate-200 rounded-lg overflow-hidden">
-              <table className="w-full text-left border-collapse text-sm">
+          <div className="mb-4">
+            <label className="block text-sm font-bold mb-2">Items</label>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border border-gray-300 text-sm">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="p-2 font-semibold text-slate-600">Item Name</th>
-                    <th className="p-2 font-semibold text-slate-600 w-24">Order Qty</th>
-                    <th className="p-2 font-semibold text-slate-600 w-24 text-blue-600">Received</th>
-                    <th className="p-2 font-semibold text-slate-600 w-24 text-green-600">Accepted</th>
-                    <th className="p-2 font-semibold text-slate-600 w-24 text-red-600">Rejected</th>
+                  <tr className="bg-[#c8c8c8] text-[#333333]">
+                    <th className="border border-gray-300 p-2 text-left">Item</th>
+                    <th className="border border-gray-300 p-2 text-left">PO Qty</th>
+                    <th className="border border-gray-300 p-2 text-left">Date1</th>
+                    <th className="border border-gray-300 p-2 text-left">Qty</th>
+                    <th className="border border-gray-300 p-2 text-left">Date2</th>
+                    <th className="border border-gray-300 p-2 text-left">Qty</th>
+                    <th className="border border-gray-300 p-2 text-left">Date3</th>
+                    <th className="border border-gray-300 p-2 text-left">Qty</th>
+                    <th className="border border-gray-300 p-2 text-left">Date4</th>
+                    <th className="border border-gray-300 p-2 text-left">Qty</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((item, idx) => (
-                    <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                      <td className="p-2 font-medium text-slate-700">{item.item_name}</td>
-                      <td className="p-2">{item.order_qty} {item.uom}</td>
-                      <td className="p-2">
-                        <input type="number" min="0" value={item.received_qty} onChange={(e) => handleItemChange(idx, 'received_qty', e.target.value)} className="w-full p-1 border rounded border-blue-200 focus:border-blue-500 outline-none" />
+                  {data.items.map((item: any, index: number) => (
+                    <tr key={item.item_id} className={index % 2 === 0 ? "bg-[#f2f2f2]" : ""}>
+                      <td className="border border-gray-300 p-2 w-[19%]">
+                        <input type="text" readOnly value={item.item_name} className="w-full px-2 py-1 border border-gray-300 rounded bg-gray-100 outline-none" />
                       </td>
-                      <td className="p-2">
-                        <input type="number" min="0" value={item.accepted_qty} onChange={(e) => handleItemChange(idx, 'accepted_qty', e.target.value)} className="w-full p-1 border rounded border-green-200 focus:border-green-500 outline-none" />
+                      <td className="border border-gray-300 p-2 w-[9%]">
+                         <input type="text" readOnly value={Number(item.order_qty).toFixed(2)} className="w-full px-2 py-1 border border-gray-300 rounded bg-gray-100 outline-none" />
                       </td>
-                      <td className="p-2">
-                        <input type="number" min="0" value={item.rejected_qty} onChange={(e) => handleItemChange(idx, 'rejected_qty', e.target.value)} className="w-full p-1 border rounded border-red-200 focus:border-red-500 outline-none" />
-                      </td>
+                      {[0, 1, 2, 3].map(i => (
+                        <React.Fragment key={i}>
+                          <td className="border border-gray-300 p-2 w-[9%]">
+                            <input 
+                              type="date" 
+                              min={data.po.po_date?.split('T')[0]} 
+                              max={data.po.delivery_date?.split('T')[0]}
+                              value={schedules[i].inwarddate} 
+                              onChange={e => handleDateChange(i, e.target.value)}
+                              className="w-full px-2 py-1 border border-gray-300 rounded outline-none" 
+                            />
+                          </td>
+                          <td className="border border-gray-300 p-2 w-[9%]">
+                            <input 
+                              type="number" 
+                              step="0.01"
+                              min="0"
+                              value={schedules[i].items[item.item_id] || ''} 
+                              onChange={e => handleQtyChange(i, item.item_id, e.target.value)}
+                              className="w-full px-2 py-1 border border-gray-300 rounded outline-none" 
+                              required={schedules[i].inwarddate !== ''}
+                            />
+                          </td>
+                        </React.Fragment>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           </div>
-        )}
+
+          <div className="mb-4">
+             <label className="block text-sm font-bold mb-2">Remark</label>
+             <textarea value={remark} onChange={e => setRemark(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded outline-none" rows={3}></textarea>
+          </div>
+
+          <div className="flex justify-end gap-2 border-t pt-4">
+             <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded border border-gray-300 font-semibold text-sm">Back</button>
+             <button type="submit" disabled={addDeliveryMutation.isPending} className="px-4 py-2 bg-[#00c0ef] hover:bg-[#0097bc] text-white rounded font-semibold text-sm">Submit</button>
+          </div>
+        </form>
       </div>
     </div>
   );

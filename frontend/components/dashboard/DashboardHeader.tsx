@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePermission } from '../../contexts/PermissionContext';
 import {
   FolderClosed, CreditCard, FileText, Layers, FileSpreadsheet,
   ShoppingBag, ClipboardCheck, Truck, RefreshCw, Factory,
@@ -16,6 +17,7 @@ export const DashboardSidebar: React.FC<{ collapsed?: boolean }> = () => null;
 export const DashboardTopbar: React.FC = () => {
   const pathname = usePathname();
   const { user, logout, switchCompany } = useAuth();
+  const { hasPermission } = usePermission();
   const [profileOpen, setProfileOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>('https://staging.operify.in/image/logo.png');
 
@@ -60,7 +62,8 @@ export const DashboardTopbar: React.FC = () => {
     { title: 'Categories', path: '/dashboard/admin/categories' },
     { title: 'Products', path: '/dashboard/admin/products' },
     { title: 'Suppliers', path: '/dashboard/admin/suppliers' },
-    { title: 'Users', path: '/dashboard/admin/roles' }
+    { title: 'Users', path: '/dashboard/admin/roles' },
+    { title: 'Permission', path: '/admin/permission' }
   ];
 
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -77,7 +80,7 @@ export const DashboardTopbar: React.FC = () => {
   return (
     <header className="bg-[#fff] border-b border-[#ddd] flex items-center justify-between px-1 select-none h-[66px] w-full shadow-[0_1px_2px_rgba(0,0,0,0.03)] z-50 relative">
       {/* 2. Logo Section */}
-      <Link href="/dashboard" className="flex items-center gap-1.5 shrink-0 justify-start w-[110px] cursor-pointer hover:opacity-80 transition-opacity">
+      <Link href="/dashboard" className="flex items-center gap-1.5 shrink-0 justify-start w-[110px] cursor-pointer hover:opacity-80 transition-opacity [&>*]:pointer-events-none">
         <div className="h-[28px] w-[28px] flex items-center justify-center shrink-0">
           <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
         </div>
@@ -88,64 +91,116 @@ export const DashboardTopbar: React.FC = () => {
 
       {/* 3. & 8. Main Navigation */}
       <nav className="flex-1 min-w-0 flex items-center overflow-x-auto overflow-y-hidden no-scrollbar px-1 h-full">
-        {navItems.map((item) => {
-          const isActive = pathname === item.path || pathname.startsWith(item.path + '/');
-          return (
-            <Link
-              key={item.title}
-              href={item.path}
-              className={`flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] shrink-0 border-b-[2px] transition-colors ${
-                isActive ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'
-              }`}
-            >
-              {React.cloneElement(item.icon as React.ReactElement, {
-                className: `w-[18px] h-[18px] ${isActive ? 'text-[#1683D8]' : 'text-[#555]'}`
-              })}
-              <span className="text-[11px] font-semibold text-center whitespace-nowrap leading-none">{item.title}</span>
-            </Link>
-          );
-        })}
+        {user?.role_id === 101 ? (
+          <>
+            <div className="flex-1"></div>
+          </>
+        ) : (
+          navItems.filter(item => { 
+            if(item.title==="EMD") return hasPermission("legacy:admin/emd/index");
+            if(item.title==="Payments") return hasPermission("legacy:admin/paymentmanager/index");
+            if(item.title==="Contract") return hasPermission("contracts:view") || hasPermission("legacy:admin/contracts/index"); 
+            if(item.title==="Design Sheet") return hasPermission("designsheet:view") || hasPermission("legacy:admin/designsheet/index");
+            if(item.title==="Quotation") return hasPermission("legacy:admin/quotation/index");
+            if(item.title==="PO") return hasPermission("purchaseorder:view") || hasPermission("legacy:admin/purchaseorder/index"); 
+            if(item.title==="GRN Inspection") return hasPermission("legacy:admin/goodsreceived/grninspection");
+            if(item.title==="GRN") return hasPermission("grn:view") || hasPermission("legacy:admin/goodsreceived/index");
+            if(item.title==="Indents") return hasPermission("legacy:admin/indentpo/index");
+            if(item.title==="Reverse") return hasPermission("legacy:admin/reverseindent/index");
+            if(item.title==="Production") return hasPermission("production:view") || hasPermission("legacy:admin/production/productionorders");
+            if(item.title==="Daily Sheet") return hasPermission("legacy:admin/production/index");
+            if(item.title==="Maintenance") return hasPermission("legacy:admin/maintenance/index");
+            if(item.title==="Stock") return hasPermission("stock:view") || hasPermission("legacy:admin/stockregister/index");
+            if(item.title==="JC Challan") return hasPermission("jobchallan:view") || hasPermission("legacy:admin/jobchallan/index");
+            
+            // For others where we are not 100% sure of the exact CakePHP URL, we still show them by default, 
+            // but the user can add precise URL restrictions if needed.
+            return true; 
+          }).map((item) => {
+            const isActive = pathname === item.path || pathname.startsWith(item.path + '/');
+            return (
+              <Link
+                key={item.title}
+                href={item.path}
+                className={`flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] shrink-0 border-b-[2px] transition-colors [&>*]:pointer-events-none ${
+                  isActive ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'
+                }`}
+              >
+                {React.cloneElement(item.icon as React.ReactElement, {
+                  className: `w-[18px] h-[18px] pointer-events-none ${isActive ? 'text-[#1683D8]' : 'text-[#555]'}`
+                })}
+                <span className="text-[11px] font-semibold text-center whitespace-nowrap leading-none pointer-events-none">{item.title}</span>
+              </Link>
+            );
+          })
+        )}
       </nav>
 
       {/* 7. Right Section */}
       <div className="flex items-center gap-[6px] shrink-0 ml-auto justify-end h-full relative">
         
-        {/* 11. Settings Dropdown Moved out of Nav to avoid clipping */}
-        <div className="relative flex items-center h-full shrink-0 mr-2">
-          <button
-            onClick={() => setSettingsOpen(!settingsOpen)}
-            className={`flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] border-b-[2px] transition-colors ${
-              pathname.includes('/admin/') ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'
-            }`}
-          >
-            <Settings className={`w-[18px] h-[18px] ${pathname.includes('/admin/') ? 'text-[#1683D8]' : 'text-[#555]'}`} />
-            <span className="text-[11px] font-semibold text-center whitespace-nowrap leading-none">Settings</span>
-          </button>
-          
-          {settingsOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} />
-              <div className="absolute left-1/2 -translate-x-1/2 top-[55px] w-[130px] bg-white border border-[#ccc] shadow-[0_2px_8px_rgba(0,0,0,0.1)] rounded-sm py-1 z-50">
-                {settingsMenu.map((sm) => (
-                  <Link
-                    key={sm.title}
-                    href={sm.path}
-                    onClick={() => setSettingsOpen(false)}
-                    className="flex items-center px-3 py-1.5 text-[10px] text-[#222] hover:bg-[#f5f5f5] transition-colors font-medium"
-                  >
-                    <span className="w-3 h-3 mr-2 text-[#555] flex items-center justify-center">
-                       {sm.title === 'Categories' && '▦'}
-                       {sm.title === 'Products' && '📦'}
-                       {sm.title === 'Suppliers' && '👤'}
-                       {sm.title === 'Users' && '👥'}
-                    </span>
-                    {sm.title}
-                  </Link>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+        {/* Superadmin specific links or Settings */}
+        {user?.role_id === 101 ? (
+          <>
+            <Link href="/dashboard/admin/schools" className="flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] border-b-[2px] border-transparent text-[#222] [&>*]:pointer-events-none hover:bg-[#f5f5f5]">
+              <Database className="w-[18px] h-[18px] text-[#555]" />
+              <span className="text-[11px] font-semibold text-center whitespace-nowrap leading-none">Companies</span>
+            </Link>
+            <Link href="/dashboard/admin/template" className="flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] border-b-[2px] border-transparent text-[#222] [&>*]:pointer-events-none hover:bg-[#f5f5f5]">
+              <FileText className="w-[18px] h-[18px] text-[#555]" />
+              <span className="text-[11px] font-semibold text-center whitespace-nowrap leading-none">Template</span>
+            </Link>
+            <Link href="/admin/permission" className={`flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] border-b-[2px] transition-colors [&>*]:pointer-events-none ${pathname.includes('/admin/permission') ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'}`}>
+              <Settings className={`w-[18px] h-[18px] ${pathname.includes('/admin/permission') ? 'text-[#1683D8]' : 'text-[#555]'}`} />
+              <span className="text-[11px] font-semibold text-center whitespace-nowrap leading-none">Permission</span>
+            </Link>
+            <Link href="/dashboard/admin/demo" className="flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] border-b-[2px] border-transparent text-[#222] [&>*]:pointer-events-none hover:bg-[#f5f5f5]">
+              <FileSpreadsheet className="w-[18px] h-[18px] text-[#555]" />
+              <span className="text-[11px] font-semibold text-center whitespace-nowrap leading-none">Demo Request</span>
+            </Link>
+            <Link href="/dashboard/admin/spam" className="flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] border-b-[2px] border-transparent text-[#222] [&>*]:pointer-events-none hover:bg-[#f5f5f5]">
+              <Archive className="w-[18px] h-[18px] text-[#555]" />
+              <span className="text-[11px] font-semibold text-center whitespace-nowrap leading-none">Spam</span>
+            </Link>
+          </>
+        ) : (
+          <div className="relative flex items-center h-full shrink-0 mr-2">
+            <button
+              onClick={() => setSettingsOpen(!settingsOpen)}
+              className={`flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] border-b-[2px] transition-colors [&>*]:pointer-events-none ${
+                pathname.includes('/admin/') ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'
+              }`}
+            >
+              <Settings className={`w-[18px] h-[18px] ${pathname.includes('/admin/') ? 'text-[#1683D8]' : 'text-[#555]'}`} />
+              <span className="text-[11px] font-semibold text-center whitespace-nowrap leading-none">Settings</span>
+            </button>
+            
+            {settingsOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} />
+                <div className="absolute left-1/2 -translate-x-1/2 top-[55px] w-[130px] bg-white border border-[#ccc] shadow-[0_2px_8px_rgba(0,0,0,0.1)] rounded-sm py-1 z-50">
+                  {settingsMenu.map((sm) => (
+                    <Link
+                      key={sm.title}
+                      href={sm.path}
+                      onClick={() => setSettingsOpen(false)}
+                      className="flex items-center px-3 py-1.5 text-[10px] text-[#222] hover:bg-[#f5f5f5] transition-colors font-medium"
+                    >
+                      <span className="w-3 h-3 mr-2 text-[#555] flex items-center justify-center">
+                        {sm.title === 'Categories' && '▦'}
+                        {sm.title === 'Products' && '📦'}
+                        {sm.title === 'Suppliers' && '👤'}
+                        {sm.title === 'Users' && '👥'}
+                        {sm.title === 'Permission' && '🔐'}
+                      </span>
+                      {sm.title}
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         {user?.companies && user.companies.length > 1 ? (
           <select 
@@ -207,3 +262,5 @@ export const DashboardTopbar: React.FC = () => {
     </header>
   );
 };
+
+

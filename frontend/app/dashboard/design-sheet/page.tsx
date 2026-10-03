@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
+import { usePermission } from '@/contexts/PermissionContext';
 import { designsheetService, DesignSheetFilter } from '../../../services/designsheet.service';
 import { 
   FileText, Search, RefreshCw, Eye, Loader, AlertCircle, Briefcase, Plus, X, Edit, Trash2, Printer
@@ -13,13 +14,14 @@ import { DatePicker } from '../../../components/ui/DatePicker';
 import { formatDate, formatContractDate } from '../../../utils/dateFormatter';
 
 export default function DesignSheetsPage() {
+  const { hasPermission } = usePermission();
   const [filters, setFilters] = useState<DesignSheetFilter>({
     contract_id: '',
     datestart: '',
     dateto: ''
   });
 
-  const [activeFilters, setActiveFilters] = useState<DesignSheetFilter>({});
+  const [activeFilters, setActiveFilters] = useState<DesignSheetFilter>({ page: 1, limit: 50 });
   const [selectedSheetNo, setSelectedSheetNo] = useState<string | null>(null);
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
 
@@ -47,13 +49,17 @@ export default function DesignSheetsPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setActiveFilters({ ...filters });
+    setActiveFilters({ ...filters, page: 1, limit: 50 });
   };
 
   const handleReset = () => {
     const empty = { contract_id: '', datestart: '', dateto: '' };
     setFilters(empty);
-    setActiveFilters(empty);
+    setActiveFilters({ page: 1, limit: 50 });
+  };
+  
+  const handlePageChange = (newPage: number) => {
+    setActiveFilters(prev => ({ ...prev, page: newPage }));
   };
 
   const handleDelete = async (id: number) => {
@@ -79,9 +85,11 @@ export default function DesignSheetsPage() {
           </h1>
         </div>
         <div className="flex gap-2">
-          <Link href="/dashboard/design-sheet/add" className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 border border-cyan-600 rounded-lg text-xs font-semibold text-white transition cursor-pointer self-start md:self-auto">
+          {hasPermission("designsheet:add") && (
+            <Link href="/dashboard/design-sheet/add" className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 border border-cyan-600 rounded-lg text-xs font-semibold text-white transition cursor-pointer self-start md:self-auto">
             <Plus className="w-3.5 h-3.5" /> Add Design Sheet
           </Link>
+          )}
           <button onClick={() => refetch()} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 transition cursor-pointer self-start md:self-auto">
             <RefreshCw className="w-3.5 h-3.5" /> Refresh
           </button>
@@ -127,6 +135,7 @@ export default function DesignSheetsPage() {
           <span className="text-xs font-medium">No design sheets found.</span>
         </div>
       ) : (
+        <>
         <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
           <table className="w-full text-left border-collapse text-xs font-medium text-slate-600">
             <thead>
@@ -144,7 +153,7 @@ export default function DesignSheetsPage() {
             <tbody className="divide-y divide-slate-100">
               {designs.map((d: any, idx: number) => (
                 <tr key={d.id} className="hover:bg-slate-50/50 transition">
-                  <td className="px-6 py-4 font-bold text-slate-900">{idx + 1}</td>
+                  <td className="px-6 py-4 font-bold text-slate-900">{((activeFilters.page || 1) - 1) * (activeFilters.limit || 50) + idx + 1}</td>
                   <td className="px-6 py-4 font-bold text-slate-900">
                      <span className="text-cyan-600 cursor-pointer" onClick={() => setSelectedSheetNo(d.designsheetno)}>
                          {d.designsheetno}
@@ -168,22 +177,62 @@ export default function DesignSheetsPage() {
                         </a>
                     ) : '-'}
                   </td>
-                  <td className="px-6 py-4 text-center flex flex-wrap justify-center gap-2 w-48">
-                    <Link href={`/dashboard/design-sheet/edit/${d.id}`} className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider">
-                      <Edit className="w-3.5 h-3.5" /> Edit
-                    </Link>
-                    <button onClick={() => handleDelete(d.id)} className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg text-rose-700 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider">
-                      <Trash2 className="w-3.5 h-3.5" /> Delete
-                    </button>
-                    <Link href={`/dashboard/design-sheet/print/${d.designsheetno}`} target="_blank" className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-emerald-700 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider">
-                      <Printer className="w-3.5 h-3.5" /> Print
-                    </Link>
+                  <td className="px-6 py-4 flex items-center justify-center gap-3">
+                    {hasPermission("designsheet:edit") && (
+                      <Link href={`/dashboard/design-sheet/edit/${d.id}`} className="text-blue-500 hover:text-blue-700 transition" title="Edit">
+                        <Edit className="w-4 h-4" />
+                      </Link>
+                    )}
+                    {hasPermission("designsheet:delete") && d.indentpo_count === 0 && (
+                      <button onClick={() => handleDelete(d.id)} className="text-rose-500 hover:text-rose-700 transition" title="Delete">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    {hasPermission("designsheet:pdf") && (
+                      <Link href={`/dashboard/design-sheet/print/${d.designsheetno}`} target="_blank" className="text-emerald-600 hover:text-emerald-800 transition" title="Print">
+                        <Printer className="w-4 h-4" />
+                      </Link>
+                    )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+
         </div>
+        {/* Pagination UI */}
+        {data && data.total > 0 && (
+          <div className="flex justify-end items-center mt-4">
+            <div className="flex items-center border border-slate-200 rounded bg-white overflow-hidden text-xs">
+              <button 
+                onClick={() => handlePageChange(Math.max(1, (activeFilters.page || 1) - 1))}
+                disabled={(activeFilters.page || 1) === 1}
+                className="px-3 py-1.5 border-r border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                Previous
+              </button>
+              
+              {Array.from({ length: Math.ceil((data.total || 0) / (activeFilters.limit || 50)) }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => handlePageChange(i + 1)}
+                  className={`px-3 py-1.5 border-r border-slate-200 font-medium ${(activeFilters.page || 1) === i + 1 ? 'bg-cyan-50 text-cyan-700' : 'text-slate-600 hover:bg-slate-50'}`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+
+              <button 
+                onClick={() => handlePageChange(Math.min(Math.ceil((data.total || 0) / (activeFilters.limit || 50)), (activeFilters.page || 1) + 1))}
+                disabled={(activeFilters.page || 1) === Math.ceil((data.total || 0) / (activeFilters.limit || 50))}
+                className="px-3 py-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+        </>
       )}
 
       {selectedSheetNo !== null && (
@@ -198,9 +247,11 @@ export default function DesignSheetsPage() {
                 <div className="relative mb-6">
                     <h3 className="text-base font-extrabold text-slate-900 text-center">Design Sheet Details</h3>
                     <div className="absolute right-0 top-0">
-                        <Link href={`/dashboard/design-sheet/print/${detailsData.designsheet.designsheetno}`} target="_blank" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-semibold shadow-sm transition">
+                        {hasPermission("designsheet:pdf") && (
+                          <Link href={`/dashboard/design-sheet/print/${detailsData.designsheet.designsheetno}`} target="_blank" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-semibold shadow-sm transition">
                             <Printer className="w-3.5 h-3.5" /> Print
                         </Link>
+                        )}
                     </div>
                 </div>
 
@@ -271,9 +322,11 @@ export default function DesignSheetsPage() {
                 <div className="relative mb-6">
                     <h3 className="text-lg font-extrabold text-slate-900 text-center">Contract Details</h3>
                     <div className="absolute right-0 top-0">
-                        <Link href={`/dashboard/production/viewcontractdetailspdf/${selectedContractId}`} target="_blank" className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded font-bold shadow-sm transition">
+                        {hasPermission("contracts:pdf") && (
+                          <Link href={`/dashboard/production/viewcontractdetailspdf/${selectedContractId}`} target="_blank" className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded font-bold shadow-sm transition">
                             <Printer className="w-4 h-4" /> Print
                         </Link>
+                        )}
                     </div>
                 </div>
 

@@ -50,7 +50,7 @@ export default function AddGrnPage() {
     watch,
     formState: { errors }
   } = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(formSchema) as any,
     mode: 'onChange',
     defaultValues: {
       inspection_id: '',
@@ -355,3 +355,4 @@ export default function AddGrnPage() {
     </form>
   );
 }
+

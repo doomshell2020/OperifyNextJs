@@ -156,7 +156,7 @@ export default function CreateIndentPoPage() {
       item_name: selectedItem.item_name,
       unit_name: groupItem.unit_name,
       design_qty: groupItem.design_qty,
-      issued_qty: groupItem.issued_qty,
+      issued_qty: (groupItem as any).issued_qty,
       pending_qty: groupItem.pending_qty,
       inhand_stock: selectedItem.inhand_stock,
       issue_qty: 0,
@@ -402,14 +402,14 @@ export default function CreateIndentPoPage() {
                             e.target.value = "";
                           }}
                         >
-                          <option value="">{item.item_name || item.raw_material_name}</option>
+                          <option value="">{(item as any).item_name || (item as any).raw_material_name}</option>
                           {item.group_items?.map(g => (
                             <option key={g.id} value={g.id}>{g.item_name}</option>
                           ))}
                         </select>
                       ) : (
                         <>
-                          <div className="font-medium text-slate-900">{item.item_name || item.raw_material_name}</div>
+                          <div className="font-medium text-slate-900">{(item as any).item_name || (item as any).raw_material_name}</div>
                           <div className="text-xs text-slate-500">{item.unit_name}</div>
                         </>
                       )}
@@ -453,3 +453,5 @@ export default function CreateIndentPoPage() {
     </div>
   );
 }
+
+

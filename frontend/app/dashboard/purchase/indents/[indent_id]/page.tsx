@@ -49,7 +49,7 @@ export default function IndentDetailPage() {
     const style = document.createElement('style');
     style.innerHTML = PRINT_STYLE;
     document.head.appendChild(style);
-    return () => document.head.removeChild(style);
+    return () => { document.head.removeChild(style); };
   }, []);
 
   if (isLoading) {
@@ -194,3 +194,4 @@ export default function IndentDetailPage() {
     </div>
   );
 }
+

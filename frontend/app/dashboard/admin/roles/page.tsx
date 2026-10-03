@@ -98,7 +98,7 @@ export default function UsersPage() {
       toast.error('Password is required for new users');
       return;
     }
-    saveUser.mutate(formData);
+    saveUser.mutate({ ...formData, role_id: Number(formData.role_id) });
   };
 
   const getRoleName = (roleId: number) => {
@@ -301,3 +301,4 @@ export default function UsersPage() {
     </div>
   );
 }
+

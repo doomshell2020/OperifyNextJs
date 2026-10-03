@@ -48,6 +48,8 @@ router.get('/view/:designsheetno', tenantMiddleware, designsheetController.viewD
 router.get('/contract-details/:contractId', tenantMiddleware, designsheetController.getContractDetails);
 router.get('/:id', designsheetController.getById);
 
+const { requirePermission } = require('../../middleware/permission');
+
 // Handle multiple fields for revisions
 const uploadFields = upload.fields([
   { name: 'design_sheet', maxCount: 1 },
@@ -58,9 +60,9 @@ const uploadFields = upload.fields([
   { name: 'r5', maxCount: 1 },
 ]);
 
-router.post('/', uploadFields, designsheetController.create);
-router.put('/:id', uploadFields, designsheetController.update);
-router.delete('/:id', designsheetController.deleteSheet);
-router.delete('/details/:id', designsheetController.deleteDetailData);
+router.post('/', requirePermission('designsheet:add'), uploadFields, designsheetController.create);
+router.put('/:id', requirePermission('designsheet:edit'), uploadFields, designsheetController.update);
+router.delete('/:id', requirePermission('designsheet:delete'), designsheetController.deleteSheet);
+router.delete('/details/:id', requirePermission('designsheet:delete'), designsheetController.deleteDetailData);
 
 module.exports = router;

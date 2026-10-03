@@ -263,7 +263,7 @@ export default function EditDesignSheetPage() {
                   <label className="text-xs font-bold text-slate-500 block mb-2">R{i+1}</label>
                   <input type="file" onChange={e => {
                       const newRevs = [...revisions];
-                      newRevs[i] = e.target.files?.[0] || null;
+                      newRevs[i] = (e.target.files?.[0] as unknown as File) || null;
                       setRevisions(newRevs);
                   }} className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100" />
                   <p className="text-[10px] text-rose-500 font-bold mt-1">PDF, JPG, JPEG or PNG files only</p>
@@ -354,3 +354,4 @@ export default function EditDesignSheetPage() {
     </main>
   );
 }
+

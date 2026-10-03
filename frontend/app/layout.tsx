@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "../contexts/QueryProvider";
 import { AuthProvider } from "../contexts/AuthContext";
+import { PermissionProvider } from "../contexts/PermissionContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,7 +22,9 @@ export default function RootLayout({
       <body className={`${inter.className} h-full flex flex-col`} suppressHydrationWarning>
         <QueryProvider>
           <AuthProvider>
-            {children}
+            <PermissionProvider>
+              {children}
+            </PermissionProvider>
           </AuthProvider>
         </QueryProvider>
       </body>
