@@ -70,6 +70,24 @@ class PurchaseOrderRepository {
     const siteSettingsQuery = `SELECT * FROM sitesettings_details WHERE status = 'Y' LIMIT 1`;
     const siteSettingsRows = await dbPool.query(siteSettingsQuery, { type: QueryTypes.SELECT });
     const site_details = siteSettingsRows[0] || null;
+
+    const paymentTermsQuery = `
+      SELECT id, description
+      FROM st_paymentterms
+      WHERE status = 'Y'
+      ORDER BY id ASC
+    `;
+    const payment_terms = await dbPool.query(paymentTermsQuery, { type: QueryTypes.SELECT });
+
+    const officerQuery = `
+      SELECT name, mobile, designation
+      FROM officers_name
+      WHERE designation = 'Purchase Officer' AND status = 'Y'
+      ORDER BY id DESC
+      LIMIT 1
+    `;
+    const officerRows = await dbPool.query(officerQuery, { type: QueryTypes.SELECT });
+    const officer = officerRows[0] || null;
     
     const itemsQuery = `
       SELECT 
@@ -159,7 +177,7 @@ class PurchaseOrderRepository {
     `;
     const schedules = await dbPool.query(scheduleQuery, { replacements: { poId: po.id }, type: QueryTypes.SELECT });
 
-    return { po, items: updatedItemRows, site_details, grns, schedules };
+    return { po, items: updatedItemRows, site_details, payment_terms, officer, grns, schedules };
   }
 
   async getItemHistory(dbPool, itemId) {
@@ -279,7 +297,7 @@ class PurchaseOrderRepository {
       SET 
         vendor_id = :vendor_id,
         delivery_date = :delivery_date,
-        remarks = :remarks,
+        remark = :remark,
         total_qty = :total_qty,
         total_amt = :total_amt,
         is_revised = COALESCE(is_revised, 0) + 1,
@@ -289,7 +307,7 @@ class PurchaseOrderRepository {
     const params = {
       vendor_id: poData.vendor_id,
       delivery_date: poData.delivery_date || null,
-      remarks: poData.remarks || null,
+      remark: poData.remark || null,
       total_qty: poData.total_qty || 0,
       total_amt: poData.total_amt || 0,
       id
@@ -463,3 +481,4 @@ class PurchaseOrderRepository {
 }
 
 module.exports = new PurchaseOrderRepository();
+
