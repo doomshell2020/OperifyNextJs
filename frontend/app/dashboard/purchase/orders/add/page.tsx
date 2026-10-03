@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm, useFieldArray, useWatch } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import purchaseOrderService from '@/services/purchaseOrder.service';
@@ -344,12 +344,12 @@ export default function AddPurchaseOrderPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Generated Date <span className="text-red-500">*</span></label>
-                <DatePicker dateFormat="dd-MM-yyyy" className={`w-full h-[42px] border rounded-lg px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-shadow ${errors.poDate ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`} {...register('poDate')} />
+                <Controller name="poDate" control={control} render={({ field }) => <DatePicker dateFormat="dd-MM-yyyy" className={`w-full h-[42px] border rounded-lg px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-shadow ${errors.poDate ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`} {...field} />} />
                 {errors.poDate && <p className="text-red-500 text-xs mt-1 absolute">{errors.poDate.message}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Expected Delivery Date <span className="text-red-500">*</span></label>
-                <DatePicker dateFormat="dd-MM-yyyy" className={`w-full h-[42px] border rounded-lg px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-shadow ${errors.deliveryDate ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`} {...register('deliveryDate')} />
+                <Controller name="deliveryDate" control={control} render={({ field }) => <DatePicker dateFormat="dd-MM-yyyy" className={`w-full h-[42px] border rounded-lg px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-shadow ${errors.deliveryDate ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`} {...field} />} />
                 {errors.deliveryDate && <p className="text-red-500 text-xs mt-1 absolute">{errors.deliveryDate.message}</p>}
               </div>
             </div>
@@ -776,3 +776,6 @@ export default function AddPurchaseOrderPage() {
     </form>
   );
 }
+
+
+
