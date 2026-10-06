@@ -2,3 +2,45 @@
 
 # dependencies
 /operify-cake-php-old-project
+
+# Keep development verification and documentation local.
+/docs/
+/backend/tests/
+/frontend/tests/
+/backend/scripts/audit-*
+/frontend/scripts/audit-*
+**/*.test.*
+**/*.spec.*
+/backend/src/test_*.js
+*.md
+
+# Generated output, local secrets and installed dependencies.
+**/node_modules/
+**/.next/
+**/coverage/
+**/*.tsbuildinfo
+**/next-env.d.ts
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.sample
+/tmp/
+*.rar
+*.zip
+/test*.pdf
+
+# Local database diagnostics and one-off scratch helpers.
+**/scratch*.js
+/backend/check*.js
+/backend/debug*.js
+/backend/test*.js
+/backend/schema-check.js
+/backend/show_tables.js
+/backend/dump_tables.js
+/backend/sync_*.js
+/backend/create_api.js
+/backend/update_init_models.js
+/backend/wire_routes.js
+/backend/tables.txt
+/backend/test*.pdf
+/backend/=
