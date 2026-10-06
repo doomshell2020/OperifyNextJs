@@ -31,7 +31,17 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage,
+  fileFilter: function (req, file, cb) {
+    const allowed = ['.pdf', '.jpg', '.jpeg', '.png'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!allowed.includes(ext)) {
+      return cb(new Error('Upload PDF, JPG, JPEG or PNG files only'));
+    }
+    cb(null, true);
+  }
+});
 
 router.get('/', designsheetController.index);
 router.get('/check-item', designsheetController.checkDesignSheetItem);
@@ -63,7 +73,7 @@ const uploadFields = upload.fields([
 
 router.post('/', requirePermission('designsheet:add'), uploadFields, designsheetController.create);
 router.put('/:id', requirePermission('designsheet:edit'), uploadFields, designsheetController.update);
-router.delete('/:id', requirePermission('designsheet:delete'), designsheetController.deleteSheet);
 router.delete('/details/:id', requirePermission('designsheet:delete'), designsheetController.deleteDetailData);
+router.delete('/:id', requirePermission('designsheet:delete'), designsheetController.deleteSheet);
 
 module.exports = router;

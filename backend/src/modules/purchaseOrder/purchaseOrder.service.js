@@ -37,13 +37,16 @@ class PurchaseOrderService {
   async revisePurchaseOrder(dbPool, id, poData) {
     const transaction = await dbPool.transaction();
     try {
-      await purchaseOrderRepository.updatePurchaseOrder(dbPool, id, poData.po, transaction);
-      if (poData.items && poData.items.length > 0) {
-        await purchaseOrderRepository.updatePurchaseOrderItems(dbPool, id, poData.po.po_number, poData.items, transaction);
-      }
+      const result = await purchaseOrderRepository.createRevision(
+        dbPool,
+        id,
+        poData.po || {},
+        poData.items || [],
+        transaction
+      );
 
       await transaction.commit();
-      return { success: true };
+      return { success: true, data: result };
     } catch (error) {
       await transaction.rollback();
       throw error;
@@ -84,11 +87,18 @@ class PurchaseOrderService {
   async createPurchaseOrder(dbPool, poData, items) {
     const transaction = await dbPool.transaction();
     try {
+      const V=require('../../utils/receiptValidation');
+      if(!poData) throw V.invalid('Purchase Order is required.');
+      // Serialize previews/new numbering and reject replay before inserting any rows.
+      await V.select(dbPool,'SELECT id FROM st_purchaseorder ORDER BY id DESC LIMIT 1 FOR UPDATE',{},transaction);
       if (!poData.purchaseorder_id) {
-        poData.purchaseorder_id = await purchaseOrderRepository.getNextPoNumber(dbPool);
+        poData.purchaseorder_id = await purchaseOrderRepository.getNextPoNumber(dbPool,transaction);
       }
+      const existing=await V.select(dbPool,'SELECT id FROM st_purchaseorder WHERE purchaseorder_id=:number LIMIT 1 FOR UPDATE',{number:poData.purchaseorder_id},transaction);
+      if(existing.length)throw V.invalid('Purchase Order number already exists. Refresh the number before creating another PO.',409);
+      const validated=await require('./purchaseOrder.create-validation')(dbPool,poData,items,transaction);
 
-      const result = await purchaseOrderRepository.createPurchaseOrder(dbPool, poData, items, transaction);
+      const result = await purchaseOrderRepository.createPurchaseOrder(dbPool, validated.po, validated.items, transaction);
 
       await transaction.commit();
       return { success: true, data: result };

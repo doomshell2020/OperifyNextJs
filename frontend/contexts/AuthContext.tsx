@@ -18,6 +18,7 @@ interface User {
   role_id: number;
   db: string;
   companies?: Company[];
+  permissions?: string[];
 }
 
 interface AuthContextType {

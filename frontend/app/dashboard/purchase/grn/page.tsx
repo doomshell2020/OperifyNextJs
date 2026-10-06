@@ -13,8 +13,10 @@ import { grnPdfService } from '../../../../services/grnPdf.service';
 import apiClient from '@/services/apiClient';
 import { DatePicker } from '../../../../components/ui/DatePicker';
 import { formatContractDate } from '../../../../utils/dateFormatter';
+import {usePermission} from '@/contexts/PermissionContext';
 
 export default function GrnIndexPage() {
+  const {hasPermission}=usePermission();
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
@@ -133,9 +135,9 @@ export default function GrnIndexPage() {
             {isExporting ? <Loader className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
             {isExporting ? 'Exporting...' : 'Export Excel'}
           </button>
-          <button onClick={() => router.push('/dashboard/purchase/grn/add')} className="flex items-center gap-1.5 px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition shadow-sm">
+          {hasPermission('legacy:admin/goodsreceived/add') && <button onClick={() => router.push('/dashboard/purchase/grn/add')} className="flex items-center gap-1.5 px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition shadow-sm">
             <Plus className="w-4 h-4" /> Add GRN
-          </button>
+          </button>}
         </div>
       </div>
 

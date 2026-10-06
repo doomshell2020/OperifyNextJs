@@ -10,8 +10,10 @@ import { useRouter } from 'next/navigation';
 import { PurchaseOrderDetailsModal } from '../../../../components/PurchaseOrderDetailsModal';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { formatContractDate } from '../../../../utils/dateFormatter';
+import {usePermission} from '@/contexts/PermissionContext';
 
 export default function GrnInspectionPage() {
+  const {hasPermission}=usePermission();
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
@@ -67,9 +69,9 @@ export default function GrnInspectionPage() {
           <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-md text-sm font-medium transition border border-emerald-200">
             <FileSpreadsheet className="w-4 h-4" /> Export Excel
           </button>
-          <button onClick={() => router.push('/dashboard/purchase/inspections/add')} className="flex items-center gap-1.5 px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition shadow-sm">
+          {hasPermission('legacy:admin/goodsreceived/add_inspection_grn') && <button onClick={() => router.push('/dashboard/purchase/inspections/add')} className="flex items-center gap-1.5 px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition shadow-sm">
             <Plus className="w-4 h-4" /> Add Inspection
-          </button>
+          </button>}
         </div>
       </div>
 

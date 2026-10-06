@@ -20,10 +20,15 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
+import { usePermission } from '@/contexts/PermissionContext';
+import { ListPagination } from '@/components/ui/ListPagination';
+
 type ModalMode = { type: 'add' } | { type: 'edit'; item: Category } | { type: 'delete'; item: Category } | null;
 
 export default function CategoriesPage() {
   const qc = useQueryClient();
+  const {hasPermission}=usePermission();
+  const [page,setPage]=useState(1);
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState<ModalMode>(null);
   const [form, setForm] = useState({ category_name: '', description: '' });
@@ -55,6 +60,11 @@ export default function CategoriesPage() {
     mutationFn: (id: number) => settingsService.deleteCategory(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['categories'] }); setModal(null); },
   });
+  const printToggle = useMutation({
+    mutationFn: ({id,is_print}:{id:number;is_print:string}) => settingsService.toggleCategoryPrintStatus(id,is_print),
+    onSuccess: () => qc.invalidateQueries({queryKey:['categories']}),
+    onError: (e:any) => setError(e?.response?.data?.message || 'Failed to change weekly report setting'),
+  });
 
   const openEdit = (item: Category) => { setForm({ category_name: item.category_name, description: item.description || '' }); setError(''); setModal({ type: 'edit', item }); };
   const openAdd = () => { setForm({ category_name: '', description: '' }); setError(''); setModal({ type: 'add' }); };
@@ -66,9 +76,9 @@ export default function CategoriesPage() {
           <h1 className="text-2xl font-bold text-slate-800">Item Categories</h1>
           <p className="text-sm text-slate-500 mt-0.5">Manage product/item categories</p>
         </div>
-        <button onClick={openAdd} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+        {hasPermission('legacy:admin/itemcategory/add') && <button onClick={openAdd} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
           <Plus className="w-4 h-4" /> Add Category
-        </button>
+        </button>}
       </div>
 
       {/* Search */}
@@ -78,29 +88,30 @@ export default function CategoriesPage() {
           className="flex-1 text-sm focus:outline-none"
           placeholder="Search categories by name..."
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={e => {setSearch(e.target.value);setPage(1);}}
         />
         {search && <button onClick={() => setSearch('')}><X className="w-4 h-4 text-slate-400 hover:text-slate-600" /></button>}
       </div>
 
       {/* Table */}
+      {error && !modal && <p role="alert" className="text-rose-600">{error}</p>}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <table className="min-w-full">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200">
-              {['#', 'Category Name', 'Description', 'Status', 'Actions'].map(h => (
+              {['#', 'Category Name', 'Description', 'Status', 'Weekly Stock Report', 'Actions'].map(h => (
                 <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading ? (
-              <tr><td colSpan={5} className="py-10 text-center"><div className="flex items-center justify-center gap-2 text-slate-400"><div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />Loading...</div></td></tr>
+              <tr><td colSpan={6} className="py-10 text-center"><div className="flex items-center justify-center gap-2 text-slate-400"><div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />Loading...</div></td></tr>
             ) : !data?.length ? (
-              <tr><td colSpan={5} className="py-10 text-center text-slate-400 text-sm">No categories found.</td></tr>
-            ) : data.map((row, i) => (
+              <tr><td colSpan={6} className="py-10 text-center text-slate-400 text-sm">No categories found.</td></tr>
+            ) : data.slice((page-1)*50,page*50).map((row, i) => (
               <tr key={row.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-4 py-3 text-slate-400 text-sm">{i + 1}</td>
+                <td className="px-4 py-3 text-slate-400 text-sm">{(page-1)*50+i+1}</td>
                 <td className="px-4 py-3 font-semibold text-slate-800 text-sm">{row.category_name}</td>
                 <td className="px-4 py-3 text-sm text-slate-500 max-w-[250px] truncate">{row.description || '—'}</td>
                 <td className="px-4 py-3">
@@ -112,15 +123,21 @@ export default function CategoriesPage() {
                   </button>
                 </td>
                 <td className="px-4 py-3">
+                  <button disabled={printToggle.isPending} onClick={() => printToggle.mutate({id:row.id,is_print:row.is_print==='Y'?'N':'Y'})} className="text-sm text-blue-600">
+                    {row.is_print==='Y'?'Included':'Excluded'}
+                  </button>
+                </td>
+                <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <button onClick={() => openEdit(row)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => setModal({ type: 'delete', item: row })} className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                    {hasPermission('legacy:admin/itemcategory/edit') && <button onClick={() => openEdit(row)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Pencil className="w-3.5 h-3.5" /></button>}
+                    {hasPermission('legacy:admin/itemcategory/delete') && <button onClick={() => setModal({ type: 'delete', item: row })} className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>}
                   </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        <ListPagination page={page} limit={50} total={data?.length || 0} busy={isLoading} onPageChange={setPage} />
       </div>
 
       {/* Add/Edit Modal */}
@@ -167,7 +184,7 @@ export default function CategoriesPage() {
           <div className="space-y-4">
             <div className="flex gap-3 items-start bg-rose-50 border border-rose-200 rounded-xl p-4">
               <XCircle className="w-5 h-5 text-rose-500 mt-0.5 shrink-0" />
-              <p className="text-sm text-rose-700">Are you sure you want to delete <strong>{modal.item.category_name}</strong>? This action cannot be undone.</p>
+              <p className="text-sm text-rose-700">Are you sure you want to delete <strong>{modal.item.category_name}</strong>? The category will be marked inactive.</p>
             </div>
             <div className="flex gap-3">
               <button onClick={() => del.mutate(modal.item.id)} disabled={del.isPending} className="flex-1 bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white text-sm font-semibold py-2 rounded-lg transition-colors">

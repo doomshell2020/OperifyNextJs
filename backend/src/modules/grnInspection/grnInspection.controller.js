@@ -13,7 +13,7 @@ class GrnInspectionController {
       sheet.addRow(['S.No.', 'Inspection No.', 'PO No.', 'Inspection Inward', 'Bill No.', 'Bill Date', 'Supplier', 'Total Qty', 'Total Recived Qty']);
       const date = value => {
         if (!value) return '';
-        const text = value instanceof Date ? `${value.getFullYear()}-${String(value.getMonth()+1).padStart(2,'0')}-${String(value.getDate()).padStart(2,'0')}` : String(value).slice(0,10);
+        const text = value instanceof Date ? `${value.getUTCFullYear()}-${String(value.getUTCMonth()+1).padStart(2,'0')}-${String(value.getUTCDate()).padStart(2,'0')}` : String(value).slice(0,10);
         return text.split('-').reverse().join('-');
       };
       rows.forEach((row, index) => sheet.addRow([index+1, row.inspection_id, row.po_id, date(row.inwarddate), row.bill_no, date(row.bill_date), row.supplier, Number(row.total_qty), Number(row.total_amt)]));

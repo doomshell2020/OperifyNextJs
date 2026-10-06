@@ -1,6 +1,6 @@
 // AppController.php sets Cake's limit to 50; Cake caps requested limits at 100.
 // Indent/index uses the bundled DataTables iDisplayLength=50 and client-side paging.
-const policies = {contract:50, designsheet:50, purchaseOrder:50, grnInspection:50, grn:50};
+const policies = {contract:50, designsheet:50, purchaseOrder:50, grnInspection:50, grn:50, products:50};
 function paginationInput(input = {}, module) {
   const defaultLimit = policies[module];
   if (!defaultLimit) throw new Error(`Unknown pagination module: ${module}`);

@@ -66,12 +66,12 @@ export const DashboardTopbar: React.FC = () => {
   const jobWorkActive = jobWorkItems.some(item => pathname === item.path || pathname.startsWith(item.path + '/'));
 
   const settingsMenu = [
-    { title: 'Categories', path: '/dashboard/admin/categories' },
-    { title: 'Products', path: '/dashboard/admin/products' },
+    { title: 'Categories', path: '/dashboard/admin/categories', allowed: hasPermission('legacy:admin/itemcategory/index') },
+    { title: 'Products', path: '/dashboard/admin/products', allowed: hasPermission('legacy:admin/additem/index') },
     { title: 'Suppliers', path: '/dashboard/admin/suppliers' },
     { title: 'Users', path: '/dashboard/admin/roles' },
     { title: 'Permission', path: '/admin/permission' }
-  ];
+  ].filter(item => !('allowed' in item) || item.allowed);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -118,6 +118,7 @@ export const DashboardTopbar: React.FC = () => {
             if(item.title==="Daily Sheet") return hasPermission("legacy:admin/production/index");
             if(item.title==="Maintenance") return hasPermission("legacy:admin/maintenance/index");
             if(item.title==="Stock") return hasPermission("stock:view") || hasPermission("legacy:admin/stockregister/index");
+            if(item.title==="Daily Stock") return hasPermission("legacy:admin/stockregister/dailystock");
             
             // For others where we are not 100% sure of the exact CakePHP URL, we still show them by default, 
             // but the user can add precise URL restrictions if needed.

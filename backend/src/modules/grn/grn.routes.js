@@ -1,3 +1,4 @@
+const permission = require('../jobChallan/legacyPermission');
 const express = require('express');
 const router = express.Router();
 const grnController = require('./grn.controller');
@@ -7,13 +8,11 @@ const tenantMiddleware = require('../../middleware/tenant');
 router.use(requireAuth);
 router.use(tenantMiddleware);
 
-router.get('/', grnController.listGrns);
-router.post('/', grnController.createGrn);
-router.get('/export', grnController.exportGrns);
+router.get('/', permission('goodsreceived','index'), grnController.listGrns);
+router.post('/', permission('goodsreceived','add'), grnController.createGrn);
+router.get('/export', permission('goodsreceived','grnexcel'), grnController.exportGrns);
 router.get('/inspection/:inspectionId', grnController.getInspectionForGrn);
-router.get('/:id/pdf', grnController.downloadPdf);
-router.get('/:id', grnController.getGrnDetails);
-router.put('/:id', grnController.updateGrn);
-router.delete('/:id', grnController.deleteGrn);
+router.get('/:id/pdf', permission('goodsreceived','view'), grnController.downloadPdf);
+router.get('/:id', permission('goodsreceived','viewgrndetail'), grnController.getGrnDetails);
 
 module.exports = router;

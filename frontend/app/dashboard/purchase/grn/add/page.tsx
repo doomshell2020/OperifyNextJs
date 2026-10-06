@@ -12,7 +12,6 @@ import * as z from 'zod';
 import { grnService } from '@/services/grn.service';
 import { AsyncInspectionSearchSelect } from '@/components/AsyncInspectionSearchSelect';
 import { formatQty, formatAmt } from '@/utils/formatters';
-import { DatePicker } from '../../../../../components/ui/DatePicker';
 
 const formSchema = z.object({
   inspection_id: z.string().min(1, "Inspection ID is required"),
@@ -30,6 +29,9 @@ const formSchema = z.object({
     rate: z.coerce.number(),
     tax_rate: z.coerce.number(),
     tax_id: z.coerce.number().optional(),
+    cost_price: z.number(),
+    tax: z.number(),
+    amount: z.number(),
     uom: z.string()
   })).refine(items => items.some(i => i.received_qty > 0), {
     message: "At least one item must have a received quantity greater than 0"
@@ -104,7 +106,10 @@ export default function AddGrnPage() {
             rate: Number(i.rate) || 0,
             tax_rate: Number(i.item_tax || 0),
             tax_id: i.tax_id,
-            uom: i.uom || 'KG'
+            cost_price: Number(i.cost_price),
+            tax: Number(i.tax || 0),
+            amount: Number(i.amount),
+            uom: i.uom || ''
           }));
           replace(newItems);
         } else if (isMounted) {
@@ -125,14 +130,9 @@ export default function AddGrnPage() {
 
   // Derived Totals
   const totalQty = (items || []).reduce((sum, item) => sum + (Number(item.received_qty) || 0), 0);
-  const totalAmountPreTax = (items || []).reduce((sum, item) => sum + ((Number(item.received_qty) || 0) * (Number(item.rate) || 0)), 0);
-  const totalTax = (items || []).reduce((sum, item) => {
-    const qty = Number(item.received_qty) || 0;
-    const rate = Number(item.rate) || 0;
-    const taxRate = Number(item.tax_rate) || 0;
-    return sum + (qty * rate * (taxRate / 100));
-  }, 0);
-  const totalAmountPostTax = totalAmountPreTax + totalTax;
+  const totalAmountPreTax = (items || []).reduce((sum,item)=>sum+Number(item.cost_price || 0),0);
+  const totalTax = (items || []).reduce((sum,item)=>sum+Number(item.tax || 0),0);
+  const totalAmountPostTax = (items || []).reduce((sum,item)=>sum+Number(item.amount || 0),0);
 
   const mutation = useMutation({
     mutationFn: (data: FormValues) => grnService.create(data),
@@ -225,17 +225,17 @@ export default function AddGrnPage() {
 
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-slate-700">Inward Date <span className="text-red-500">*</span></label>
-                <DatePicker dateFormat="dd-MM-yyyy" {...register('inwarddate')} className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white shadow-sm ${errors.inwarddate ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'}`} />
+                <input type="date" readOnly {...register('inwarddate')} className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white shadow-sm ${errors.inwarddate ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'}`} />
               </div>
 
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-slate-700">Bill Number <span className="text-red-500">*</span></label>
-                <input type="text" {...register('bill_no')} className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white shadow-sm ${errors.bill_no ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'}`} />
+                <input type="text" readOnly {...register('bill_no')} className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white shadow-sm ${errors.bill_no ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'}`} />
               </div>
               
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-slate-700">Bill Date <span className="text-red-500">*</span></label>
-                <DatePicker dateFormat="dd-MM-yyyy" {...register('bill_date')} className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white shadow-sm ${errors.bill_date ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'}`} />
+                <input type="date" readOnly {...register('bill_date')} className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white shadow-sm ${errors.bill_date ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'}`} />
               </div>
             </div>
           </div>
@@ -260,13 +260,10 @@ export default function AddGrnPage() {
                 </thead>
                 <tbody>
                   {fields.length > 0 ? fields.map((field, index) => {
-                    const qty = Number(items[index]?.received_qty) || 0;
                     const rate = Number(items[index]?.rate) || 0;
                     const taxRate = Number(items[index]?.tax_rate) || 0;
                     
-                    const amount = qty * rate;
-                    const taxAmt = amount * (taxRate / 100);
-                    const total = amount + taxAmt;
+                    const total = Number(items[index]?.amount || 0);
                     
                     return (
                       <tr key={field.id} className="border-b border-slate-100 hover:bg-slate-50/50">
@@ -274,7 +271,7 @@ export default function AddGrnPage() {
                           <input type="text" readOnly {...register(`items.${index}.item_name`)} className="w-full border-none bg-transparent focus:outline-none text-slate-800 text-sm font-medium" />
                         </td>
                         <td className="p-3">
-                          <input type="number" min="0" step="any" {...register(`items.${index}.received_qty`)} className="w-full h-8 border border-slate-300 rounded px-2 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500" />
+                          <input type="number" readOnly min="0" step="any" {...register(`items.${index}.received_qty`)} className="w-full h-8 border border-slate-300 rounded px-2 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500" />
                         </td>
                         <td className="p-3">
                           <input type="text" readOnly {...register(`items.${index}.uom`)} className="w-full border-none bg-transparent focus:outline-none text-slate-600 text-sm" />

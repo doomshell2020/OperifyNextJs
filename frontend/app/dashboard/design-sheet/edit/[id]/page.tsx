@@ -1,13 +1,23 @@
 'use client';
 
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { designsheetService } from '../../../../../services/designsheet.service';
 import { toast } from 'react-hot-toast';
 import { Save, Plus, Trash2, ArrowLeft, Download, Search, Package, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { formatQty, formatAmt } from '@/utils/formatters';
+import { formatQty } from '@/utils/formatters';
 import { DatePicker } from '../../../../../components/ui/DatePicker';
+
+const ALLOWED_FILE_TYPES = ['pdf', 'jpg', 'jpeg', 'png'];
+
+function isAllowedDesignSheetFile(file: File | null) {
+  if (!file) return true;
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+  return ALLOWED_FILE_TYPES.includes(ext);
+}
 
 function ItemAutocomplete({
   value,
@@ -111,16 +121,13 @@ export default function EditDesignSheetPage() {
     contract_id: '', designsheetno: '', item_id: '', quantity: '', datefrom: '', contract_title: '', product_name: ''
   });
   const [file, setFile] = useState<File | null>(null);
-  const [revisions, setRevisions] = useState<File[]>(Array(5).fill(null));
+  const [revisions, setRevisions] = useState<Array<File | null>>(Array(5).fill(null));
   const [existingFiles, setExistingFiles] = useState<{main: string, r: string[]}>({ main: '', r: []});
+  const [indentPoCount, setIndentPoCount] = useState(0);
   
   const [existingDetails, setExistingDetails] = useState<any[]>([]);
   const [newDetails, setNewDetails] = useState<any[]>([]);
   
-  useEffect(() => {
-     if (id) fetchSheet();
-  }, [id]);
-
   const fetchSheet = async () => {
       try {
           const res = await designsheetService.getDesignSheetById(id);
@@ -138,11 +145,17 @@ export default function EditDesignSheetPage() {
               main: d.design_sheet,
               r: [d.r1, d.r2, d.r3, d.r4, d.r5]
           });
+          setIndentPoCount(Number(res.indentpo_count || d.indentpo_count || 0));
           setExistingDetails(res.product || []);
-      } catch (e) {
+      } catch {
           toast.error('Failed to load Design Sheet');
       }
   };
+
+  useEffect(() => {
+     if (id) fetchSheet();
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   
 
@@ -152,7 +165,10 @@ export default function EditDesignSheetPage() {
               await designsheetService.deleteDetail(detailId);
               setExistingDetails(existingDetails.filter((_, i) => i !== idx));
               toast.success('Item deleted');
-          } catch (e) { toast.error('Error deleting item'); }
+          } catch (e: unknown) {
+              const response = (e as { response?: { data?: { message?: string } } })?.response;
+              toast.error(response?.data?.message || 'Error deleting item');
+          }
       }
   };
 
@@ -178,11 +194,17 @@ export default function EditDesignSheetPage() {
      const nd = [...newDetails];
      nd[index][field] = value;
      if (field === 'item_name' && itemData) {
+         const existingIds = existingDetails.map(detail => String(detail.item_id));
+         const newIds = newDetails.map((detail, detailIndex) => detailIndex === index ? '' : String(detail.pitemname)).filter(Boolean);
+         if ([...existingIds, ...newIds].includes(String(itemData.id))) {
+             toast.error('This Item Already added');
+             return;
+         }
          nd[index].pitemname = itemData.id;
          try {
              const res = await designsheetService.getIndentItems(itemData.id);
              if (res.itemname) nd[index].unit_name = res.itemname.unit_name || '';
-         } catch (e) {}
+         } catch {}
      }
      
      if ((field === 'km_item_qty' || field === 'item_name') && nd[index].km_item_qty && formData.quantity) {
@@ -194,6 +216,19 @@ export default function EditDesignSheetPage() {
   const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       try {
+          if (!isAllowedDesignSheetFile(file) || revisions.some(revision => !isAllowedDesignSheetFile(revision))) {
+              toast.error('Upload PDF, JPG, JPEG or PNG files only');
+              return;
+          }
+          const itemIds = [
+              ...existingDetails.map(detail => String(detail.item_id)),
+              ...newDetails.filter(detail => detail.pitemname).map(detail => String(detail.pitemname))
+          ];
+          if (new Set(itemIds).size !== itemIds.length) {
+              toast.error('This Item Already added');
+              return;
+          }
+
           const form = new FormData();
           Object.entries(formData).forEach(([k, v]) => form.append(k, v));
           if (file) form.append('design_sheet', file);
@@ -263,7 +298,7 @@ export default function EditDesignSheetPage() {
                   <label className="text-xs font-bold text-slate-500 block mb-2">R{i+1}</label>
                   <input type="file" onChange={e => {
                       const newRevs = [...revisions];
-                      newRevs[i] = (e.target.files?.[0] as unknown as File) || null;
+                      newRevs[i] = e.target.files?.[0] || null;
                       setRevisions(newRevs);
                   }} className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100" />
                   <p className="text-[10px] text-rose-500 font-bold mt-1">PDF, JPG, JPEG or PNG files only</p>
@@ -295,7 +330,7 @@ export default function EditDesignSheetPage() {
                                <input type="text" readOnly value={row.item_name || ''} className="w-full p-2 border border-slate-200 rounded text-xs bg-white text-slate-700 outline-none" />
                            </td>
                            <td className="p-2 border-r border-slate-200 text-center">
-                               <input type="checkbox" checked={row.is_group === '1'} disabled className="w-4 h-4 text-slate-400 bg-slate-100 border-slate-300 rounded cursor-not-allowed" />
+                               <input type="checkbox" checked={row.is_group === '1'} disabled={indentPoCount > 0} onChange={e => handleExistingDetailChange(idx, 'is_group', e.target.checked)} className="w-4 h-4 text-slate-400 bg-slate-100 border-slate-300 rounded" />
                            </td>
                            <td className="p-2 border-r border-slate-200">
                                <input type="number" step="any" value={row.km_item_qty} readOnly className="w-full p-2 border border-slate-200 rounded text-xs bg-slate-100 text-slate-500 outline-none cursor-not-allowed" />
@@ -307,7 +342,9 @@ export default function EditDesignSheetPage() {
                                <input type="text" readOnly value={row.uom} className="w-full p-2 border border-slate-200 rounded text-xs bg-slate-100 text-slate-500 outline-none cursor-not-allowed" />
                            </td>
                            <td className="p-2 text-center">
-                               <button type="button" onClick={() => deleteExistingDetail(idx, row.id)} className="p-1.5 text-rose-500 hover:bg-rose-50 rounded transition"><Trash2 className="w-4 h-4 mx-auto" /></button>
+                               {indentPoCount === 0 && (
+                                 <button type="button" onClick={() => deleteExistingDetail(idx, row.id)} className="p-1.5 text-rose-500 hover:bg-rose-50 rounded transition"><Trash2 className="w-4 h-4 mx-auto" /></button>
+                               )}
                            </td>
                        </tr>
                    ))}

@@ -151,6 +151,7 @@ class SettingsController {
     try {
       const { category_name, description } = req.body;
       if (!category_name?.trim()) return res.status(400).json({ success: false, message: 'Category name is required' });
+      if (await repo.checkCategoryExists(req.dbPool, category_name)) return res.status(409).json({ success:false, message:'Your entered Itemcategory already exists.' });
       const id = await repo.createCategory(req.dbPool, { category_name: category_name.trim(), description });
       res.json({ success: true, id, message: 'Category created successfully' });
     } catch (e) { next(e); }
@@ -159,6 +160,8 @@ class SettingsController {
     try {
       const { category_name, description } = req.body;
       if (!category_name?.trim()) return res.status(400).json({ success: false, message: 'Category name is required' });
+      if (!(await repo.getCategoryById(req.dbPool, req.params.id))) return res.status(404).json({success:false,message:'Category not found.'});
+      if (await repo.checkCategoryExists(req.dbPool, category_name, req.params.id)) return res.status(409).json({success:false,message:'Your entered Itemcategory already exists.'});
       await repo.updateCategory(req.dbPool, req.params.id, { category_name: category_name.trim(), description });
       res.json({ success: true, message: 'Category updated successfully' });
     } catch (e) { next(e); }
@@ -166,6 +169,7 @@ class SettingsController {
   async toggleCategoryStatus(req, res, next) {
     try {
       const { status } = req.body;
+      if (!['Y','N'].includes(status)) return res.status(400).json({success:false,message:'Invalid category status.'});
       await repo.toggleCategoryStatus(req.dbPool, req.params.id, status);
       res.json({ success: true, message: 'Status updated' });
     } catch (e) { next(e); }
@@ -198,7 +202,7 @@ class SettingsController {
   }
   async createProduct(req, res, next) {
     try {
-      if (!req.body.item_name) {
+      if (!String(req.body.item_name || '').trim()) {
         return res.status(400).json({ success: false, message: 'Item name is required' });
       }
       
@@ -229,7 +233,7 @@ class SettingsController {
   }
   async updateProduct(req, res, next) {
     try {
-      if (!req.body.item_name) {
+      if (!String(req.body.item_name || '').trim()) {
         return res.status(400).json({ success: false, message: 'Item name is required' });
       }
       
@@ -239,17 +243,18 @@ class SettingsController {
         return res.status(400).json({ success: false, message: 'Your entered Item already exists.' });
       }
 
-      const payload = {
-        item_name: req.body.item_name,
-        category_id: req.body.category_id,
-        uom: req.body.uom
-      };
+      if (!(await repo.getProductById(req.dbPool,id))) return res.status(404).json({success:false,message:'Product not found.'});
+      const payload = { ...req.body, item_name: req.body.item_name.trim() };
       
       await repo.updateProduct(req.dbPool, id, payload);
       res.json({ success: true, message: 'Item name successfully updated.' });
     } catch (e) {
       next(e);
     }
+  }
+  async deleteProduct(req, res, next) {
+    try { await repo.deleteProduct(req.dbPool, req.params.id); res.json({success:true,message:'Item deleted successfully.'}); }
+    catch (error) { next(error); }
   }
   async getFinishedProcessList(req, res, next) {
     try {
@@ -260,6 +265,7 @@ class SettingsController {
   async toggleProductStatus(req, res, next) {
     try {
       const { status } = req.body;
+      if (!['Y','N'].includes(status)) return res.status(400).json({success:false,message:'Invalid product status.'});
       await repo.toggleProductStatus(req.dbPool, req.params.id, status);
       res.json({ success: true, message: 'Status updated' });
     } catch (e) { next(e); }

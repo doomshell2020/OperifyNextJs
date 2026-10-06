@@ -103,8 +103,7 @@ class ContractService {
     const transaction = await dbPool.transaction();
     try {
       await contractRepository.updateContract(dbPool, id, payload, transaction);
-      await contractRepository.upsertBom(dbPool, id, payload, transaction);
-      await contractRepository.replaceFinishedProducts(dbPool, id, payload.finished_products, transaction);
+      await contractRepository.syncFinishedProducts(dbPool, id, payload.finished_products, transaction);
 
       await transaction.commit();
       return id;

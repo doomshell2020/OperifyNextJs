@@ -32,12 +32,23 @@ export interface IndentpoItem {
   pending_qty: number;
   inhand_stock?: number;
   is_group?: number;
+  stock_update?: boolean;
   category_id?: number;
   group_items?: { id: number; item_name: string; inhand_stock: number }[];
   is_added_from_group?: boolean;
 }
 
 export const indentpoService = {
+  getEditData:async(id:string)=>(await apiClient.get(`/indentpo/${encodeURIComponent(id)}/edit-data`)).data,
+  update:async(id:string,data:unknown)=>(await apiClient.put(`/indentpo/${encodeURIComponent(id)}`,data)).data,
+  remove:async(id:string)=>(await apiClient.delete(`/indentpo/${encodeURIComponent(id)}`)).data,
+  exportExcel:async(filters:Record<string,string>={})=>{
+    const response=await apiClient.get('/indentpo/export',{params:filters,responseType:'blob'});
+    const url=URL.createObjectURL(response.data),link=document.createElement('a');link.href=url;link.download='Indent_Summary.xlsx';link.click();URL.revokeObjectURL(url);
+  },
+  listPage:async(filters:Record<string,string|number>={})=>{
+    return (await apiClient.get('/indentpo',{params:{page:1,limit:50,...filters}})).data as {data:Indentpo[];total:number};
+  },
   // Search Active Contracts
   searchContracts: async (query: string) => {
     const response = await apiClient.get(`/indentpo/contracts/search?q=${encodeURIComponent(query)}`);
@@ -57,7 +68,7 @@ export const indentpoService = {
   },
 
   // Get Design Sheet (Raw Materials) Details
-  getDesignSheetDetails: async (contractId: string, itemId: string) => {
+  getDesignSheetDetails: async (contractId: string | number, itemId: string | number) => {
     const response = await apiClient.get(`/indentpo/designsheet?contract_id=${contractId}&item_id=${itemId}`);
     return response.data;
   },

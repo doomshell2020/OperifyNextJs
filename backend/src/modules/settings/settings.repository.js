@@ -1,10 +1,12 @@
 const { QueryTypes } = require('sequelize');
+const { invalid } = require('../../utils/receiptValidation');
 
 class SettingsRepository {
   // ─── CATEGORIES ─────────────────────────────────────────────────────────────
   async getCategories(dbPool, { search } = {}) {
-    let q = `SELECT id, category_name, description, status, added_time, updated_time FROM st_categorymaster WHERE 1=1`;
+    let q = `SELECT id, category_name, description, status, is_print, added_time, updated_time FROM st_categorymaster WHERE 1=1`;
     const p = {};
+    if (!search) q += ` AND status='Y'`;
     if (search) { q += ` AND category_name LIKE :search`; p.search = `%${search}%`; }
     q += ` ORDER BY category_name ASC`;
     return await dbPool.query(q, { replacements: p, type: QueryTypes.SELECT });
@@ -12,6 +14,10 @@ class SettingsRepository {
   async getCategoryById(dbPool, id) {
     const rows = await dbPool.query(`SELECT * FROM st_categorymaster WHERE id = :id LIMIT 1`, { replacements: { id }, type: QueryTypes.SELECT });
     return rows[0] || null;
+  }
+  async checkCategoryExists(dbPool, category_name, id = 0) {
+    const rows = await dbPool.query('SELECT id FROM st_categorymaster WHERE category_name=:name AND id!=:id LIMIT 1', { replacements: { name: category_name.trim(), id }, type: QueryTypes.SELECT });
+    return rows.length > 0;
   }
   async createCategory(dbPool, { category_name, description }) {
     const now = new Date();
@@ -31,7 +37,7 @@ class SettingsRepository {
     await dbPool.query(`UPDATE st_categorymaster SET status = :status WHERE id = :id`, { replacements: { status, id }, type: QueryTypes.UPDATE });
   }
   async deleteCategory(dbPool, id) {
-    await dbPool.query(`DELETE FROM st_categorymaster WHERE id = :id`, { replacements: { id }, type: QueryTypes.DELETE });
+    await dbPool.query(`UPDATE st_categorymaster SET status='N' WHERE id = :id`, { replacements: { id }, type: QueryTypes.UPDATE });
   }
 
   // ─── PRODUCTS (st_additem) ───────────────────────────────────────────────────
@@ -55,7 +61,8 @@ class SettingsRepository {
   }
   async getProductById(dbPool, id) {
     const rows = await dbPool.query(
-      `SELECT i.*, c.category_name, u.unit_name as uom_name
+      `SELECT i.*, c.category_name, u.unit_name as uom_name,
+        (SELECT COUNT(*) FROM designsheetdetails d WHERE d.item_id=i.id) AS designsheet_count
        FROM st_additem i
        LEFT JOIN st_categorymaster c ON i.category_id = c.id
        LEFT JOIN st_measurementunits u ON i.uom = u.id
@@ -75,14 +82,14 @@ class SettingsRepository {
     const result = await dbPool.query(
       `INSERT INTO st_additem (
          item_name, category_id, uom, item_isbn, sale_price, discount, weight, volume, min_order_qty,
-         itemtype, finishedprocess_id, productprocess_id, cname, status, added_time
+         itemtype, finishedprocess_id, productprocess_id, cname, tax, size_id, location_name, status, added_time
        ) VALUES (
          :item_name, :category_id, :uom, :item_isbn, :sale_price, :discount, :weight, :volume, :min_order_qty,
-         :itemtype, :finishedprocess_id, :productprocess_id, :cname, 'Y', :added_time
+         :itemtype, :finishedprocess_id, :productprocess_id, :cname, :tax, :size_id, :location_name, 'Y', :added_time
        )`,
       {
         replacements: {
-          item_name: item.item_name.toUpperCase(),
+          item_name: item.item_name.trim().toUpperCase(),
           category_id: item.category_id || null,
           uom: item.uom || null,
           item_isbn: item.item_isbn || null,
@@ -94,7 +101,10 @@ class SettingsRepository {
           itemtype: item.itemtype || 'RawMaterial',
           finishedprocess_id: item.finishedprocess_id || null,
           productprocess_id: item.productprocess_id || null,
-          cname: item.cname || '1',
+          cname: item.cname || null,
+          tax: item.tax || null,
+          size_id: item.size_id || item.size || null,
+          location_name: item.location_name || null,
           added_time: new Date()
         },
         type: QueryTypes.INSERT
@@ -110,25 +120,37 @@ class SettingsRepository {
     return rows.length > 0;
   }
   async updateProduct(dbPool, id, item) {
-    await dbPool.query(
-      `UPDATE st_additem 
-       SET item_name = :item_name, 
-           category_id = :category_id, 
-           uom = :uom, 
-           updated_time = :updated_time 
-       WHERE id = :id`,
-      {
-        replacements: {
-          item_name: item.item_name.toUpperCase(),
-          category_id: item.category_id || null,
-          uom: item.uom || null,
-          updated_time: new Date(),
-          id
-        },
-        type: QueryTypes.UPDATE
+    if (Object.hasOwn(item,'category_id')) {
+      const existing=await this.getProductById(dbPool,id);
+      if (!existing) throw invalid('Product not found.',404);
+      if (Number(existing.designsheet_count)>0 && String(item.category_id || '')!==String(existing.category_id || '')) {
+        throw invalid('Category cannot be changed because this item is used in a design sheet.',409);
       }
-    );
+    }
+    const fields = ['item_name','category_id','uom','item_isbn','sale_price','discount','size_id','location_name','cname','tax','itemtype','finishedprocess_id','productprocess_id'];
+    const changes = {};
+    for (const field of fields) if (Object.hasOwn(item, field)) changes[field] = item[field] === '' ? null : item[field];
+    changes.item_name = item.item_name.trim().toUpperCase();
+    if (Array.isArray(changes.productprocess_id)) changes.productprocess_id = changes.productprocess_id.join(',');
+    const assignments = Object.keys(changes).map(field => `${field}=:${field}`).join(',');
+    await dbPool.query(`UPDATE st_additem SET ${assignments},updated_time=:updated_time WHERE id=:id`, {
+      replacements: { ...changes, id, updated_time: new Date() }, type: QueryTypes.UPDATE
+    });
   }
+
+  async deleteProduct(dbPool, id) {
+    return dbPool.transaction(async transaction => {
+      const products = await dbPool.query('SELECT id FROM st_additem WHERE id=:id FOR UPDATE', { replacements: { id }, type: QueryTypes.SELECT, transaction });
+      if (!products.length) throw invalid('Product not found.', 404);
+      const [used] = await dbPool.query(`SELECT
+        (SELECT COUNT(*) FROM st_purchaseorderdetails WHERE item_id=:id) +
+        (SELECT COUNT(*) FROM bom_finisedproduct WHERE product_id=:id) +
+        (SELECT COUNT(*) FROM designsheetdetails WHERE item_id=:id) AS total`, { replacements: { id }, type: QueryTypes.SELECT, transaction });
+      if (Number(used.total)>0) throw invalid('This item cannot be deleted because it is already used in the system.',409);
+      await dbPool.query('DELETE FROM st_additem WHERE id=:id', { replacements:{id},type:QueryTypes.DELETE,transaction });
+    });
+  }
+
   async toggleProductStatus(dbPool, id, status) {
     await dbPool.query(`UPDATE st_additem SET status = :status WHERE id = :id`, { replacements: { status, id }, type: QueryTypes.UPDATE });
   }

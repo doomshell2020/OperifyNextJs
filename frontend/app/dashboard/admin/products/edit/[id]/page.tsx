@@ -18,7 +18,11 @@ type EditItemFormValues = {
   weight: string;
   volume: string;
   min_order_qty: string;
-  itemtype: 'RawMaterial' | 'FinishedProduct';
+  tax: string;
+  size_id: string;
+  location_name: string;
+  cname: string;
+  itemtype: 'RawMaterial' | 'FinishedProduct' | 'Semi-Finished Product';
   finishedprocess_id: string;
   productprocess_id: string[];
 };
@@ -32,6 +36,7 @@ export default function EditProductPage() {
 
   const { register, handleSubmit, watch, reset, formState: { errors, isSubmitting } } = useForm<EditItemFormValues>({
     defaultValues: {
+      tax: '',size_id:'',location_name:'',cname:'',
       item_name: '',
       category_id: '',
       item_isbn: '',
@@ -47,6 +52,7 @@ export default function EditProductPage() {
     }
   });
 
+  const {data:masters}=useQuery({queryKey:['product-form-masters'],queryFn:()=>settingsService.getProductFormData()});
   const itemtype = watch('itemtype');
 
   // Fetch dropdown data
@@ -67,6 +73,7 @@ export default function EditProductPage() {
   useEffect(() => {
     if (product) {
       reset({
+        tax: product.tax?.toString() || '',size_id:product.size_id?.toString() || '',location_name:product.location_name || '',cname:product.cname || '',
         item_name: product.item_name || '',
         category_id: product.category_id?.toString() || '',
         item_isbn: product.item_isbn || '',
@@ -127,12 +134,12 @@ export default function EditProductPage() {
         </div>
       )}
 
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+      {Number(product?.designsheet_count)>0 && <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
         <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
         <p className="text-sm text-amber-800">
-          <strong>Note:</strong> You can only edit the Item Name, Category, and UOM. All other fields are locked and cannot be modified.
+          <strong>Note:</strong> Category is locked because this item is used in a design sheet.
         </p>
-      </div>
+      </div>}
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -152,22 +159,21 @@ export default function EditProductPage() {
 
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">Category</label>
-              <select
+              {Number(product?.designsheet_count)>0 ? <><input type="hidden" {...register('category_id')}/><input readOnly value={product?.category_name || ''} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm"/></> : <select
                 {...register('category_id')}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
               >
                 <option value="">---- Select Category ----</option>
                 {categories?.map(c => <option key={c.id} value={c.id}>{c.category_name}</option>)}
-              </select>
+              </select>}
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-slate-400 mb-1.5">HSN No./Item Code</label>
               <input
                 type="number"
-                disabled
                 {...register('item_isbn')}
-                className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-500 cursor-not-allowed"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
               />
             </div>
 
@@ -176,9 +182,8 @@ export default function EditProductPage() {
               <input
                 type="number"
                 step="0.01"
-                disabled
                 {...register('sale_price')}
-                className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-500 cursor-not-allowed"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
               />
             </div>
 
@@ -187,9 +192,8 @@ export default function EditProductPage() {
               <input
                 type="number"
                 step="0.01"
-                disabled
                 {...register('discount')}
-                className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-500 cursor-not-allowed"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"
               />
             </div>
 
@@ -235,34 +239,49 @@ export default function EditProductPage() {
               />
             </div>
             
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Tax</label>
+              <select {...register('tax')} className="w-full border rounded-lg p-2 text-sm"><option value="">Select Tax</option>{masters?.taxes.map(t=><option key={t.id} value={t.id}>{t.tax_name} ({t.tax}%)</option>)}</select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Size</label>
+              <select {...register('size_id')} className="w-full border rounded-lg p-2 text-sm"><option value="">Select Size</option>{masters?.sizes.map(t=><option key={t.id} value={t.id}>{t.size_name}</option>)}</select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Location</label>
+              <select {...register('location_name')} className="w-full border rounded-lg p-2 text-sm"><option value="">Select Location</option>{masters?.locations.filter(t=>Number(t.parent)===0).map(t=><option key={t.id} value={t.id}>{t.location_name}</option>)}</select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Company</label>
+              <select {...register('cname')} className="w-full border rounded-lg p-2 text-sm"><option value="">Select Company</option>{masters?.companies.map(t=><option key={t.id} value={t.id}>{t.cname}</option>)}</select>
+            </div>
             <div className="md:col-span-3 pt-4 border-t border-slate-100">
               <label className="block text-sm font-semibold text-slate-400 mb-2">Item Type :</label>
-              <div className="flex items-center gap-6 opacity-60">
-                <label className="flex items-center gap-2 cursor-not-allowed">
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
                     value="RawMaterial"
-                    disabled
                     {...register('itemtype')}
-                    className="w-4 h-4 text-slate-400 cursor-not-allowed"
+                    className="w-4 h-4 text-blue-600"
                   />
                   <span className="text-sm text-slate-500">RawMaterial</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-not-allowed">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
                     value="FinishedProduct"
-                    disabled
                     {...register('itemtype')}
-                    className="w-4 h-4 text-slate-400 cursor-not-allowed"
+                    className="w-4 h-4 text-blue-600"
                   />
                   <span className="text-sm text-slate-500">FinishedProduct</span>
                 </label>
               </div>
             </div>
 
+            <label className="flex items-center gap-2"><input type="radio" value="Semi-Finished Product" {...register('itemtype')} />Semi-Finished Product</label>
             {itemtype === 'FinishedProduct' && (
-              <div className="md:col-span-3 pt-2 opacity-60">
+              <div className="md:col-span-3 pt-2">
                 <label className="block text-sm font-semibold text-slate-400 mb-3">Process Name :</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 bg-slate-100 rounded-xl p-4 border border-slate-200">
                   {processes?.map(proc => (
@@ -270,16 +289,14 @@ export default function EditProductPage() {
                       <input
                         type="radio"
                         value={proc.id.toString()}
-                        disabled
                         {...register('finishedprocess_id')}
-                        className="w-4 h-4 text-slate-400 cursor-not-allowed"
+                        className="w-4 h-4 text-blue-600"
                       />
                       <input
                         type="checkbox"
                         value={proc.id.toString()}
-                        disabled
                         {...register('productprocess_id')}
-                        className="w-4 h-4 rounded border-slate-300 text-slate-400 cursor-not-allowed"
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600"
                       />
                       <span className="text-xs font-medium text-slate-500 uppercase tracking-wide">{proc.process_name}</span>
                     </div>

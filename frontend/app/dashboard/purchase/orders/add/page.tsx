@@ -26,7 +26,7 @@ const poSchema = z.object({
     z.object({
       item_id: z.string().min(1, "Item is required"),
       item_name: z.string(),
-      qty: z.number({ invalid_type_error: "Required" }).min(0.001, "Qty must be > 0"),
+      qty: z.number({ error: "Required" }).min(0.001, "Qty must be > 0"),
       uom: z.string().optional(),
       weight: z.number().optional().default(0),
       volume: z.number().optional().default(0),
@@ -38,7 +38,8 @@ const poSchema = z.object({
   ).min(1, "At least one item is required to create a PO")
 });
 
-type POFormValues = z.infer<typeof poSchema>;
+type POFormInput = z.input<typeof poSchema>;
+type POFormValues = z.output<typeof poSchema>;
 
 export default function AddPurchaseOrderPage() {
   const router = useRouter();
@@ -89,7 +90,7 @@ export default function AddPurchaseOrderPage() {
   }, []);
 
   // Form Setup
-  const { register, control, handleSubmit, setValue, getValues, watch, formState: { errors, isSubmitting } } = useForm<POFormValues>({
+  const { register, control, handleSubmit, setValue, getValues, watch, formState: { errors, isSubmitting } } = useForm<POFormInput, unknown, POFormValues>({
     resolver: zodResolver(poSchema),
     defaultValues: {
       poDate: new Date().toISOString().split('T')[0],
@@ -270,6 +271,7 @@ export default function AddPurchaseOrderPage() {
           return {
             item_id: i.item_id,
             tax_id: i.tax_id,
+            tax_cal: i.tax_cal,
             item_qty: qty,
             item_amt: price,
             item_base_price: baseAmt,

@@ -43,6 +43,8 @@ export interface ContractDetailsData {
     supplier_id?: number | string;
   };
   items: ContractItemProduct[];
+  productionOrders: Record<string, any>[];
+  inspectionReports: Record<string, any>[];
 }
 
 export interface FinishedProductInput {

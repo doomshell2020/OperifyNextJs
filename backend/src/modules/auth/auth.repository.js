@@ -135,7 +135,13 @@ class AuthRepository {
         if (url.includes('contracts/add')) permissions.push('contracts:add');
         
         if (url.includes('purchaseorder/index')) permissions.push('purchaseorder:view');
+        if (url.includes('purchaseorder/add')) permissions.push('purchaseorder:add');
         if (url.includes('purchaseorder/viewpodetailspdf')) permissions.push('purchaseorder:pdf');
+        if (url.includes('purchaseorder/view')) permissions.push('purchaseorder:pdf');
+        if (url.includes('purchaseorder/printallpo')) permissions.push('purchaseorder:pdf');
+        if (url.includes('purchaseorder/revised')) permissions.push('purchaseorder:revise');
+        if (url.includes('purchaseorder/delete')) permissions.push('purchaseorder:delete');
+        if (url.includes('purchaseorder/deliverynote')) permissions.push('purchaseorder:deliverynote');
         
         if (url.includes('designsheet/index')) permissions.push('designsheet:view');
         if (url.includes('designsheet/add')) permissions.push('designsheet:add');

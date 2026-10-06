@@ -5,6 +5,7 @@ export interface Category {
   category_name: string;
   description: string;
   status: string;
+  is_print?: string;
   added_time: string;
   updated_time: string;
 }
@@ -17,6 +18,8 @@ export interface Product {
   uom: number;
   uom_name: string;
   tax: number;
+  tax_percentage?: number;
+  current_stock?: number;
   itemtype: string;
   cost_price: number;
   sale_price: number;
@@ -74,16 +77,32 @@ export const settingsService = {
   async toggleCategoryStatus(id: number, status: string): Promise<void> {
     await apiClient.patch(`/settings/categories/${id}/status`, { status });
   },
+  async toggleCategoryPrintStatus(id: number, is_print: string): Promise<void> {
+    await apiClient.patch(`/settings/categories/${id}/print-status`, { is_print });
+  },
   async deleteCategory(id: number): Promise<void> {
     await apiClient.delete(`/settings/categories/${id}`);
   },
 
   // Products
+  async exportProducts(filters: Record<string,unknown> = {}): Promise<void> {
+    const response=await apiClient.get('/settings/products/export',{params:filters,responseType:'blob'});
+    const url=URL.createObjectURL(response.data);
+    const link=document.createElement('a');link.href=url;link.download='Items_Summary.xlsx';link.click();URL.revokeObjectURL(url);
+  },
   async getProducts(filters: { search?: string; category_id?: number; status?: string; itemtype?: string } = {}): Promise<Product[]> {
     const params = Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== undefined && v !== ''));
     const res = await apiClient.get('/settings/products', { params });
     return res.data.data;
   },
+  async getProductsPage(filters: Record<string, string | number | undefined> = {}): Promise<{data:Product[];total:number;page:number;limit:number}> {
+    const response = await apiClient.get('/settings/products/list',{params:filters});
+    return response.data;
+  },
+  async getProductFormData(): Promise<{sizes:{id:number;size_name:string;status:string}[];locations:{id:number;location_name:string;parent:number;status:string}[];companies:{id:number;cname:string}[];taxes:{id:number;tax:number;tax_name:string}[]}> {
+    return (await apiClient.get('/settings/products/form-data')).data.data;
+  },
+  async deleteProduct(id:number):Promise<void> {await apiClient.delete(`/settings/products/${id}`);},
   async getProduct(id: number): Promise<any> {
     const res = await apiClient.get(`/settings/products/${id}`);
     return res.data.data;

@@ -2,11 +2,17 @@ const { QueryTypes } = require('sequelize');
 const {listOrder} = require('../../utils/listPagination');
 
 class PurchaseOrderRepository {
+  getDisplayNumber(poNumber, amendmentNo) {
+    const revision = Number(amendmentNo) || 0;
+    return revision > 0 ? `${poNumber} R-${revision}` : poNumber;
+  }
+
   async getHoverDetails(dbPool, idOrNumber) {
     const query = `
       SELECT 
         po.id,
         po.purchaseorder_id as po_number,
+        po.is_revised as amendment_no,
         DATE(po.added_time) as po_date,
         v.name as vendor_name,
         CONCAT('VEN-', LPAD(v.id, 4, '0')) as vendor_code,
@@ -29,7 +35,12 @@ class PurchaseOrderRepository {
       ORDER BY po.id DESC LIMIT 1
     `;
     const rows = await dbPool.query(query, { replacements: { idOrNumber }, type: QueryTypes.SELECT });
-    return rows[0] || null;
+    const row = rows[0] || null;
+    if (!row) return null;
+    return {
+      ...row,
+      display_po_number: this.getDisplayNumber(row.po_number, row.amendment_no)
+    };
   }
 
   async getDetails(dbPool, idOrNumber) {
@@ -56,6 +67,10 @@ class PurchaseOrderRepository {
         po.remark,
         po.payment_term,
         po.freight,
+        po.payment_terms,
+        po.transit_insurance,
+        po.issue_vendor,
+        po.amendment_remarks,
         po.total_amt as total_amount
       FROM st_purchaseorder po
       LEFT JOIN vendors v ON po.vendor_id = v.id
@@ -67,6 +82,8 @@ class PurchaseOrderRepository {
     const po = poRows[0] || null;
     
     if (!po) return null;
+
+    po.display_po_number = this.getDisplayNumber(po.po_number, po.amendment_no);
 
     const siteSettingsQuery = `SELECT * FROM sitesettings_details WHERE status = 'Y' LIMIT 1`;
     const siteSettingsRows = await dbPool.query(siteSettingsQuery, { type: QueryTypes.SELECT });
@@ -101,7 +118,10 @@ class PurchaseOrderRepository {
         pod.tax_percentage,
         pod.item_tax_amt as tax_amt,
         pod.item_total_amount as amount,
-        COALESCE(pod.uom, 'KG') as uom
+        pod.tax_id,
+        COALESCE(pod.uom, 'KG') as uom,
+        pod.weight,
+        pod.volume
       FROM st_purchaseorderDetails pod
       LEFT JOIN st_additem i ON pod.item_id = i.id
       WHERE pod.poprimary_id = :poId
@@ -337,6 +357,168 @@ class PurchaseOrderRepository {
     }
   }
 
+  async createRevision(dbPool, sourceId, poData, items, transaction) {
+    const sourceRows = await dbPool.query(
+      `SELECT * FROM st_purchaseorder WHERE id = :id LIMIT 1 FOR UPDATE`,
+      { replacements: { id: sourceId }, type: QueryTypes.SELECT, transaction }
+    );
+    const source = sourceRows[0];
+    if (!source) {
+      throw new Error('Purchase Order not found');
+    }
+
+    await dbPool.query('SELECT id FROM st_purchaseorder WHERE purchaseorder_id=:poNumber ORDER BY id DESC FOR UPDATE', {replacements:{poNumber:source.purchaseorder_id},type:QueryTypes.SELECT,transaction});
+    const revisionRows = await dbPool.query(
+      `SELECT COALESCE(MAX(is_revised), 0) as latest_revision
+       FROM st_purchaseorder
+       WHERE purchaseorder_id = :poNumber AND status IN ('Y', 'R')`,
+      { replacements: { poNumber: source.purchaseorder_id }, type: QueryTypes.SELECT, transaction }
+    );
+    const latestRevision = Number(revisionRows[0]?.latest_revision) || 0;
+    if ((Number(source.is_revised) || 0) !== latestRevision) {
+      throw new Error('Only the latest Purchase Order revision can be revised');
+    }
+    const revisionNumber = latestRevision + 1;
+
+    const normalizedItems = (items && items.length > 0) ? items : await this.getRevisionSourceItems(dbPool, source.id, transaction);
+    const totals = normalizedItems.reduce((acc, item) => {
+      const qty = Number(item.order_qty ?? item.item_qty ?? 0) || 0;
+      const tax = Number(item.tax_amt ?? item.item_tax_amt ?? 0) || 0;
+      const amount = Number(item.amount ?? item.item_total_amount ?? 0) || 0;
+      acc.total_qty += qty;
+      acc.total_tax += tax;
+      acc.total_amt += amount;
+      return acc;
+    }, { total_qty: 0, total_tax: 0, total_amt: 0 });
+
+    const revisedDate = poData.revised_date || poData.inwarddate || new Date();
+    const poQuery = `
+      INSERT INTO st_purchaseorder (
+        purchaseorder_id, vendor_id, quotation_id, vendorshipaddress, delivery_date, freight,
+        payment_terms, transit_insurance, remark, email_vendor, total_qty, total_tax, total_amt,
+        is_revised, status, added_by, added_by_type, added_time, updated_by, updated_by_type,
+        updated_time, token, amendment_remarks, issue_vendor, payment_term, postatus, revised_date
+      ) VALUES (
+        :purchaseorder_id, :vendor_id, :quotation_id, :vendorshipaddress, :delivery_date, :freight,
+        :payment_terms, :transit_insurance, :remark, :email_vendor, :total_qty, :total_tax, :total_amt,
+        :is_revised, :status, :added_by, :added_by_type, :added_time, :updated_by, :updated_by_type,
+        :updated_time, :token, :amendment_remarks, :issue_vendor, :payment_term, :postatus, :revised_date
+      )
+    `;
+    const poParams = {
+      purchaseorder_id: source.purchaseorder_id,
+      vendor_id: poData.vendor_id ?? source.vendor_id,
+      quotation_id: source.quotation_id || null,
+      vendorshipaddress: poData.vendorshipaddress ?? source.vendorshipaddress ?? '',
+      delivery_date: poData.delivery_date || source.delivery_date,
+      freight: poData.freight ?? source.freight ?? '',
+      payment_terms: poData.payment_terms ?? source.payment_terms ?? '',
+      transit_insurance: poData.transit_insurance ?? source.transit_insurance ?? '',
+      remark: poData.remark ?? source.remark ?? '',
+      email_vendor: source.email_vendor || 'N',
+      total_qty: totals.total_qty,
+      total_tax: totals.total_tax,
+      total_amt: totals.total_amt,
+      is_revised: revisionNumber,
+      status: 'R',
+      added_by: source.added_by || null,
+      added_by_type: source.added_by_type || null,
+      added_time: source.added_time,
+      updated_by: source.updated_by || null,
+      updated_by_type: source.updated_by_type || null,
+      updated_time: new Date(),
+      token: source.token || null,
+      amendment_remarks: poData.amendment_remarks ?? source.amendment_remarks ?? '',
+      issue_vendor: poData.issue_vendor || source.issue_vendor || 'N',
+      payment_term: poData.payment_term ?? source.payment_term ?? '',
+      postatus: source.postatus || 'O',
+      revised_date: revisedDate
+    };
+
+    const result = await dbPool.query(poQuery, { replacements: poParams, type: QueryTypes.INSERT, transaction });
+    const newPOId = result[0];
+
+    for (const item of normalizedItems) {
+      const qty = Number(item.order_qty ?? item.item_qty ?? 0) || 0;
+      const rate = Number(item.rate ?? item.item_amt ?? 0) || 0;
+      const price = Number(item.price ?? item.item_base_price ?? (qty * rate)) || 0;
+      const taxPercentage = Number(item.tax_percentage ?? 0) || 0;
+      const taxAmt = Number(item.tax_amt ?? item.item_tax_amt ?? ((price * taxPercentage) / 100)) || 0;
+      const amount = Number(item.amount ?? item.item_total_amount ?? (price + taxAmt)) || 0;
+
+      await dbPool.query(
+        `INSERT INTO st_purchaseorderDetails (
+          purchaseorder_id, poprimary_id, item_id, tax_id, item_amt, item_qty, item_base_price,
+          tax_percentage, item_tax_amt, item_total_amount, uom, weight, volume, vendor_id,
+          inward_date, revised_date
+        ) VALUES (
+          :purchaseorder_id, :poprimary_id, :item_id, :tax_id, :item_amt, :item_qty, :item_base_price,
+          :tax_percentage, :item_tax_amt, :item_total_amount, :uom, :weight, :volume, :vendor_id,
+          :inward_date, :revised_date
+        )`,
+        {
+          replacements: {
+            purchaseorder_id: source.purchaseorder_id,
+            poprimary_id: newPOId,
+            item_id: item.item_id,
+            tax_id: item.tax_id || null,
+            item_amt: rate,
+            item_qty: qty,
+            item_base_price: price,
+            tax_percentage: taxPercentage,
+            item_tax_amt: taxAmt,
+            item_total_amount: amount,
+            uom: item.uom || '',
+            weight: item.weight || '',
+            volume: item.volume || '',
+            vendor_id: poParams.vendor_id,
+            inward_date: source.added_time,
+            revised_date: revisedDate
+          },
+          type: QueryTypes.INSERT,
+          transaction
+        }
+      );
+    }
+
+    await dbPool.query(
+      `UPDATE po_delivery_note SET poprimary_id = :newPOId WHERE poprimary_id = :oldPOId`,
+      { replacements: { newPOId, oldPOId: source.id }, type: QueryTypes.UPDATE, transaction }
+    );
+
+    await dbPool.query(
+      `UPDATE st_stock_register SET purchaseorder_id = :newPOId WHERE purchaseorder_id = :oldPOId`,
+      { replacements: { newPOId, oldPOId: source.id }, type: QueryTypes.UPDATE, transaction }
+    );
+
+    return {
+      id: newPOId,
+      po_number: source.purchaseorder_id,
+      amendment_no: revisionNumber,
+      display_po_number: this.getDisplayNumber(source.purchaseorder_id, revisionNumber)
+    };
+  }
+
+  async getRevisionSourceItems(dbPool, poId, transaction) {
+    return await dbPool.query(
+      `SELECT
+        item_id,
+        tax_id,
+        item_amt,
+        item_qty,
+        item_base_price,
+        tax_percentage,
+        item_tax_amt,
+        item_total_amount,
+        uom,
+        weight,
+        volume
+      FROM st_purchaseorderDetails
+      WHERE poprimary_id = :poId`,
+      { replacements: { poId }, type: QueryTypes.SELECT, transaction }
+    );
+  }
+
   async addDeliveryNote(dbPool, poprimary_id, po_number, vendor_id, schedules, remark, transaction) {
     // Delete existing schedules for this PO
     await dbPool.query(`DELETE FROM po_delivery_note WHERE poprimary_id = :poprimary_id`, {
@@ -372,12 +554,19 @@ class PurchaseOrderRepository {
   }
 
   async deletePurchaseOrder(dbPool, id, transaction) {
+    const [source] = await dbPool.query('SELECT purchaseorder_id,status,is_revised FROM st_purchaseorder WHERE id=:id FOR UPDATE', {replacements:{id},type:QueryTypes.SELECT,transaction});
+    const {invalid}=require('../../utils/receiptValidation');
+    if (!source) throw invalid('Purchase Order not found.',404);
+    const receipts = await dbPool.query('SELECT id FROM st_goodsreceive WHERE purchaseorder_id=:poNumber LIMIT 1', {replacements:{poNumber:source.purchaseorder_id},type:QueryTypes.SELECT,transaction});
+    if (receipts.length) throw invalid('Purchase Order cannot be deleted because a GRN exists.',409);
+    const [latest] = await dbPool.query(`SELECT MAX(is_revised) AS revision FROM st_purchaseorder WHERE purchaseorder_id=:poNumber AND status IN ('Y','R')`, {replacements:{poNumber:source.purchaseorder_id},type:QueryTypes.SELECT,transaction});
+    if (source.status==='N' || Number(source.is_revised)!==Number(latest.revision)) throw invalid('Only the latest active PO revision can be deleted.',409);
     await dbPool.query('DELETE FROM st_purchaseorderDetails WHERE poprimary_id = :id', { replacements: { id }, type: QueryTypes.DELETE, transaction });
     await dbPool.query('DELETE FROM po_delivery_note WHERE poprimary_id = :id', { replacements: { id }, type: QueryTypes.DELETE, transaction });
     await dbPool.query('DELETE FROM st_purchaseorder WHERE id = :id', { replacements: { id }, type: QueryTypes.DELETE, transaction });
   }
 
-  async getNextPoNumber(dbPool) {
+  async getNextPoNumber(dbPool, transaction) {
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
     let financialYearStart = currentMonth >= 4 ? `${currentYear}-04-01` : `${currentYear - 1}-04-01`;
@@ -388,7 +577,7 @@ class PurchaseOrderRepository {
       WHERE DATE(added_time) >= :financialYearStart AND is_revised = '0' 
       ORDER BY id DESC LIMIT 1
     `;
-    const rows = await dbPool.query(query, { replacements: { financialYearStart }, type: QueryTypes.SELECT });
+    const rows = await dbPool.query(query, { replacements: { financialYearStart }, type: QueryTypes.SELECT, transaction });
     
     if (rows.length > 0 && rows[0].purchaseorder_id) {
       const po_id = rows[0].purchaseorder_id.split('-');

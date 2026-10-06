@@ -42,3 +42,36 @@ exports.requirePermission = (requiredPermission) => {
     next();
   };
 };
+
+exports.requireAnyPermission = (requiredPermissions) => {
+  return (req, res, next) => {
+    if (!req.user || !Array.isArray(req.user.permissions)) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: 'Access Denied: Permission context missing.'
+        }
+      });
+    }
+
+    if (req.user.role_id == '101') {
+      return next();
+    }
+
+    const userPermissions = req.user.permissions;
+    const hasAnyPermission = requiredPermissions.some((permission) => userPermissions.includes(permission));
+
+    if (!hasAnyPermission) {
+      return res.status(403).json({
+        success: false,
+        error: {
+          code: 'FORBIDDEN',
+          message: `Access Denied: You do not have the required permission (${requiredPermissions.join(' or ')}).`
+        }
+      });
+    }
+
+    next();
+  };
+};

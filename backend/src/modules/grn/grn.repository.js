@@ -77,8 +77,9 @@ class GrnRepository {
         gd.*,
         i.item_name,
         COALESCE(u.unit_name, 'KG') as uom,
-        COALESCE(i.tax, 18) as item_tax
+        COALESCE(t.tax, 0) as item_tax
       FROM grn_inspection_details gd
+      LEFT JOIN st_taxmaster t ON gd.tax_id=t.id
       LEFT JOIN st_additem i ON gd.item_id = i.id
       LEFT JOIN st_measurementunits u ON i.uom = u.id
       WHERE gd.inspection_id = :inspectionId

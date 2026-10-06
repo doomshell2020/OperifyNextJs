@@ -227,7 +227,7 @@ export function PurchaseOrderDetailsModal({ poId, onClose }: PurchaseOrderDetail
                       <tr key={iIdx}>
                         <td className="border border-gray-300 capitalize">{item.item_name}</td>
                         {uniqueSchedules.map((date: any, i: number) => {
-                          const scheduleItem = schedules.find((s: any) => s.delivery_date === date && s.item_id === item.item_id);
+                          const scheduleItem = (schedules || []).find((s: any) => s.delivery_date === date && s.item_id === item.item_id);
                           const qty = scheduleItem ? scheduleItem.item_qty : 0;
                           return (
                             <React.Fragment key={i}>

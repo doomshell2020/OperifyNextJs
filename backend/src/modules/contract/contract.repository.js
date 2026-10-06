@@ -268,8 +268,7 @@ class ContractRepository {
     const query = `
       SELECT id, item_name as name 
       FROM st_additem 
-      WHERE itemtype = 'FinishedProduct' 
-         OR category_id IN (SELECT id FROM st_categorymaster WHERE category_name LIKE '%FINISH%')
+      WHERE itemtype = 'FinishedProduct' AND status='Y'
       ORDER BY item_name ASC
     `;
     const items = await dbPool.query(query, { type: QueryTypes.SELECT });
@@ -349,6 +348,19 @@ class ContractRepository {
     }
   }
 
+  async syncFinishedProducts(dbPool,contractId,products,transaction) {
+    const existing=await dbPool.models.bom_finisedproduct.findAll({where:{contract_id:contractId},raw:true,transaction,lock:transaction.LOCK?.UPDATE || true});
+    const requested=new Map((products || []).map(product=>[String(product.product_id),product]));
+    for(const row of existing) {
+      const incoming=requested.get(String(row.product_id));
+      if(incoming && (Number(incoming.quantity)!==Number(row.quantity) || Number(incoming.price || 0)!==Number(row.price || 0))) {
+        const error=new Error('Existing finished-product quantity and price are read-only.');error.statusCode=400;throw error;
+      }
+    }
+    for(const row of existing)if(!requested.has(String(row.product_id)))await dbPool.models.bom_finisedproduct.destroy({where:{id:row.id,contract_id:contractId},transaction});
+    const retained=new Set(existing.map(row=>String(row.product_id)));
+    for(const product of products || [])if(!retained.has(String(product.product_id)))await this.addFinishedProduct(dbPool,contractId,product,transaction);
+  }
   async addFinishedProduct(dbPool, contractId, product, transaction) {
     await dbPool.models.bom_finisedproduct.create({
       contract_id: contractId,

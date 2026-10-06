@@ -3,6 +3,8 @@ import apiClient from './apiClient';
 export interface PurchaseOrderHoverData {
   id: number;
   po_number: string;
+  display_po_number?: string;
+  amendment_no?: number;
   po_date: string;
   vendor_name: string;
   vendor_code: string;
@@ -17,6 +19,7 @@ export interface PurchaseOrderHoverData {
 }
 
 export interface PurchaseOrderItem {
+  tax_id?: number | null;
   id: number;
   item_id: number;
   item_name: string;
@@ -34,6 +37,8 @@ export interface PurchaseOrderDetailsData {
   po: {
     id: number;
     po_number: string;
+    display_po_number?: string;
+    vendor_id: number;
     po_date: string;
     amendment_no: number;
     amendment_date: string;

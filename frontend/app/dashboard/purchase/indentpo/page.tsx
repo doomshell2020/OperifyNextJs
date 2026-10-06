@@ -9,23 +9,30 @@ import Link from "next/link";
 import { ContractDetailsModal } from "../../../../components/dashboard/ContractDetailsModal";
 import { formatQty } from "@/utils/formatters";
 import {  formatDate , formatContractDate } from '../../../../utils/dateFormatter';
+import {ListPagination} from '@/components/ui/ListPagination';
+import {usePermission} from '@/contexts/PermissionContext';
+import {useListLocation} from '@/components/ui/useListLocation';
 
 export default function IndentPoListPage() {
+  const {hasPermission}=usePermission();
+  const [page,setPage]=useState(1),[total,setTotal]=useState(0);
+  const [dateFrom,setDateFrom]=useState(''),[dateTo,setDateTo]=useState('');
   const [indents, setIndents] = useState<Indentpo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIndentId, setSelectedIndentId] = useState<number | null>(null);
   const [selectedContractId, setSelectedContractId] = useState<number | null>(null);
+  const ready=useListLocation({search:searchTerm,date_from:dateFrom,date_to:dateTo},page,['search','date_from','date_to'],(filters,nextPage)=>{setSearchTerm(filters.search);setDateFrom(filters.date_from);setDateTo(filters.date_to);setPage(nextPage);});
 
   useEffect(() => {
-    fetchIndents();
-  }, []);
+    if(ready)fetchIndents();
+  }, [ready,page,searchTerm,dateFrom,dateTo]);
 
   const fetchIndents = async () => {
     setIsLoading(true);
     try {
-      const data = await indentpoService.listIndentpo();
-      setIndents(data);
+      const result = await indentpoService.listPage({page,search:searchTerm,date_from:dateFrom,date_to:dateTo});
+      setIndents(result.data);setTotal(result.total);
     } catch (error) {
       alert("Failed to load Indent POs");
     } finally {
@@ -52,16 +59,17 @@ export default function IndentPoListPage() {
           <p className="text-sm text-slate-500 mt-1">Manage production issues and raw materials.</p>
         </div>
         <div className="flex gap-3">
+          <Button onClick={async()=>{try{await indentpoService.exportExcel({search:searchTerm,date_from:dateFrom,date_to:dateTo});}catch(error){alert('Unable to export indents');}}} variant="outline">Export Excel</Button>
           <Button onClick={fetchIndents} variant="outline" disabled={isLoading}>
             <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Link href="/dashboard/purchase/indentpo/new">
+          {hasPermission('legacy:admin/indentpo/add') && <Link href="/dashboard/purchase/indentpo/new">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
               Create Indent PO
             </Button>
-          </Link>
+          </Link>}
         </div>
       </div>
 
@@ -75,9 +83,13 @@ export default function IndentPoListPage() {
               placeholder="Search indents..."
               className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {setSearchTerm(e.target.value);setPage(1);}}
             />
           </div>
+        </div>
+        <div className="flex gap-3 p-4">
+          <label>Issue date from <input type="date" value={dateFrom} onChange={e=>{setDateFrom(e.target.value);setPage(1);}} className="border rounded p-2" /></label>
+          <label>Issue date to <input type="date" value={dateTo} onChange={e=>{setDateTo(e.target.value);setPage(1);}} className="border rounded p-2" /></label>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
@@ -133,6 +145,11 @@ export default function IndentPoListPage() {
                     <td className="px-6 py-4 text-slate-700">{indent.machine_name}</td>
                     <td className="px-6 py-4 text-slate-700">{indent.issued_name}</td>
                     <td className="px-6 py-4 text-right">
+                      {hasPermission('legacy:admin/indentpo/edit') && <Link href={`/dashboard/purchase/indentpo/${indent.indent_id}/edit`} className="p-2 text-blue-600">Edit</Link>}
+                      {hasPermission('legacy:admin/indentpo/delete') && <button className="p-2 text-red-600" onClick={async()=>{
+                        if(!window.confirm(`Delete indent ${indent.indent_id}?`))return;
+                        try{await indentpoService.remove(String(indent.indent_id));await fetchIndents();}catch(error){alert('Unable to delete indent');}
+                      }}>Delete</button>}
                       <Link href={`/dashboard/purchase/indentpo/${indent.indent_id}`}>
                         <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View / Print">
                           <Printer className="h-4 w-4" />
@@ -145,6 +162,7 @@ export default function IndentPoListPage() {
             </tbody>
           </table>
         </div>
+        <ListPagination page={page} limit={50} total={total} busy={isLoading} onPageChange={setPage} />
       </div>
 
       {selectedIndentId && (

@@ -1,13 +1,23 @@
 'use client';
 
+/* eslint-disable @typescript-eslint/no-explicit-any, react/no-unescaped-entities */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { designsheetService } from '../../../../services/designsheet.service';
 import { toast } from 'react-hot-toast';
 import { Save, Plus, Trash2, ArrowLeft, Search, Loader2, Package, FileText } from 'lucide-react';
 import Link from 'next/link';
-import { formatQty, formatAmt } from '@/utils/formatters';
+import { formatQty } from '@/utils/formatters';
 import { DatePicker } from '../../../../components/ui/DatePicker';
+
+const ALLOWED_FILE_TYPES = ['pdf', 'jpg', 'jpeg', 'png'];
+
+function isAllowedDesignSheetFile(file: File | null) {
+  if (!file) return true;
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+  return ALLOWED_FILE_TYPES.includes(ext);
+}
 
 function ContractAutocomplete({
   value,
@@ -219,7 +229,7 @@ export default function AddDesignSheetPage() {
     try {
         const res = await designsheetService.getBomFinishedProducts(contract.id);
         setBomProducts(res.products || []);
-    } catch (e) {
+    } catch {
         toast.error('Failed to fetch finished products');
         setBomProducts([]);
     }
@@ -240,7 +250,7 @@ export default function AddDesignSheetPage() {
              } else {
                  setFormData(prev => ({ ...prev, quantity: res.itemqty || '' }));
              }
-         } catch (e) {
+         } catch {
              toast.error('Error validating finished product');
          }
      }
@@ -270,6 +280,12 @@ export default function AddDesignSheetPage() {
   };
   
   const handleItemSelect = async (index: number, item: any) => {
+      const isDuplicate = details.some((detail, idx) => idx !== index && String(detail.pitemname) === String(item.id));
+      if (isDuplicate) {
+          toast.error('This Item Already added');
+          return;
+      }
+
       const newDetails = [...details];
       newDetails[index].pitemnameText = item.item_name;
       newDetails[index].pitemname = item.id;
@@ -279,7 +295,7 @@ export default function AddDesignSheetPage() {
           if (res.itemname) {
               newDetails[index].unit_name = res.itemname.unit_name || '';
           }
-      } catch (e) {}
+      } catch {}
       
       setDetails(newDetails);
   };
@@ -293,6 +309,15 @@ export default function AddDesignSheetPage() {
       }
       if (!formData.item_id) {
           toast.error("Your entered Product does not exist.");
+          return;
+      }
+      if (!isAllowedDesignSheetFile(file)) {
+          toast.error('Upload PDF, JPG, JPEG or PNG files only');
+          return;
+      }
+      const itemIds = details.filter(d => d.pitemname).map(d => String(d.pitemname));
+      if (new Set(itemIds).size !== itemIds.length) {
+          toast.error('This Item Already added');
           return;
       }
       

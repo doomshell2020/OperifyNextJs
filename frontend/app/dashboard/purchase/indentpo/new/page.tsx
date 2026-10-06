@@ -11,29 +11,29 @@ import { DatePicker } from '../../../../../components/ui/DatePicker';
 
 export default function CreateIndentPoPage() {
   const router = useRouter();
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  
+
   // Form fields
   const [indentId, setIndentId] = useState("");
   const [issueDate, setIssueDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [issuedName, setIssuedName] = useState("");
-  
+
   // Selections
   const [selectedContract, setSelectedContract] = useState<{id: string, title: string, workorder: string} | null>(null);
   const [selectedMachine, setSelectedMachine] = useState<{id: string, machine_name: string} | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<string>("");
-  
+
   // Data
   const [products, setProducts] = useState<any[]>([]);
   const [gridItems, setGridItems] = useState<IndentpoItem[]>([]);
-  
+
   // Autocomplete states
   const [contractQuery, setContractQuery] = useState("");
   const [contractResults, setContractResults] = useState<any[]>([]);
   const [showContractDropdown, setShowContractDropdown] = useState(false);
-  
+
   const [machineQuery, setMachineQuery] = useState("");
   const [machineResults, setMachineResults] = useState<any[]>([]);
   const [showMachineDropdown, setShowMachineDropdown] = useState(false);
@@ -47,7 +47,7 @@ export default function CreateIndentPoPage() {
     indentpoService.getNextIndentId().then(data => {
       setIndentId(data.next_id?.toString() || "");
     }).catch(console.error);
-    
+
     // Click outside listener
     const handleClickOutside = (e: MouseEvent) => {
       if (contractRef.current && !contractRef.current.contains(e.target as Node)) {
@@ -110,7 +110,7 @@ export default function CreateIndentPoPage() {
           issue_qty: 0
         }));
         setGridItems(items);
-      });
+      }).catch(error=>{setGridItems([]);alert(error.response?.data?.error?.message || error.response?.data?.message || 'Unable to load design sheet');});
     } else {
       setGridItems([]);
     }
@@ -131,25 +131,25 @@ export default function CreateIndentPoPage() {
   const handleGridQtyChange = (index: number, value: string) => {
     const newItems = [...gridItems];
     let qty = parseFloat(value);
-    
+
     if (isNaN(qty) || qty < 0) qty = 0;
-    
-    const maxQty = Math.min(newItems[index].pending_qty, newItems[index].inhand_stock || 0);
-    
+
+    const maxQty = newItems[index].stock_update === false ? newItems[index].pending_qty : Math.min(newItems[index].pending_qty, newItems[index].inhand_stock || 0);
+
     if (qty > maxQty) {
       qty = maxQty;
     }
-    
+
     newItems[index].issue_qty = qty;
     setGridItems(newItems);
   };
 
   const handleGroupItemSelect = (groupItem: IndentpoItem, selectedItemId: string) => {
     if (!selectedItemId) return;
-    
+
     const selectedItem = groupItem.group_items?.find(i => i.id.toString() === selectedItemId);
     if (!selectedItem) return;
-    
+
     const newItem: IndentpoItem = {
       item_id: selectedItem.id,
       raw_material_name: selectedItem.item_name,
@@ -158,12 +158,12 @@ export default function CreateIndentPoPage() {
       design_qty: groupItem.design_qty,
       issued_qty: (groupItem as any).issued_qty,
       pending_qty: groupItem.pending_qty,
-      inhand_stock: selectedItem.inhand_stock,
+      inhand_stock: selectedItem.inhand_stock, stock_update:groupItem.stock_update,
       issue_qty: 0,
       is_group: 0,
       is_added_from_group: true
     } as any;
-    
+
     setGridItems([...gridItems, newItem]);
   };
 
@@ -193,7 +193,7 @@ export default function CreateIndentPoPage() {
         issue_date: issueDate,
         items: validItems
       });
-      
+
       router.push("/dashboard/purchase/indentpo");
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || "Failed to save Indent PO");
@@ -238,7 +238,7 @@ export default function CreateIndentPoPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-5">
           <h2 className="text-lg font-semibold text-slate-800 border-b pb-3">Indent Details</h2>
-          
+
           <div className="grid grid-cols-2 gap-5">
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-700">Indent No</label>
@@ -251,7 +251,7 @@ export default function CreateIndentPoPage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-700">Issue Date *</label>
-              <DatePicker dateFormat="dd-MM-yyyy"  
+              <DatePicker dateFormat="dd-MM-yyyy"
                 value={issueDate}
                 onChange={(e) => setIssueDate(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
@@ -274,7 +274,7 @@ export default function CreateIndentPoPage() {
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none pr-10"
               />
               <Search className="w-4 h-4 text-slate-400 absolute right-3 top-3" />
-              
+
               {showContractDropdown && contractResults.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-auto">
                   {contractResults.map((c) => (
@@ -295,7 +295,7 @@ export default function CreateIndentPoPage() {
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-5">
           <h2 className="text-lg font-semibold text-slate-800 border-b pb-3">Issue Information</h2>
-          
+
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700">Finished Product *</label>
             <select
@@ -327,7 +327,7 @@ export default function CreateIndentPoPage() {
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none pr-10"
               />
               <Search className="w-4 h-4 text-slate-400 absolute right-3 top-3" />
-              
+
               {showMachineDropdown && machineResults.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-auto">
                   {machineResults.map((m) => (
@@ -367,7 +367,7 @@ export default function CreateIndentPoPage() {
             </div>
           )}
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-slate-50 text-slate-500 border-b border-slate-200 text-xs uppercase tracking-wider">
@@ -434,12 +434,12 @@ export default function CreateIndentPoPage() {
                           value={item.issue_qty === 0 ? "" : item.issue_qty}
                           onChange={(e) => handleGridQtyChange(idx, e.target.value)}
                           className={`w-32 px-3 py-1.5 border rounded-lg text-right outline-none transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                            item.pending_qty === 0 || (item.inhand_stock || 0) === 0
-                              ? "bg-slate-100 cursor-not-allowed border-slate-200 text-slate-400" 
+                            item.pending_qty === 0 || (item.stock_update !== false && (item.inhand_stock || 0) === 0)
+                              ? "bg-slate-100 cursor-not-allowed border-slate-200 text-slate-400"
                               : "border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           }`}
                           placeholder="0"
-                          disabled={item.pending_qty === 0 || (item.inhand_stock || 0) === 0}
+                          disabled={item.pending_qty === 0 || (item.stock_update !== false && (item.inhand_stock || 0) === 0)}
                         />
                       )}
                     </td>
@@ -453,5 +453,3 @@ export default function CreateIndentPoPage() {
     </div>
   );
 }
-
-

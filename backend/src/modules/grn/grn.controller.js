@@ -66,7 +66,7 @@ class GrnController {
       res.status(201).json({ success: true, data: result });
     } catch (error) {
       console.error("Error in createGrn:", error);
-      res.status(500).json({ success: false, message: error.message });
+      res.status(error.status || error.statusCode || 500).json({ success: false, message: error.message });
     }
   }
 
@@ -90,7 +90,7 @@ class GrnController {
       res.status(200).json({ success: true, data: result });
     } catch (error) {
       console.error("Error in updateGrn:", error);
-      res.status(500).json({ success: false, message: error.message });
+      res.status(error.status || error.statusCode || 500).json({ success: false, message: error.message });
     }
   }
 
@@ -101,7 +101,7 @@ class GrnController {
       res.status(200).json({ success: true, message: 'GRN deleted successfully' });
     } catch (error) {
       console.error("Error in deleteGrn:", error);
-      res.status(500).json({ success: false, message: error.message });
+      res.status(error.status || error.statusCode || 500).json({ success: false, message: error.message });
     }
   }
 }

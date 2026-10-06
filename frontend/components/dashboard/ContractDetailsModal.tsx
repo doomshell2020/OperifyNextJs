@@ -1,6 +1,7 @@
 "use client";
 
-import React from 'react';
+import React, {useState} from 'react';
+import {ContractReverseCost} from './ContractReverseCost';
 import { useQuery } from '@tanstack/react-query';
 import contractService from '../../services/contract.service';
 import { Loader, AlertCircle, X, Printer } from 'lucide-react';
@@ -13,6 +14,7 @@ interface ContractDetailsModalProps {
 }
 
 export function ContractDetailsModal({ contractId, onClose }: ContractDetailsModalProps) {
+  const [showReverseCost,setShowReverseCost]=useState(false);
   const { data: details, isLoading, isError } = useQuery({
     queryKey: ['contract-details', contractId],
     queryFn: () => contractService.getDetails(contractId),
@@ -62,6 +64,7 @@ export function ContractDetailsModal({ contractId, onClose }: ContractDetailsMod
           <div className="flex-1 flex flex-col overflow-y-auto space-y-6 select-text pr-2 print:p-0 print:overflow-visible">
             
             <h2 className="text-center font-bold text-lg text-black mt-2">Contract Details</h2>
+            <button className="text-cyan-700 underline text-sm self-start" onClick={()=>setShowReverseCost(true)}>Reverse expenditure details</button>
 
             {/* Header Information Grid */}
             <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-xs text-black font-semibold px-4">
@@ -94,7 +97,19 @@ export function ContractDetailsModal({ contractId, onClose }: ContractDetailsMod
                     <span>Price:- {formatAmt(item.price)}</span>
                   </div>
                   
-                  <p className="text-center text-xs text-gray-500 font-semibold italic">Production Not Started Yet.</p>
+                  {item.has_production ? (
+                    <table className="w-full border-collapse text-xs text-black border border-gray-300">
+                      <thead><tr>{['Process Name','Start Date','End Date','PO No.','Planned Qty','Prepared Qty'].map(label => <th key={label} className="border border-gray-300 px-2 py-1.5">{label}</th>)}</tr></thead>
+                      <tbody>{item.processes?.map((process: any, index: number) => <tr key={index}>
+                        <td className="border border-gray-300 px-2 py-1.5">{process.process_name}</td>
+                        <td className="border border-gray-300 px-2 py-1.5">{formatContractDate(process.start_date)}</td>
+                        <td className="border border-gray-300 px-2 py-1.5">{formatContractDate(process.end_date)}</td>
+                        <td className="border border-gray-300 px-2 py-1.5">{process.po_numbers}</td>
+                        <td className="border border-gray-300 px-2 py-1.5 text-right">{formatQty(process.quantity)}</td>
+                        <td className="border border-gray-300 px-2 py-1.5 text-right">{formatQty(process.quantity)}</td>
+                      </tr>)}</tbody>
+                    </table>
+                  ) : <p className="text-center text-xs text-gray-500 font-semibold italic">Production Not Started Yet.</p>}
                   <h4 className="text-center font-bold text-xs text-black">Raw Material</h4>
                   
                   <table className="w-full text-left border-collapse text-xs text-black border border-gray-300">
@@ -211,6 +226,7 @@ export function ContractDetailsModal({ contractId, onClose }: ContractDetailsMod
           </div>
         )}
 
+        {showReverseCost && <ContractReverseCost contractId={contractId} onClose={()=>setShowReverseCost(false)}/>}
       </div>
     </div>
   );

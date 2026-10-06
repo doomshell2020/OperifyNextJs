@@ -18,7 +18,11 @@ type AddItemFormValues = {
   weight: string;
   volume: string;
   min_order_qty: string;
-  itemtype: 'RawMaterial' | 'FinishedProduct';
+  tax: string;
+  size_id: string;
+  location_name: string;
+  cname: string;
+  itemtype: 'RawMaterial' | 'FinishedProduct' | 'Semi-Finished Product';
   finishedprocess_id: string;
   productprocess_id: string[];
 };
@@ -30,6 +34,7 @@ export default function AddProductPage() {
 
   const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<AddItemFormValues>({
     defaultValues: {
+      tax: '',size_id:'',location_name:'',cname:'',
       item_name: '',
       category_id: '',
       item_isbn: '',
@@ -45,6 +50,7 @@ export default function AddProductPage() {
     }
   });
 
+  const {data:masters}=useQuery({queryKey:['product-form-masters'],queryFn:()=>settingsService.getProductFormData()});
   const itemtype = watch('itemtype');
 
   // Fetch dropdown data
@@ -191,6 +197,22 @@ export default function AddProductPage() {
               />
             </div>
             
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Tax</label>
+              <select {...register('tax')} className="w-full border rounded-lg p-2 text-sm"><option value="">Select Tax</option>{masters?.taxes.map(t=><option key={t.id} value={t.id}>{t.tax_name} ({t.tax}%)</option>)}</select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Size</label>
+              <select {...register('size_id')} className="w-full border rounded-lg p-2 text-sm"><option value="">Select Size</option>{masters?.sizes.map(t=><option key={t.id} value={t.id}>{t.size_name}</option>)}</select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Location</label>
+              <select {...register('location_name')} className="w-full border rounded-lg p-2 text-sm"><option value="">Select Location</option>{masters?.locations.filter(t=>Number(t.parent)===0).map(t=><option key={t.id} value={t.id}>{t.location_name}</option>)}</select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Company</label>
+              <select {...register('cname')} className="w-full border rounded-lg p-2 text-sm"><option value="">Select Company</option>{masters?.companies.map(t=><option key={t.id} value={t.id}>{t.cname}</option>)}</select>
+            </div>
             <div className="md:col-span-3 pt-4 border-t border-slate-100">
               <label className="block text-sm font-semibold text-slate-700 mb-2">Item Type :</label>
               <div className="flex items-center gap-6">
@@ -215,6 +237,7 @@ export default function AddProductPage() {
               </div>
             </div>
 
+            <label className="flex items-center gap-2"><input type="radio" value="Semi-Finished Product" {...register('itemtype')} />Semi-Finished Product</label>
             {itemtype === 'FinishedProduct' && (
               <div className="md:col-span-3 pt-2">
                 <label className="block text-sm font-semibold text-slate-700 mb-3">Process Name :</label>

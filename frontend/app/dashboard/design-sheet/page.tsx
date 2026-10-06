@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { useListLocation } from '@/components/ui/useListLocation';
 import { ListPagination, LEGACY_LIST_LIMIT } from '@/components/ui/ListPagination';
 import React, { useState } from 'react';
@@ -8,12 +10,12 @@ import Link from 'next/link';
 import { usePermission } from '@/contexts/PermissionContext';
 import { designsheetService, DesignSheetFilter } from '../../../services/designsheet.service';
 import { 
-  FileText, Search, RefreshCw, Eye, Loader, AlertCircle, Briefcase, Plus, X, Edit, Trash2, Printer
+  FileText, Search, RefreshCw, Loader, AlertCircle, Briefcase, Plus, Edit, Trash2, Printer
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { formatQty, formatAmt } from '@/utils/formatters';
 import { DatePicker } from '../../../components/ui/DatePicker';
-import { formatDate, formatContractDate } from '../../../utils/dateFormatter';
+import { formatContractDate } from '../../../utils/dateFormatter';
 
 export default function DesignSheetsPage() {
   const { hasPermission } = usePermission();
@@ -36,6 +38,9 @@ export default function DesignSheetsPage() {
   });
   
   const designs = data?.data || [];
+  const canAdd = hasPermission("designsheet:add") || hasPermission("legacy:admin/designsheet/add");
+  const canEdit = hasPermission("designsheet:edit") || hasPermission("legacy:admin/designsheet/edit");
+  const canDelete = hasPermission("designsheet:delete") || hasPermission("legacy:admin/designsheet/delete");
 
   const { data: detailsData, isLoading: detailsLoading } = useQuery({
     queryKey: ['designsheet-details', selectedSheetNo],
@@ -67,13 +72,14 @@ export default function DesignSheetsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm('Are you sure you want to delete this Design Sheet?')) {
+    if (confirm('Are you sure do you want to delete this Design Sheet')) {
         try {
             await designsheetService.deleteDesignSheet(id);
             toast.success('Production Sheet deleted successfully');
             refetch();
-        } catch (e) {
-            toast.error('Failed to delete Design Sheet');
+        } catch (e: unknown) {
+            const response = (e as { response?: { data?: { message?: string } } })?.response;
+            toast.error(response?.data?.message || 'Failed to delete Design Sheet');
         }
     }
   };
@@ -89,7 +95,7 @@ export default function DesignSheetsPage() {
           </h1>
         </div>
         <div className="flex gap-2">
-          {hasPermission("designsheet:add") && (
+          {canAdd && (
             <Link href="/dashboard/design-sheet/add" className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 border border-cyan-600 rounded-lg text-xs font-semibold text-white transition cursor-pointer self-start md:self-auto">
             <Plus className="w-3.5 h-3.5" /> Add Design Sheet
           </Link>
@@ -190,12 +196,12 @@ export default function DesignSheetsPage() {
                     ) : '-'}
                   </td>
                   <td className="px-6 py-4 flex items-center justify-center gap-3">
-                    {hasPermission("designsheet:edit") && (
+                    {canEdit && (
                       <Link href={`/dashboard/design-sheet/edit/${d.id}`} className="text-blue-500 hover:text-blue-700 transition" title="Edit">
                         <Edit className="w-4 h-4" />
                       </Link>
                     )}
-                    {hasPermission("designsheet:delete") && Number(d.indentpo_count) === 0 && (
+                    {canDelete && Number(d.indentpo_count) === 0 && (
                       <button onClick={() => handleDelete(d.id)} className="text-rose-500 hover:text-rose-700 transition" title="Delete">
                         <Trash2 className="w-4 h-4" />
                       </button>

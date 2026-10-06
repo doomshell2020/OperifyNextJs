@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import contractService, { CreateContractPayload, FinishedProductInput } from '../../../../../services/contract.service';
 import { DatePicker } from '../../../../../components/ui/DatePicker';
 
-type ProductRow = FinishedProductInput & { itemName: string };
+type ProductRow = FinishedProductInput & { itemName: string; existing?: boolean };
 
 function toDateInput(value?: string) {
   if (!value) return '';
@@ -63,7 +63,8 @@ export default function EditContractPage() {
             product_id: item.product_id,
             quantity: item.quantity || '',
             price: item.price || '',
-            itemName: item.item_name || ''
+            itemName: item.item_name || '',
+            existing:true
           }))
         : [{ product_id: '', quantity: '', price: '', itemName: '' }]
     );
@@ -227,13 +228,13 @@ export default function EditContractPage() {
                 {products.map((product, idx) => (
                   <tr key={idx} className="border-b border-slate-200">
                     <td className="px-2 py-2">
-                      <input type="text" list="items-list" placeholder="Enter Item Name" value={product.itemName} onChange={e => handleProductChange(idx, 'itemName', e.target.value)} className="w-full px-2 py-1.5 border border-yellow-400 focus:border-cyan-500 outline-none text-sm" />
+                      <input type="text" list="items-list" placeholder="Enter Item Name" value={product.itemName} readOnly={product.existing} onChange={e => handleProductChange(idx, 'itemName', e.target.value)} className="w-full px-2 py-1.5 border border-yellow-400 focus:border-cyan-500 outline-none text-sm" />
                     </td>
                     <td className="px-2 py-2">
-                      <input type="number" placeholder="Qty" value={product.quantity} onChange={e => handleProductChange(idx, 'quantity', e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 focus:border-cyan-500 outline-none text-sm" />
+                      <input type="number" placeholder="Qty" value={product.quantity} readOnly={product.existing} onChange={e => handleProductChange(idx, 'quantity', e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 focus:border-cyan-500 outline-none text-sm" />
                     </td>
                     <td className="px-2 py-2">
-                      <input type="number" placeholder="Price" value={product.price} onChange={e => handleProductChange(idx, 'price', e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 focus:border-cyan-500 outline-none text-sm" />
+                      <input type="number" placeholder="Price" value={product.price} readOnly={product.existing} onChange={e => handleProductChange(idx, 'price', e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 focus:border-cyan-500 outline-none text-sm" />
                     </td>
                     <td className="px-2 py-2 text-center">
                       <button type="button" onClick={() => setProducts(products.filter((_, i) => i !== idx))} disabled={products.length === 1} className="p-1.5 text-rose-500 hover:bg-rose-50 rounded disabled:opacity-30 transition cursor-pointer">

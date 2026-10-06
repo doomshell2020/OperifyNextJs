@@ -51,8 +51,8 @@ class PurchaseOrderController {
   async revisePurchaseOrder(req, res, next) {
     try {
       const { id } = req.params;
-      await purchaseOrderService.revisePurchaseOrder(req.dbPool, id, req.body);
-      res.status(200).json({ success: true, message: 'Purchase Order revised successfully' });
+      const result = await purchaseOrderService.revisePurchaseOrder(req.dbPool, id, req.body);
+      res.status(201).json({ success: true, message: 'Purchase Order revised successfully', data: result.data });
     } catch (error) {
       next(error);
     }

@@ -121,42 +121,9 @@ class GrnInspectionRepository {
   }
 
   async create(dbPool, inspection, items) {
-    const transaction = await dbPool.transaction();
-    try {
-      const insResult = await dbPool.models.grn_inspection.create({
-        po_id: inspection.po_id ?? null,
-        inspection_id: inspection.inspection_id ?? null,
-        vendor_id: inspection.vendor_id ?? null,
-        inwarddate: inspection.inwarddate ?? null,
-        bill_no: inspection.bill_no ?? null,
-        bill_date: inspection.bill_date ?? null,
-        total_qty: inspection.total_qty ?? 0,
-        total_tax: inspection.total_tax ?? 0,
-        total_amt: inspection.total_amt ?? 0,
-        remark: inspection.remark ?? ''
-      }, { transaction });
-
-      const detailsToInsert = items.map(item => ({
-        purchaseorder_id: inspection.po_id ?? null,
-        inspection_id: inspection.inspection_id ?? null,
-        item_id: item.item_id ?? null,
-        quantity: item.quantity ?? 0,
-        rate: item.rate ?? 0,
-        amount: item.amount ?? 0,
-        tax: item.tax ?? 0
-      }));
-
-      if (detailsToInsert.length > 0) {
-        await dbPool.models.grn_inspection_details.bulkCreate(detailsToInsert, { transaction });
-      }
-
-      await transaction.commit();
-      return { data: { id: insResult.id, inspection_id: inspection.inspection_id } };
-    } catch (error) {
-      await transaction.rollback();
-      throw error;
-    }
+    return require('./grnInspection.create')(dbPool, inspection, items);
   }
+
 }
 
 module.exports = new GrnInspectionRepository();

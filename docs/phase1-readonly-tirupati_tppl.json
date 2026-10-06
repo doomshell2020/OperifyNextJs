@@ -1,0 +1,48 @@
+{
+  "tenant": "tirupati_tppl",
+  "checks": [
+    {
+      "module": "Contract reverse cost",
+      "contract": 130,
+      "rows": 0,
+      "result": "Empty source-matching result verified; no qualifying reverse rows in this live sample. Tax/rate behavior covered by memory regression fixture."
+    },
+    {
+      "module": "Products",
+      "records": 1923,
+      "result": "All server pages/counts, active raw material default, search and form masters passed"
+    },
+    {
+      "module": "Indents / material issue",
+      "records": 3779,
+      "result": "Complete server page traversal/count and existing edit ledger IDs/quantities passed"
+    },
+    {
+      "module": "Categories",
+      "records": 68,
+      "result": "Active list and master relationships queried successfully"
+    },
+    {
+      "module": "Stock Register",
+      "dailyRows": 1216,
+      "registerRows": 283,
+      "result": "Every returned cumulative/detailed balance matched independent SQL derived from current PHP"
+    },
+    {
+      "module": "Excel exports",
+      "productRows": 1923,
+      "materialIssueRows": 7410,
+      "stockRows": 283,
+      "result": "Real API downloads decoded successfully; complete row counts, tenant company, PHP identity/physical columns verified"
+    },
+    {
+      "module": "Permissions",
+      "result": "16 denied write actions returned 403 before database writes; edit-only user can load product edit data but cannot list contracts/add/delete"
+    },
+    {
+      "module": "GRN / Inspection",
+      "samples": 0,
+      "result": "NEEDS ATTENTION: no active inspection exists for a read-only receiving sample"
+    }
+  ]
+}

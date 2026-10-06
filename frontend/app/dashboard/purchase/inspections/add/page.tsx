@@ -32,6 +32,10 @@ const formSchema = z.object({
     received_qty: z.number().min(0, "Quantity cannot be negative").transform(v => Number(v) || 0),
     rate: z.number(),
     tax_rate: z.number(),
+    order_base: z.number(),
+    order_tax: z.number(),
+    order_amount: z.number(),
+    tax_id: z.number().nullable(),
     uom: z.string()
   })).refine(items => items.some(i => i.received_qty > 0), {
     message: "At least one item must have a received quantity greater than 0"
@@ -120,7 +124,8 @@ export default function AddGrnInspectionPage() {
             received_qty: 0,
             rate: Number(i.rate),
             tax_rate: Number(i.tax_percentage || 0),
-            uom: i.uom || 'KG'
+            order_base: Number(i.price),order_tax:Number(i.tax_amt || 0),order_amount:Number(i.amount),tax_id:i.tax_id ? Number(i.tax_id) : null,
+            uom: i.uom || ''
           }));
           replace(newItems);
         } else if (isMounted) {
@@ -141,12 +146,10 @@ export default function AddGrnInspectionPage() {
 
   // Derived Totals
   const totalQty = (items || []).reduce((sum, item) => sum + (Number(item.received_qty) || 0), 0);
-  const totalAmountPreTax = (items || []).reduce((sum, item) => sum + ((Number(item.received_qty) || 0) * (Number(item.rate) || 0)), 0);
-  const totalTax = (items || []).reduce((sum, item) => {
-    const amt = (Number(item.received_qty) || 0) * (Number(item.rate) || 0);
-    return sum + (amt * (Number(item.tax_rate) || 0) / 100);
-  }, 0);
-  const netAmount = totalAmountPreTax + totalTax;
+  const portion = (item: FormValues['items'][number], value:number) => Math.round(value*item.received_qty/item.order_qty*100)/100 || 0;
+  const totalAmountPreTax=(items || []).reduce((sum,item)=>sum+portion(item,item.order_base),0);
+  const totalTax=(items || []).reduce((sum,item)=>sum+portion(item,item.order_tax),0);
+  const netAmount=(items || []).reduce((sum,item)=>sum+portion(item,item.order_amount),0);
 
   const submitMutation = useMutation({
     mutationFn: (payload: any) => grnInspectionService.createInspection(payload),
@@ -160,12 +163,14 @@ export default function AddGrnInspectionPage() {
 
   const onSubmit = (data: FormValues) => {
     const validItems = data.items.filter(i => i.received_qty > 0).map(i => {
-      const amount = i.received_qty * i.rate;
-      const taxAmt = amount * (i.tax_rate / 100);
+      const amount = portion(i,i.order_amount);
+      const taxAmt = portion(i,i.order_tax);
       return {
         item_id: i.item_id,
         quantity: i.received_qty,
         rate: i.rate,
+        tax_id:i.tax_id,
+        cost_price:portion(i,i.order_base),
         tax: taxAmt,
         amount: amount
       };
@@ -337,13 +342,12 @@ export default function AddGrnInspectionPage() {
                   
                   {fields.map((field, idx) => {
                     const currentItem = items?.[idx];
-                    const rcvdQty = Number(currentItem?.received_qty) || 0;
                     const rate = Number(currentItem?.rate) || 0;
                     const taxRate = Number(currentItem?.tax_rate) || 0;
                     
-                    const amt = rcvdQty * rate;
-                    const taxAmt = amt * (taxRate / 100);
-                    const totalAmt = amt + taxAmt;
+                    const amt = currentItem ? portion(currentItem, currentItem.order_base) : 0;
+                    const taxAmt = currentItem ? portion(currentItem, currentItem.order_tax) : 0;
+                    const totalAmt = currentItem ? portion(currentItem, currentItem.order_amount) : 0;
                     
                     const hasError = !!errors.items?.[idx]?.received_qty;
 

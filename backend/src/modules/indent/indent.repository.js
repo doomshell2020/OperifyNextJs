@@ -114,14 +114,15 @@ class IndentRepository {
     try {
       // Get temp items
       const tempItems = await dbPool.query(
-        'SELECT * FROM st_indentmaster_temp WHERE indent_id = :indent_id',
+        'SELECT * FROM st_indentmaster_temp WHERE indent_id = :indent_id FOR UPDATE',
         { replacements: { indent_id }, type: QueryTypes.SELECT, transaction }
       );
 
       if (tempItems.length === 0) {
-        await transaction.rollback();
         throw new Error('No items to finalize');
       }
+      const existing=await dbPool.query('SELECT id FROM st_indentmaster WHERE indent_id=:indent_id LIMIT 1 FOR UPDATE',{replacements:{indent_id},type:QueryTypes.SELECT,transaction});
+      if(existing.length)throw require('../../utils/receiptValidation').invalid('This indent has already been finalized.',409);
 
       // Insert each temp item into the permanent indent table
       for (const item of tempItems) {

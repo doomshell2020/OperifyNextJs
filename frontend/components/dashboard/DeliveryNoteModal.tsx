@@ -29,7 +29,7 @@ export function DeliveryNoteModal({ poId, onClose }: DeliveryNoteModalProps) {
     if (data) {
       if (data.po.remark) setRemark(data.po.remark);
       
-      const newSchedules = Array(4).fill(null).map(() => ({ inwarddate: '', items: {} }));
+      const newSchedules = Array(4).fill(null).map(() => ({ inwarddate: '', items: {} as Record<string, number> }));
       
       data.items.forEach((item: any) => {
         for (let i = 0; i < 4; i++) {
@@ -37,22 +37,23 @@ export function DeliveryNoteModal({ poId, onClose }: DeliveryNoteModalProps) {
         }
       });
 
-      if (data.schedules && data.schedules.length > 0) {
+      const savedSchedules = data.schedules || [];
+      if (savedSchedules.length > 0) {
         // Group by date
-        const dateGroups = Array.from(new Set(data.schedules.map((s: any) => s.delivery_date)));
+        const dateGroups = Array.from(new Set(savedSchedules.map((s: any) => s.delivery_date)));
         
         dateGroups.forEach((date: any, index: number) => {
           if (index < 4) {
             newSchedules[index].inwarddate = date.split('T')[0];
-            const itemsForDate = data.schedules.filter((s: any) => s.delivery_date === date);
+            const itemsForDate = savedSchedules.filter((s: any) => s.delivery_date === date);
             itemsForDate.forEach((s: any) => {
               newSchedules[index].items[s.item_id] = Number(s.item_qty);
             });
           }
         });
         
-        if (data.schedules[0] && data.schedules[0].remark) {
-           setRemark(data.schedules[0].remark);
+        if (savedSchedules[0] && savedSchedules[0].remark) {
+           setRemark(savedSchedules[0].remark);
         }
       }
 
