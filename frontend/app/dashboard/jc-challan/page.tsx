@@ -7,9 +7,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Box, RefreshCw, Plus, X, Trash2, Eye, FileText, Loader, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useJcAccess, errorMessage } from '@/components/jobChallan/useJcAccess';
+import { useAuth } from '@/contexts/AuthContext';
+import { ListPagination } from '@/components/ui/ListPagination';
 
 export default function JobChallanList() {
   const router = useRouter();
+  const { can, loading: permissionsLoading } = useJcAccess();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
@@ -18,18 +23,19 @@ export default function JobChallanList() {
   const [applied, setApplied] = useState({ ...filters });
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['jobChallans', page, applied],
+    queryKey: ['jobChallans', user?.db, page, applied],
+    enabled: can('jobchallan','index'),
     queryFn: async () => {
       const res = await apiClient.get('/job-challan', {
-        params: { page, limit: 10, ...applied }
+        params: { page, limit: 50, ...applied }
       });
       return res.data.data;
     },
-    placeholderData: (prev) => prev,
   });
 
   const { data: vendorData } = useQuery({
-    queryKey: ['jcVendors'],
+    queryKey: ['jcVendors', user?.db],
+    enabled: can('jobchallan','index'),
     queryFn: async () => {
       const res = await apiClient.get('/job-challan/vendors');
       return res.data.data;
@@ -45,7 +51,7 @@ export default function JobChallanList() {
       toast.success('Job Challan deleted successfully');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Cannot delete this Job Challan');
+      toast.error(errorMessage(err));
     }
   });
 
@@ -72,7 +78,7 @@ export default function JobChallanList() {
   };
 
   const statusBadge = (status: string) => {
-    const cls = status === 'Received'
+    const cls = status === 'Completed' || status === 'Received'
       ? 'bg-green-100 text-green-700'
       : status === 'Cancelled'
       ? 'bg-red-100 text-red-700'
@@ -80,6 +86,8 @@ export default function JobChallanList() {
     return <span className={`px-2 py-0.5 rounded text-xs font-semibold ${cls}`}>{status || 'Pending'}</span>;
   };
 
+  if (permissionsLoading) return <p className="p-6">Loading permissions...</p>;
+  if (!can('jobchallan','index')) return <p className="p-6" role="alert">You do not have permission to view JCs.</p>;
   return (
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
       {/* Header */}
@@ -94,9 +102,9 @@ export default function JobChallanList() {
           <button onClick={() => refetch()} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-sm font-medium transition">
             <RefreshCw className="w-4 h-4" /> Refresh
           </button>
-          <button onClick={() => router.push('/dashboard/jc-challan/create')} className="flex items-center gap-1.5 px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition shadow-sm">
+          {can('jobchallan','add') && <button onClick={() => router.push('/dashboard/jc-challan/create')} className="flex items-center gap-1.5 px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition shadow-sm">
             <Plus className="w-4 h-4" /> Add Job Challan
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -125,7 +133,7 @@ export default function JobChallanList() {
           <select name="status" value={filters.status} onChange={handleFilterChange}
             className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none">
             <option value="">All Statuses</option>
-            <option value="Pending">Pending</option>
+            <option value="Created">Created</option><option value="Pending">Pending</option><option value="Partially Returned">Partially Returned</option><option value="Completed">Completed</option>
             <option value="Received">Received</option>
             <option value="Cancelled">Cancelled</option>
           </select>
@@ -178,7 +186,7 @@ export default function JobChallanList() {
               {data?.items && data.items.length > 0 ? (
                 data.items.map((item: any, idx: number) => (
                   <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                    <td className="p-4 text-slate-500">{((page - 1) * 10) + idx + 1}</td>
+                    <td className="p-4 text-slate-500">{((page - 1) * 50) + idx + 1}</td>
                     <td className="p-4 font-medium text-cyan-700">{item.challan_no}</td>
                     <td className="p-4 text-slate-600">{item.jc_date}</td>
                     <td className="p-4 font-medium text-blue-600 truncate max-w-[200px]">{item.vendor?.name || 'N/A'}</td>
@@ -189,18 +197,18 @@ export default function JobChallanList() {
                     </td>
                     <td className="p-4 text-center">
                       <div className="flex justify-center gap-1">
-                        <button onClick={() => router.push(`/dashboard/jc-challan/${item.id}`)}
+                        {can('jobchallan','view') && <button onClick={() => router.push(`/dashboard/jc-challan/${item.id}`)}
                           className="p-1.5 text-slate-400 hover:text-cyan-600 hover:bg-cyan-50 rounded transition" title="View">
                           <Eye className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => router.push(`/dashboard/jc-challan/${item.id}?pdf=1`)}
+                        </button>}
+                        {can('jobchallan','viewpdf') && <button onClick={() => router.push(`/dashboard/jc-challan/${item.id}/pdf`)}
                           className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition" title="PDF">
                           <FileText className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDelete(item.id)} disabled={deleteMutation.isPending}
+                        </button>}
+                        {can('jobchallan','delete') && <button onClick={() => handleDelete(item.id)} disabled={deleteMutation.isPending}
                           className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition disabled:opacity-40" title="Delete">
                           <Trash2 className="w-4 h-4" />
-                        </button>
+                        </button>}
                       </div>
                     </td>
                   </tr>
@@ -216,25 +224,7 @@ export default function JobChallanList() {
           </table>
         </div>
 
-        {/* Pagination */}
-        {data?.total > 10 && (
-          <div className="flex items-center justify-between p-4 border-t border-slate-200 bg-slate-50">
-            <span className="text-sm text-slate-500">
-              Showing page <span className="font-semibold text-slate-700">{page}</span> of{' '}
-              <span className="font-semibold text-slate-700">{Math.ceil(data.total / 10)}</span>
-            </span>
-            <div className="flex gap-1">
-              <button disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))}
-                className="px-3 py-1.5 border border-slate-200 rounded-md text-sm font-medium text-slate-600 hover:bg-white disabled:opacity-50 transition">
-                Previous
-              </button>
-              <button disabled={!data?.items || data.items.length < 10} onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1.5 border border-slate-200 rounded-md text-sm font-medium text-slate-600 hover:bg-white disabled:opacity-50 transition">
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        <ListPagination page={page} limit={50} total={data?.total || 0} onPageChange={setPage} busy={isLoading} />
       </div>
     </main>
   );

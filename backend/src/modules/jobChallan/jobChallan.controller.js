@@ -19,7 +19,7 @@ class JobChallanController {
 
   async getDetail(req, res, next) {
     try {
-      const data = await JobChallanService.getDetail(req.dbName, req.params.id);
+      const data = await JobChallanService.getDetail(req.dbName, req.params.id, req.query.sender_db);
       res.json({ success: true, data });
     } catch (err) { next(err); }
   }
@@ -71,6 +71,13 @@ class JobChallanController {
   async listVendors(req, res, next) {
     try {
       const data = await JobChallanService.listVendors(req.dbName);
+      res.json({ success: true, data });
+    } catch (err) { next(err); }
+  }
+
+  async addVendor(req, res, next) {
+    try {
+      const data = await JobChallanService.addVendor(req.dbName, req.body);
       res.json({ success: true, data });
     } catch (err) { next(err); }
   }

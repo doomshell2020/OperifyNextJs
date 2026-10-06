@@ -6,27 +6,39 @@ import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../../../services/apiClient';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Printer, Loader, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { useAuth } from '@/contexts/AuthContext';
+import { useJcAccess } from '@/components/jobChallan/useJcAccess';
 
 export default function ViewJobChallan() {
   const params       = useParams();
   const router       = useRouter();
   const searchParams = useSearchParams();
   const printRef     = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
+  const { can, loading: permissionsLoading, permissionError, retryPermissions } = useJcAccess();
+  const senderDb = searchParams.get('sender_db');
+  const senderQuery = senderDb ? '?sender_db=' + encodeURIComponent(senderDb) : '';
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['jobChallan', params.id],
+    queryKey: ['jobChallan', user?.db, params.id, senderDb],
+    enabled: can('jobchallan','view'),
     queryFn: async () => {
-      const res = await apiClient.get('/job-challan/' + params.id);
+      const res = await apiClient.get('/job-challan/' + params.id + senderQuery);
       return res.data.data;
     }
   });
 
-  const handlePrint = () => { void openModulePdf(`/job-challan/${encodeURIComponent(String(params.id))}/pdf`); };
+  const handlePrint = () => { void openModulePdf(`/job-challan/${encodeURIComponent(String(params.id))}/pdf${senderQuery}`); };
   useEffect(() => {
     if (searchParams.get('pdf') === '1') {
-      window.location.replace(`/dashboard/jc-challan/${encodeURIComponent(String(params.id))}/pdf`);
+      window.location.replace(`/dashboard/jc-challan/${encodeURIComponent(String(params.id))}/pdf${senderQuery}`);
     }
-  }, [params.id, searchParams]);
+  }, [params.id, searchParams, senderQuery]);
+
+  if (permissionsLoading) return <p className="p-6">Loading permissions...</p>;
+  if (permissionError) return <div className="p-6 space-y-3" role="alert"><p>Unable to check JC access. Please try again.</p><button className="text-cyan-700 underline" onClick={() => void retryPermissions()}>Try again</button></div>;
+  if (!can('jobchallan','view')) return <p className="p-6" role="alert">You do not have permission to view this JC.</p>;
 
   if (isLoading) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
@@ -60,9 +72,9 @@ export default function ViewJobChallan() {
           <button onClick={() => router.back()} className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-sm font-medium transition">
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
-          <button onClick={handlePrint} className="flex items-center gap-1.5 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition shadow-sm">
+          {can('jobchallan','viewpdf') && <button onClick={handlePrint} className="flex items-center gap-1.5 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition shadow-sm">
             <Printer className="w-4 h-4" /> Print / PDF
-          </button>
+          </button>}
         </div>
 
         {/* Printable Content */}
@@ -183,6 +195,20 @@ export default function ViewJobChallan() {
           )}
 
           {/* Signature row */}
+          <section className="mt-6 space-y-3">
+            <div className="flex justify-between items-center"><h4 className="font-semibold">Quantity Tracking</h4>
+              {!senderDb && can('jobchallan','itemreceived') && !['Completed','Cancelled','Deleted'].includes(challanData.status) && <Link className="text-cyan-700 underline" href={`/dashboard/jc-challan/${params.id}/receive`}>Receive Returned Items</Link>}
+            </div>
+            <table className="w-full text-sm"><thead><tr>{['Item','Dispatch','Received','Pending','Consumed at Subcontractor','Subcontractor Balance'].map(h => <th key={h} className="p-2 text-left">{h}</th>)}</tr></thead><tbody>
+              {Array.from(new Set<number>((challanData.job_challan_items || []).map((item: {item_id:number}) => Number(item.item_id)))).map(itemId => {
+                const rows = challanData.job_challan_items.filter((item: {item_id:number}) => Number(item.item_id) === itemId);
+                return <tr className="border-t" key={itemId}><td className="p-2">{rows[0].item?.item_name}</td><td className="p-2">{rows.reduce((sum:number,item:{quantity:number}) => sum + Number(item.quantity),0)}</td><td className="p-2">{rows[0].received_qty}</td><td className="p-2">{rows[0].pending_qty}</td><td className="p-2">{data.tracking?.[itemId]?.consumed ?? '-'}</td><td className="p-2">{data.tracking?.[itemId]?.balance ?? '-'}</td></tr>;
+              })}
+            </tbody></table>
+            <h4 className="font-semibold">Receive History</h4>
+            <table className="w-full text-sm"><thead><tr>{['Date','Item','Received Quantity','Vehicle','Remarks','Return Challan'].map(h => <th key={h} className="p-2 text-left">{h}</th>)}</tr></thead><tbody>{(data.history || []).map((row: {id:number;receive_date:string;item_name:string;received_qty:number;vehicle_no:string;remarks:string}) => <tr className="border-t" key={row.id}><td className="p-2">{row.receive_date}</td><td className="p-2">{row.item_name}</td><td className="p-2">{row.received_qty}</td><td className="p-2">{row.vehicle_no}</td><td className="p-2">{row.remarks}</td><td className="p-2">{can('jobchallan','viewreturnpdf') && <Link className="text-cyan-700" href={`/dashboard/jc-receive/${row.id}/pdf${senderQuery}`}>RC-{row.id} PDF</Link>}</td></tr>)}</tbody></table>
+            {!data.history?.length && <p className="text-sm text-slate-500">No items received yet.</p>}
+          </section>
           <div className="grid grid-cols-3 gap-8 mt-12 text-xs text-slate-400 text-center">
             <div className="border-t border-slate-300 pt-2">Prepared By</div>
             <div className="border-t border-slate-300 pt-2">Authorized By</div>

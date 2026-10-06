@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermission } from '../../contexts/PermissionContext';
+import { useJcAccess } from '../jobChallan/useJcAccess';
 import {
   FolderClosed, CreditCard, FileText, Layers, FileSpreadsheet,
   ShoppingBag, ClipboardCheck, Truck, RefreshCw, Factory,
@@ -18,7 +19,9 @@ export const DashboardTopbar: React.FC = () => {
   const pathname = usePathname();
   const { user, logout, switchCompany } = useAuth();
   const { hasPermission } = usePermission();
+  const { can: canJc } = useJcAccess();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [jobWorkOpen, setJobWorkOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>('https://staging.operify.in/image/logo.png');
 
   useEffect(() => {
@@ -52,11 +55,15 @@ export const DashboardTopbar: React.FC = () => {
     { title: 'Daily Sheet', icon: <Calendar className="w-[18px] h-[18px]" />, path: '/dashboard/production/sheet' },
     { title: 'Maintenance', icon: <Wrench className="w-[18px] h-[18px]" />, path: '/dashboard/maintenance/breakdowns' },
     { title: 'Stock', icon: <Database className="w-[18px] h-[18px]" />, path: '/dashboard/inventory/stock' },
-    { title: 'Daily Stock', icon: <Archive className="w-[18px] h-[18px]" />, path: '/dashboard/inventory/daily' },
-    { title: 'JC Challan', icon: <Receipt className="w-[18px] h-[18px]" />, path: '/dashboard/jc-challan' },
-    { title: 'JC Receive', icon: <RefreshCw className="w-[18px] h-[18px]" />, path: '/dashboard/jc-receive' },
-    { title: 'Gate Pass', icon: <Truck className="w-[18px] h-[18px]" />, path: '/dashboard/gatepass' }
+    { title: 'Daily Stock', icon: <Archive className="w-[18px] h-[18px]" />, path: '/dashboard/inventory/daily' }
   ];
+
+  const jobWorkItems = [
+    { title: 'JC Challan', path: '/dashboard/jc-challan', allowed: canJc('jobchallan', 'index') },
+    { title: 'JC Receive', path: '/dashboard/jc-receive', allowed: canJc('jobchallan', 'receiveindex') },
+    { title: 'Gate Pass', path: '/dashboard/gatepass', allowed: canJc('gatepasses', 'index') }
+  ].filter(item => item.allowed);
+  const jobWorkActive = jobWorkItems.some(item => pathname === item.path || pathname.startsWith(item.path + '/'));
 
   const settingsMenu = [
     { title: 'Categories', path: '/dashboard/admin/categories' },
@@ -111,7 +118,6 @@ export const DashboardTopbar: React.FC = () => {
             if(item.title==="Daily Sheet") return hasPermission("legacy:admin/production/index");
             if(item.title==="Maintenance") return hasPermission("legacy:admin/maintenance/index");
             if(item.title==="Stock") return hasPermission("stock:view") || hasPermission("legacy:admin/stockregister/index");
-            if(item.title==="JC Challan") return hasPermission("jobchallan:view") || hasPermission("legacy:admin/jobchallan/index");
             
             // For others where we are not 100% sure of the exact CakePHP URL, we still show them by default, 
             // but the user can add precise URL restrictions if needed.
@@ -126,7 +132,7 @@ export const DashboardTopbar: React.FC = () => {
                   isActive ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'
                 }`}
               >
-                {React.cloneElement(item.icon as React.ReactElement, {
+                {React.cloneElement(item.icon as React.ReactElement<{ className?: string }>, {
                   className: `w-[18px] h-[18px] pointer-events-none ${isActive ? 'text-[#1683D8]' : 'text-[#555]'}`
                 })}
                 <span className="text-[11px] font-semibold text-center whitespace-nowrap leading-none pointer-events-none">{item.title}</span>
@@ -138,6 +144,18 @@ export const DashboardTopbar: React.FC = () => {
 
       {/* 7. Right Section */}
       <div className="flex items-center gap-[6px] shrink-0 ml-auto justify-end h-full relative">
+        {jobWorkItems.length > 0 && <div className="relative flex items-center h-full shrink-0">
+          <button type="button" aria-expanded={jobWorkOpen} aria-controls="job-work-links" onClick={() => setJobWorkOpen(!jobWorkOpen)} className={`flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] border-b-[2px] transition-colors ${jobWorkActive ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'}`}>
+            <Receipt className="w-[18px] h-[18px]" />
+            <span className="flex items-center gap-1 text-[11px] font-semibold whitespace-nowrap">Job Work <ChevronDown className="w-3 h-3" /></span>
+          </button>
+          {jobWorkOpen && <>
+            <div className="fixed inset-0 z-40" onClick={() => setJobWorkOpen(false)} />
+            <div id="job-work-links" className="absolute right-0 top-[55px] w-[150px] bg-white border border-[#ccc] shadow-lg rounded-sm py-1 z-50">
+              {jobWorkItems.map(item => <Link key={item.path} href={item.path} onClick={() => setJobWorkOpen(false)} className={`block px-3 py-2 text-[11px] font-medium hover:bg-[#f5f5f5] ${pathname === item.path || pathname.startsWith(item.path + '/') ? 'text-[#1683D8]' : 'text-[#222]'}`}>{item.title}</Link>)}
+            </div>
+          </>}
+        </div>}
         
         {/* Superadmin specific links or Settings */}
         {user?.role_id === 101 ? (

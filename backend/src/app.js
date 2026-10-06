@@ -61,6 +61,8 @@ app.use('/api/grn-inspection', grnInspectionRoutes);
 app.use('/api/grn', grnRoutes);
 app.use('/api/stock-register', stockRegisterRoutes);
 app.use('/api/job-challan', jobChallanRoutes);
+app.use('/api/jc-receive', require('./modules/jobReceive/jobReceive.routes'));
+app.use('/api/gatepass', require('./modules/gatepass/gatepass.routes'));
 app.use('/api/reverse-indent', require('./modules/reverseIndent/reverseIndent.routes'));
 app.use('/api/permission', require('./modules/permission/permission.routes'));
 

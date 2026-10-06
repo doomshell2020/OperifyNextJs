@@ -1,0 +1,12 @@
+const express=require('express');
+const service=require('./jobReceive.service');
+const permission=require('../jobChallan/legacyPermission');
+const router=express.Router();
+router.use(require('../../middleware/auth'),require('../../middleware/tenant'));
+const handle=method=>async(req,res,next)=>{try{res.json({success:true,data:await method(req)});}catch(error){next(error);}};
+router.get('/options',permission('jobchallan','receiveadd'),handle(req=>service.options(req.dbName)));
+router.get('/details',permission('jobchallan','receiveadd'),handle(req=>service.details(req.dbName,req.query)));
+router.get('/',permission('jobchallan','receiveindex'),handle(req=>service.list(req.dbName,req.query)));
+router.post('/',permission('jobchallan','receiveadd'),handle(req=>service.create(req.dbName,req.body)));
+router.get('/:id/pdf',permission('jobchallan','viewreturnpdf'),async(req,res,next)=>{try{const data=await service.returnPdf(req.dbName,req.params.id,req.query.sender_db);const pdf=await require('./jobReceive.pdf').generate(data);res.type('pdf').set('Content-Disposition',`inline; filename="RC-${req.params.id}.pdf"`).end(pdf);}catch(error){next(error);}});
+module.exports=router;

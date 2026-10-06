@@ -1,0 +1,15 @@
+const express=require('express');
+const service=require('./gatepass.service');
+const permission=require('../jobChallan/legacyPermission');
+const router=express.Router();
+router.use(require('../../middleware/auth'),require('../../middleware/tenant'));
+const handle=method=>async(req,res,next)=>{try{res.json({success:true,data:await method(req)});}catch(error){next(error);}};
+router.get('/options',(req,res,next)=>permission('gatepasses',req.query.edit_id?'edit':'add')(req,res,next),handle(req=>service.options(req.dbName,req.query.edit_id)));
+router.get('/jc-data',(req,res,next)=>permission('gatepasses',req.query.edit_id?'edit':'add')(req,res,next),handle(req=>service.jcData(req.dbName,req.query.jc_id)));
+router.get('/',permission('gatepasses','index'),handle(req=>service.list(req.dbName,req.query)));
+router.post('/',permission('gatepasses','add'),handle(req=>service.save(req.dbName,req.body)));
+router.get('/:id/pdf',permission('gatepasses','gatepasspdf'),async(req,res,next)=>{try{const data=await service.detail(req.dbName,req.params.id);const pdf=await require('./gatepass.pdf').generate(data);res.type('pdf').set('Content-Disposition',`inline; filename="GP-${req.params.id}.pdf"`).end(pdf);}catch(error){next(error);}});
+router.get('/:id',permission('gatepasses','view'),handle(req=>service.detail(req.dbName,req.params.id)));
+router.put('/:id',permission('gatepasses','edit'),handle(req=>service.save(req.dbName,req.body,req.params.id)));
+router.delete('/:id',permission('gatepasses','delete'),(req,res)=>res.status(409).json({success:false,message:'Once a Gate Pass is created, it cannot be deleted to maintain data integrity. Please use the edit option.'}));
+module.exports=router;

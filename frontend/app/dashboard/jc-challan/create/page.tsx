@@ -5,6 +5,8 @@ import apiClient from '../../../../services/apiClient';
 import { useRouter } from 'next/navigation';
 import { Box, Save, ArrowLeft, Plus, Trash2, Loader, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useJcAccess, errorMessage, localDate } from '@/components/jobChallan/useJcAccess';
+import SubcontractorModal from '@/components/jobChallan/SubcontractorModal';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface ItemRow {
@@ -115,11 +117,12 @@ function ItemSearch({
 // ─── Main Component ──────────────────────────────────────────────────────────
 export default function AddJobChallan() {
   const router = useRouter();
+  const { can, loading: permissionsLoading } = useJcAccess();
   const [loading, setLoading] = useState(false);
 
   // Header fields
   const [challanNo, setChallanNo] = useState('');
-  const [jcDate, setJcDate] = useState(new Date().toISOString().slice(0, 10));
+  const [jcDate, setJcDate] = useState(localDate());
   const [vendorId, setVendorId] = useState('');
   const [gstNo, setGstNo] = useState('');
   const [estimatedValues, setEstimatedValues] = useState('');
@@ -135,6 +138,9 @@ export default function AddJobChallan() {
   const [sfpName, setSfpName] = useState('');
   const [sfpQty, setSfpQty] = useState('');
   const [sfpInHand, setSfpInHand] = useState('');
+  const [sfpRate, setSfpRate] = useState('');
+  const [sfpTax, setSfpTax] = useState('');
+  const [sfpHsn, setSfpHsn] = useState('');
 
   // Dropdown data
   const [vendors, setVendors] = useState<any[]>([]);
@@ -162,6 +168,8 @@ export default function AddJobChallan() {
       const d = res.data.data;
       if (isSfp) {
         setSfpInHand(String(d.inhand_qty));
+        setSfpHsn(d.hsn_code || '');
+        setSfpTax(String(d.tax_rate || ''));
       } else {
         setItems(prev => {
           const upd = [...prev];
@@ -226,8 +234,10 @@ export default function AddJobChallan() {
   };
 
   // Grand totals
-  const grandTotal    = items.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
-  const grandTaxTotal = items.reduce((s, r) => s + (parseFloat(r.tax_amount) || 0), 0);
+  const sfpBase = processingType === 'In Progress' ? (Number(sfpQty) || 0) * (Number(sfpRate) || 0) : 0;
+  const sfpTaxAmount = sfpBase * (Number(sfpTax) || 0) / 100;
+  const grandTotal    = items.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0) + sfpBase + sfpTaxAmount;
+  const grandTaxTotal = items.reduce((s, r) => s + (parseFloat(r.tax_amount) || 0), 0) + sfpTaxAmount;
   const baseTotal     = grandTotal - grandTaxTotal;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -239,7 +249,7 @@ export default function AddJobChallan() {
       if (!item.item_id) continue;
       const qty = parseFloat(item.quantity);
       const inh = parseFloat(item.in_hand_qty);
-      if (qty > inh && inh > 0) {
+      if (qty > inh) {
         toast.error(`Quantity for "${item.item_name}" exceeds available stock (${inh})`);
         return;
       }
@@ -268,17 +278,23 @@ export default function AddJobChallan() {
           })),
         semi_finished_item_id:    sfpId || undefined,
         semi_finished_quantity:   sfpQty || undefined,
+        semi_finished_rate:       sfpRate,
+        semi_finished_tax_rate:   sfpTax,
+        semi_finished_hsn_code:   sfpHsn,
       });
       toast.success('Job Challan created successfully!');
       router.push('/dashboard/jc-challan');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Error creating Job Challan');
+      toast.error(errorMessage(err));
       setLoading(false);
     }
   };
 
   const labelCls = 'block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1';
   const inputCls = 'w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition';
+
+  if (permissionsLoading) return <p className="p-6">Loading permissions...</p>;
+  if (!can('jobchallan','add')) return <p className="p-6" role="alert">You do not have permission to add a JC.</p>;
 
   return (
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 font-sans">
@@ -317,6 +333,7 @@ export default function AddJobChallan() {
                 <option value="">Select Sub Contractor</option>
                 {vendors.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
               </select>
+              <SubcontractorModal onAdded={v => { setVendors(prev => [...prev, v]); setVendorId(String(v.id)); }} />
             </div>
             <div>
               <label className={labelCls}>GST No.</label>
@@ -479,6 +496,11 @@ export default function AddJobChallan() {
                 <label className={labelCls}>In Hand Qty</label>
                 <input type="text" readOnly className={inputCls + ' bg-slate-50'} value={sfpInHand} placeholder="Fetched from server" />
               </div>
+              <div><label className={labelCls}>HSN/SAC</label><input className={inputCls} value={sfpHsn} onChange={e => setSfpHsn(e.target.value)} /></div>
+              <div><label className={labelCls}>Rate</label><input type="number" min="0" step="0.01" className={inputCls} value={sfpRate} onChange={e => setSfpRate(e.target.value)} /></div>
+              <div><label className={labelCls}>Tax %</label><select className={inputCls} value={sfpTax} onChange={e => setSfpTax(e.target.value)}><option value="">-- Tax --</option>{taxMaster.map(t => <option key={t.id} value={String(t.tax)}>{t.tax}%</option>)}</select></div>
+              <div><label className={labelCls}>Tax Amount</label><input readOnly className={inputCls} value={sfpTaxAmount.toFixed(2)} /></div>
+              <div><label className={labelCls}>Total Amount</label><input readOnly className={inputCls} value={(sfpBase + sfpTaxAmount).toFixed(2)} /></div>
             </div>
           </div>
         )}
