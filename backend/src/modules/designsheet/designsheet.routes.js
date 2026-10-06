@@ -45,6 +45,7 @@ router.get('/search-items', tenantMiddleware, designsheetController.searchItems)
 router.get('/indent-items', tenantMiddleware, designsheetController.indentItems);
 router.get('/item-category', tenantMiddleware, designsheetController.getItemCatg);
 router.get('/view/:designsheetno', tenantMiddleware, designsheetController.viewDesignSheet);
+router.get('/view/:designsheetno/pdf', (req, res, next) => { req.pdfDownload = true; next(); }, designsheetController.viewDesignSheet);
 router.get('/contract-details/:contractId', tenantMiddleware, designsheetController.getContractDetails);
 router.get('/:id', designsheetController.getById);
 

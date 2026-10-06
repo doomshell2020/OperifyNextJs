@@ -289,7 +289,7 @@ class IndentpoRepository {
        FROM st_stock_register sr
        LEFT JOIN st_additem a ON a.id = sr.item_id
        LEFT JOIN st_measurementunits u ON u.id = a.uom
-       WHERE sr.indent_id = :indentId AND sr.store_type = '2'`,
+       WHERE sr.indent_id = :indentId ORDER BY sr.id ASC`,
       { replacements: { indentId }, type: QueryTypes.SELECT }
     );
 

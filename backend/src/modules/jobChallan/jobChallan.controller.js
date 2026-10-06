@@ -26,13 +26,17 @@ class JobChallanController {
 
   async downloadPdf(req, res, next) {
     try {
-      const data = await JobChallanService.getDetail(req.dbName, req.params.id);
+      const data = await JobChallanService.getPdfDetail(req.dbName, req.params.id, req.query.sender_db);
       const pdfBuffer = await generateJobChallanPDF(data);
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `inline; filename="JC-${req.params.id}.pdf"`);
       res.end(pdfBuffer, 'binary');
-    } catch (err) { next(err); }
+    } catch (err) {
+      if (err.statusCode === 403) return res.status(403).json({success:false,message:err.message});
+      if (err.message === 'Job Challan not found') return res.status(404).json({success:false,message:err.message});
+      next(err);
+    }
   }
 
   async remove(req, res, next) {

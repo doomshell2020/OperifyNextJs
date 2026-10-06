@@ -4,6 +4,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { grnService } from '@/services/grn.service';
+import { openModulePdf } from '@/services/pdf.service';
 import { ArrowLeft, Printer, Loader2, AlertCircle } from 'lucide-react';
 import { formatQty, formatAmt } from '@/utils/formatters';
 import { formatContractDate } from '@/utils/dateFormatter';
@@ -18,7 +19,7 @@ export default function ViewGrnPage({ params }: { params: Promise<{ id: string }
   });
 
   const handlePrint = () => {
-    window.print();
+    void openModulePdf(`/grn/${encodeURIComponent(id)}/pdf`);
   };
 
   if (isLoading) {

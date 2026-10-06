@@ -1,6 +1,17 @@
 const grnService = require('./grn.service');
 
 class GrnController {
+  async downloadPdf(req, res, next) {
+    try {
+      const data = await grnService.getGrnDetails(req.dbPool, req.params.id);
+      if (!data) return res.status(404).json({success:false, message:'GRN not found'});
+      const { generateGrnPDF } = require('./grn.pdf');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="GRN_Details_${Number(req.params.id)}.pdf"`);
+      res.send(await generateGrnPDF(data));
+    } catch (error) { next(error); }
+  }
+
   async listGrns(req, res) {
     try {
       const { page = 1, limit = 10, po_id, vendor_id, from_date, to_date } = req.query;

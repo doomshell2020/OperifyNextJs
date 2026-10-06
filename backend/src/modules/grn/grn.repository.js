@@ -102,13 +102,28 @@ class GrnRepository {
       SELECT 
         sr.*,
         i.item_name,
-        COALESCE(u.unit_name, 'KG') as uom
+        u.unit_name as uom,
+        (SELECT pod.item_qty FROM st_purchaseorderdetails pod
+         WHERE pod.purchaseorder_id = sr.po_id AND pod.item_id = sr.item_id
+         ORDER BY pod.id DESC LIMIT 1) as order_qty
       FROM st_stock_register sr
       LEFT JOIN st_additem i ON sr.item_id = i.id
       LEFT JOIN st_measurementunits u ON i.uom = u.id
-      WHERE sr.goods_id = :goodsId AND sr.store_type = '1'
+      WHERE sr.goods_id = :goodsId AND sr.store_type = '1' AND sr.status != 'N'
+      ORDER BY sr.id ASC
     `;
     return await dbPool.query(query, { replacements: { goodsId }, type: QueryTypes.SELECT });
+  }
+
+  async getPdfSettings(dbPool) {
+    const site = await dbPool.query("SELECT * FROM sitesettings_details WHERE status = 'Y' LIMIT 1", {type:QueryTypes.SELECT});
+    const setting = await dbPool.query('SELECT * FROM sitesettings LIMIT 1', {type:QueryTypes.SELECT});
+    return {site_details:site[0] || {}, sitesetting:setting[0] || {}};
+  }
+
+  async getPdfTaxes(dbPool, taxId) {
+    // Match gettaxnameparent()/gettaxname2() in CommanHelper, including a zero tax.
+    return dbPool.query('SELECT tax FROM st_taxmaster WHERE id = :taxId ORDER BY id DESC', {replacements:{taxId:taxId ?? 0}, type:QueryTypes.SELECT});
   }
 
   async exportGrns(dbPool, filters) {

@@ -108,11 +108,14 @@ class ContractRepository {
           FROM productionorder po
           WHERE po.contract_id = bfp.contract_id AND po.item_id = bfp.product_id
         ) as planned_qty,
-        0 as prepared_qty
+        (SELECT COALESCE(SUM(COALESCE(p.production_shift_a, 0) + COALESCE(p.production_shift_b, 0)), 0)
+         FROM production p WHERE p.contract_id = bfp.contract_id AND p.item_id = bfp.product_id
+           AND p.productprocess_id = '8') as prepared_qty
       FROM bom_finisedproduct bfp
       LEFT JOIN st_additem i ON bfp.product_id = i.id
       LEFT JOIN st_measurementunits u ON i.uom = u.id
       WHERE bfp.contract_id = :contractId
+      ORDER BY bfp.id ASC
     `;
     return await dbPool.query(query, {
       replacements: { contractId },
@@ -133,11 +136,15 @@ class ContractRepository {
 
     // 2. Fetch design sheet details
     const query = `
-      SELECT dsd.item_id, dsd.item_qty as as_per_design, dsd.is_group, a.item_name, a.category_id
+      SELECT dsd.item_id,
+        (SELECT COALESCE(SUM(d.item_qty), 0) FROM designsheetdetails d
+         WHERE d.designsheetno = dsd.designsheetno AND d.item_id = dsd.item_id) as as_per_design,
+        dsd.is_group, a.item_name, a.category_id, c.category_name
       FROM designsheetdetails dsd
-      JOIN st_additem a ON a.id = dsd.item_id
+      LEFT JOIN st_additem a ON a.id = dsd.item_id
+      LEFT JOIN st_categorymaster c ON c.id = a.category_id
       WHERE dsd.designsheetno = :sheetNo
-      ORDER BY dsd.is_group ASC
+      ORDER BY dsd.id ASC
     `;
     const details = await dbPool.query(query, {
       replacements: { sheetNo },
@@ -151,23 +158,25 @@ class ContractRepository {
 
       if (row.is_group == 1 && row.category_id) {
         issuedItems = await dbPool.query(`
-          SELECT s.item_id, a.item_name, ROUND(SUM(s.quantity), 2) as issued_qty
+          SELECT s.item_id, a.item_name,
+            SUM(CASE WHEN s.store_type = '2' THEN s.quantity ELSE -s.quantity END) as issued_qty
           FROM st_stock_register s
           JOIN st_additem a ON a.id = s.item_id
-          WHERE s.contract_id = :contractId AND s.finishedproduct_id = :productId AND s.store_type = '2' 
+          WHERE s.contract_id = :contractId AND s.finishedproduct_id = :productId AND s.store_type IN ('2', '3')
             AND a.category_id = :categoryId
-          GROUP BY s.item_id`, {
+          GROUP BY s.item_id, a.item_name ORDER BY s.item_id ASC`, {
           replacements: { contractId, productId, categoryId: row.category_id },
           type: QueryTypes.SELECT
         });
       } else {
         issuedItems = await dbPool.query(`
-          SELECT s.item_id, a.item_name, ROUND(SUM(s.quantity), 2) as issued_qty
+          SELECT s.item_id, a.item_name,
+            SUM(CASE WHEN s.store_type = '2' THEN s.quantity ELSE -s.quantity END) as issued_qty
           FROM st_stock_register s
-          JOIN st_additem a ON a.id = s.item_id
-          WHERE s.contract_id = :contractId AND s.finishedproduct_id = :productId AND s.store_type = '2' 
+          LEFT JOIN st_additem a ON a.id = s.item_id
+          WHERE s.contract_id = :contractId AND s.finishedproduct_id = :productId AND s.store_type IN ('2', '3')
             AND s.item_id = :itemId
-          GROUP BY s.item_id`, {
+          GROUP BY s.item_id, a.item_name ORDER BY s.item_id ASC`, {
           replacements: { contractId, productId, itemId: row.item_id },
           type: QueryTypes.SELECT
         });
@@ -177,11 +186,11 @@ class ContractRepository {
 
       result.push({
         id: row.item_id,
-        item_name: row.item_name,
+        item_name: Number(row.is_group) > 0 ? row.category_name : row.item_name,
         as_per_design: row.as_per_design,
         total_issued: totalIssued,
-        pending_qty: Math.max(0, row.as_per_design - totalIssued),
-        issued_items: issuedItems
+        pending_qty: Number(row.as_per_design) - totalIssued,
+        issued_items: Number(row.is_group) > 0 ? issuedItems.filter(item => Number(item.issued_qty) !== 0) : []
       });
     }
 
@@ -192,10 +201,13 @@ class ContractRepository {
     const query = `
       SELECT 
         po.po_id, po.issuedate, po.plannedqty, po.startdate, po.enddate, po.status,
-        i.item_name as product_name, 0 as prepared_qty
+        i.item_name as product_name,
+        (SELECT COALESCE(SUM(COALESCE(p.production_shift_a, 0) + COALESCE(p.production_shift_b, 0)), 0)
+         FROM production p WHERE p.po_id = po.po_id AND p.productprocess_id = '8') as prepared_qty
       FROM productionorder po
       LEFT JOIN st_additem i ON po.item_id = i.id
       WHERE po.contract_id = :contractId
+      ORDER BY po.id DESC
     `;
     return await dbPool.query(query, {
       replacements: { contractId },
@@ -210,9 +222,36 @@ class ContractRepository {
         ['name', 'inspector_name'],
         'inspection_date'
       ],
-      where: { work_order_no: contractId },
+      where: { work_order_no: contractId, status: 'Y' },
+      order: [['id', 'DESC']],
       raw: true
     });
+  }
+
+  async getPdfProduction(dbPool, contractId, productId) {
+    const rows = await dbPool.query(`
+      SELECT p.*, f.process_name
+      FROM production p
+      LEFT JOIN finishedproduct_process f ON f.id = p.productprocess_id
+      WHERE p.contract_id = :contractId AND p.item_id = :productId
+      ORDER BY p.id ASC`, { replacements: { contractId, productId }, type: QueryTypes.SELECT });
+    const grouped = new Map();
+    for (const row of rows) {
+      // PHP iterates the process master, so orphan process IDs have no displayed row.
+      if (!row.process_name) continue;
+      const key = String(row.productprocess_id);
+      if (!grouped.has(key)) grouped.set(key, {process_id:Number(key), process_name:row.process_name, start_date:row.production_date, end_date:row.production_date, po_numbers:[], quantity:0});
+      const process = grouped.get(key);
+      process.end_date = row.production_date;
+      if (!process.po_numbers.includes(row.po_id)) process.po_numbers.push(row.po_id);
+      process.quantity += Number(row.production_shift_a || 0) + Number(row.production_shift_b || 0);
+    }
+    return {
+      has_production:rows.length > 0,
+      labour:rows.reduce((sum,p)=>sum+Number(p.manpower_day || 0)+Number(p.manpower_night || 0),0),
+      operation:rows.reduce((sum,p)=>sum+Number(p.nextday8am || 0)-Number(p.reading8am || 0),0),
+      processes:Array.from(grouped.values()).sort((a,b)=>a.process_id-b.process_id).map(p=>({...p, po_numbers:p.po_numbers.join(',')}))
+    };
   }
 
   async getFormData(dbPool) {

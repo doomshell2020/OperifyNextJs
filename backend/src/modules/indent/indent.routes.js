@@ -26,5 +26,6 @@ router.get('/pending', indentController.getPendingIndents.bind(indentController)
 
 // Single indent detail
 router.get('/:indent_id/detail', indentController.getIndentDetail.bind(indentController));
+router.get('/:indent_id/pdf', (req,res,next)=>{req.pdfDownload=true;next();}, indentController.getIndentDetail.bind(indentController));
 
 module.exports = router;

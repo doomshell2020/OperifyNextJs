@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
+import { openModulePdf } from '@/services/pdf.service';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../../../../services/apiClient';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -20,7 +21,12 @@ export default function ViewJobChallan() {
     }
   });
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => { void openModulePdf(`/job-challan/${encodeURIComponent(String(params.id))}/pdf`); };
+  useEffect(() => {
+    if (searchParams.get('pdf') === '1') {
+      window.location.replace(`/dashboard/jc-challan/${encodeURIComponent(String(params.id))}/pdf`);
+    }
+  }, [params.id, searchParams]);
 
   if (isLoading) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">

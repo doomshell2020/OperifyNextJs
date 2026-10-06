@@ -34,15 +34,22 @@ class ContractService {
     if (!contract) return null;
     
     const items = await contractRepository.findItemsByContractId(dbPool, id);
+    contract.production_labour = 0;
+    contract.production_operation = 0;
     
     // Fetch raw materials (design sheet) for each item
     for (const item of items) {
       item.raw_materials = await contractRepository.findDesignSheetDetails(dbPool, id, item.product_id);
+      const production = await contractRepository.getPdfProduction(dbPool, id, item.product_id);
+      item.has_production = production.has_production;
+      item.processes = production.processes;
+      contract.production_labour += production.labour;
+      contract.production_operation += production.operation;
     }
 
     const productionOrders = await contractRepository.findProductionOrdersByContractId(dbPool, id);
     const inspectionReports = await contractRepository.findInspectionReportsByContractId(dbPool, id);
-    const siteDetailsRows = await dbPool.query('SELECT * FROM sitesettings_details LIMIT 1', {
+    const siteDetailsRows = await dbPool.query("SELECT * FROM sitesettings_details WHERE status = 'Y' LIMIT 1", {
       type: QueryTypes.SELECT
     });
     const siteSettingRows = await dbPool.query('SELECT * FROM sitesettings LIMIT 1', {

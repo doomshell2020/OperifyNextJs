@@ -4,6 +4,8 @@ import React, { useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import indentService from '../../../../../services/indent.service';
+import { openModulePdf } from '@/services/pdf.service';
+import ModulePdfPreview from '@/components/ModulePdfPreview';
 import { Loader2, AlertCircle, Printer, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import {  formatDate , formatContractDate } from '../../../../../utils/dateFormatter';
@@ -36,13 +38,6 @@ export default function IndentDetailPage() {
     queryFn: () => indentService.getIndentDetail(indent_id),
     enabled: !!indent_id,
   });
-
-  // Auto-print if opened as preview
-  useEffect(() => {
-    if (isPreview && data && data.items.length > 0) {
-      setTimeout(() => window.print(), 600);
-    }
-  }, [isPreview, data]);
 
   // Inject print CSS
   useEffect(() => {
@@ -82,6 +77,7 @@ export default function IndentDetailPage() {
   const createdBy = (firstItem as any)?.created_by ?? 'N/A';
   const createdDate = (firstItem as any)?.added_time ?? null;
   const totalQty = items.reduce((s, i) => s + Number(i.quantity), 0);
+  if (isPreview) return <ModulePdfPreview path={`/indents/${encodeURIComponent(indent_id)}/pdf`} />;
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -105,7 +101,7 @@ export default function IndentDetailPage() {
           <p className="text-xs text-slate-400 mt-0.5">Purchase Requisition</p>
         </div>
         <button
-          onClick={() => window.print()}
+          onClick={() => { void openModulePdf(`/indents/${encodeURIComponent(indent_id)}/pdf`); }}
           className="flex items-center gap-2 h-9 px-4 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm"
         >
           <Printer className="w-3.5 h-3.5" />

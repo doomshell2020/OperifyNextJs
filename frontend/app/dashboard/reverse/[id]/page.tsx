@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { reverseIndentService } from "@/services/reverseIndent.service";
+import { openModulePdf } from '@/services/pdf.service';
 import { Printer, ArrowLeft, Trash2, Download } from "lucide-react";
 import Link from "next/link";
 import { formatDate, formatContractDate } from "@/utils/dateFormatter";
@@ -26,7 +27,7 @@ export default function ViewReverseIndentPage() {
   }, [id]);
 
   const handlePrint = () => {
-    window.print();
+    void openModulePdf(`/reverse-indent/${encodeURIComponent(String(id))}/pdf`);
   };
 
   const handleDelete = async () => {

@@ -99,7 +99,7 @@ class IndentRepository {
        LEFT JOIN st_additem a ON a.id = t.item_id
        LEFT JOIN st_sizemanager s ON s.id = t.size_id
        LEFT JOIN st_measurementunits u ON u.id = a.uom
-       LEFT JOIN st_itemcategory c ON c.id = a.category_id
+       LEFT JOIN st_categorymaster c ON c.id = a.category_id
        WHERE t.indent_id = :indent_id
        ORDER BY t.id ASC`,
       { replacements: { indent_id }, type: QueryTypes.SELECT }
@@ -239,6 +239,7 @@ class IndentRepository {
    * Get full detail for a single indent (for print/PDF)
    */
   async getIndentDetail(dbPool, indent_id) {
+    const siteRows = await dbPool.query("SELECT * FROM sitesettings_details WHERE status = 'Y' LIMIT 1", {type:QueryTypes.SELECT});
     const items = await dbPool.query(
       `SELECT 
          i.id, i.item_id, i.quantity, i.return_qty, i.added_time,
@@ -251,7 +252,7 @@ class IndentRepository {
        LEFT JOIN st_additem a ON a.id = i.item_id
        LEFT JOIN st_sizemanager s ON s.id = i.size_id
        LEFT JOIN st_measurementunits u2 ON u2.id = a.uom
-       LEFT JOIN st_itemcategory c ON c.id = a.category_id
+       LEFT JOIN st_categorymaster c ON c.id = a.category_id
        LEFT JOIN users u ON u.id = i.added_by
        WHERE i.indent_id = :indent_id
        ORDER BY i.id ASC`,
@@ -267,20 +268,21 @@ class IndentRepository {
            COALESCE(s.size_name, '') AS size_name,
            COALESCE(u2.unit_name, '') AS unit_name,
            COALESCE(c.category_name, '') AS category_name,
-           NULL AS created_by
+           u.user_name AS created_by
          FROM st_indentmaster_temp t
          LEFT JOIN st_additem a ON a.id = t.item_id
          LEFT JOIN st_sizemanager s ON s.id = t.size_id
          LEFT JOIN st_measurementunits u2 ON u2.id = a.uom
-         LEFT JOIN st_itemcategory c ON c.id = a.category_id
+         LEFT JOIN st_categorymaster c ON c.id = a.category_id
+         LEFT JOIN users u ON u.id = t.added_by
          WHERE t.indent_id = :indent_id
          ORDER BY t.id ASC`,
         { replacements: { indent_id }, type: QueryTypes.SELECT }
       );
-      return { items: tempItems, is_temp: true };
+      return { items: tempItems, is_temp: true, site_details:siteRows[0] || {} };
     }
 
-    return { items, is_temp: false };
+    return { items, is_temp: false, site_details:siteRows[0] || {} };
   }
 
   /**

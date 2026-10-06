@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { indentpoService } from "../../../../../services/indentpo.service";
+import { openModulePdf } from '@/services/pdf.service';
 import { ArrowLeft, Printer, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -57,7 +58,7 @@ export default function IndentPoDetailPage() {
   }
 
   const handlePrint = () => {
-    window.print();
+    void openModulePdf(`/indentpo/${encodeURIComponent(indentId)}/pdf`);
   };
 
   return (

@@ -1,8 +1,7 @@
 'use client';
 import { useParams } from 'next/navigation';
 import ModulePdfPreview from '@/components/ModulePdfPreview';
-
-export default function ContractDetailsPrintPage() {
+export default function JobChallanPdfPage() {
   const {id} = useParams();
-  return <ModulePdfPreview path={`/contracts/${encodeURIComponent(String(id))}/pdf`} />;
+  return <ModulePdfPreview path={`/job-challan/${encodeURIComponent(String(id))}/pdf`} />;
 }

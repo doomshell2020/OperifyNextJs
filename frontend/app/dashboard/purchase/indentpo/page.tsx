@@ -1,4 +1,5 @@
 "use client";
+import { openModulePdf } from '@/services/pdf.service';
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
@@ -198,14 +199,7 @@ function IndentDetailsModal({ id, onClose }: { id: number, onClose: () => void }
   }, [id]);
 
   const handlePrint = () => {
-    const printContent = document.getElementById('printable-indent-modal');
-    if (printContent) {
-      const originalContents = document.body.innerHTML;
-      document.body.innerHTML = printContent.innerHTML;
-      window.print();
-      document.body.innerHTML = originalContents;
-      window.location.reload();
-    }
+    void openModulePdf(`/indentpo/${encodeURIComponent(String(id))}/pdf`);
   };
 
   return (

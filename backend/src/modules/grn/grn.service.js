@@ -30,7 +30,8 @@ class GrnService {
     const grn = await repo.getGrnDetails(dbPool, id);
     if (!grn) return null;
     const items = await repo.getGrnItems(dbPool, id);
-    return { grn, items };
+    for (const item of items) item.tax_rates = (await repo.getPdfTaxes(dbPool,item.tax_id)).map(t=>t.tax);
+    return { grn, items, ...await repo.getPdfSettings(dbPool) };
   }
 
   async createGrn(dbPool, payload) {

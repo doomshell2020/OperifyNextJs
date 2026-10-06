@@ -80,6 +80,14 @@ class IndentController {
   async getIndentDetail(req, res, next) {
     try {
       const detail = await indentService.getIndentDetail(req.dbPool, req.params.indent_id);
+      if (req.pdfDownload) {
+        const {generateIndentPDF} = require('./indent.pdf');
+        // CakePHP prints the current session user's name in From, not the creator's name.
+        const user = await req.dbPool.models.users.findByPk(req.user.id, {attributes:['user_name'], raw:true});
+        res.setHeader('Content-Type','application/pdf');
+        res.setHeader('Content-Disposition',`inline; filename="Purchase_Requisition_${Number(req.params.indent_id)}.pdf"`);
+        return res.send(await generateIndentPDF(detail,req.params.indent_id,user?.user_name || ''));
+      }
       return res.status(200).json({ success: true, data: detail });
     } catch (error) {
       if (error.message === 'Indent not found') {

@@ -1,4 +1,3 @@
-const puppeteer = require('puppeteer');
 
 function plain(value) {
   if (!value) return {};
@@ -17,20 +16,15 @@ function escapeHtml(value) {
 }
 
 function formatDate(dateString) {
-  if (!dateString) return '';
-  const d = new Date(dateString);
-  if (Number.isNaN(d.getTime())) return '';
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  return `${day}-${month}-${d.getFullYear()}`;
+  return require('../../utils/legacyPdf').date(dateString);
 }
 
 function formatTime(dateString) {
   if (!dateString) return '';
   const d = new Date(dateString);
   if (Number.isNaN(d.getTime())) return '';
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const hours = String(d.getUTCHours()).padStart(2, '0');
+  const minutes = String(d.getUTCMinutes()).padStart(2, '0');
   return `${hours}:${minutes} Hrs`;
 }
 
@@ -50,12 +44,16 @@ function stateCode(gstin, fallback = '08') {
 }
 
 async function generateJobChallanPDF(payload) {
+  if (payload.source_db && payload.source_db !== 'tirupati_tppl') {
+    const {buildSubcontractorChallanHtml} = require('./jobChallan.subcontractor.pdf');
+    return require('../../utils/legacyPdf').render(buildSubcontractorChallanHtml(payload));
+  }
   const challan = plain(payload.challan);
   const siteDetails = plain(payload.site_details);
   const siteSetting = plain(payload.sitesetting);
   const vendor = plain(challan.vendor);
   const items = (challan.job_challan_items || []).map(plain);
-  const firstItem = items.find(item => item.return_type !== 'Semi-Finished Product') || items[0] || {};
+  const firstItem = items[0] || {};
   const item = plain(firstItem.item);
 
   const supplierName = siteSetting.first_name || siteDetails.company_name || 'Tirupati Plastomatics (P) Ltd.';
@@ -63,9 +61,10 @@ async function generateJobChallanPDF(payload) {
     siteDetails.address1,
     siteDetails.address2
   ].filter(Boolean).join(', ') || siteDetails.address || 'Plot No. B-141-A, Road No. 9-D, V.K.I Area, Jaipur - 302013';
-  const supplierGstin = siteDetails.gst_no && siteDetails.gst_no !== '00' ? siteDetails.gst_no : '08AAACT5317J1ZA';
-  const supplierPan = siteDetails.pan_number || 'AAACT5317J';
-  const supplierCity = supplierAddress.toLowerCase().includes('jaipur') ? 'Jaipur' : '';
+  const configuredGstin = siteDetails.gst_no || siteDetails.gst;
+  const supplierGstin = configuredGstin && configuredGstin !== '00' ? configuredGstin : '08AAACT5317J1ZA';
+  const supplierPan = siteDetails.pan_number || siteDetails.pan_no || 'AAACT5317J';
+  const supplierCity = 'Jaipur'; // The legacy template always uses Jaipur for Place.
   const taxRate = Number(firstItem.tax_rate || 0);
   const taxAmount = Number(firstItem.tax_amount || 0);
   const sameState = stateCode(supplierGstin) === stateCode(vendor.gst_no);
@@ -87,7 +86,7 @@ async function generateJobChallanPDF(payload) {
       <head>
         <meta charset="utf-8" />
         <style>
-          @page { size: A4 portrait; margin: 5mm; }
+          @page { size: A4 portrait; margin: 10mm 5mm 5mm 10mm; }
           html, body {
             margin: 0;
             padding: 0;
@@ -124,6 +123,16 @@ async function generateJobChallanPDF(payload) {
             vertical-align: bottom;
             font-size: 8px;
           }
+          /* TCPDF gives each row its own widths; HTML tables otherwise reuse 70/30. */
+          body > table > tbody > tr { display:table; width:100%; table-layout:fixed; break-inside:avoid; }
+          body > table > tbody > tr > td:first-child { width:60%; }
+          body > table > tbody > tr > td:last-child { width:40%; }
+          body > table > tbody > tr:nth-child(1) > td:first-child { width:70%; }
+          body > table > tbody > tr:nth-child(1) > td:last-child { width:30%; }
+          body > table > tbody > tr:nth-child(2) > td:first-child { width:40%; }
+          body > table > tbody > tr:nth-child(2) > td:last-child { width:60%; }
+          body > table > tbody > tr > td[colspan="2"] { width:100%; }
+          body > table > tbody > tr:nth-child(2) > td {padding-left:8px;line-height:1.3}
         </style>
       </head>
       <body>
@@ -152,7 +161,7 @@ async function generateJobChallanPDF(payload) {
           <tr><td colspan="2" class="part bl br bb">PART - I</td></tr>
           <tr><td width="60%" class="bl">1. Description of Goods</td><td width="40%" class="br">${escapeHtml(item.item_name || firstItem.item_name || '')}</td></tr>
           <tr><td class="bl">2. Identification marks and numbers if any</td><td class="br">${escapeHtml(workDescription)}</td></tr>
-          <tr><td class="bl">3. Quantity (Nos./Weight/Litre/Metre)</td><td class="br">${money(firstItem.quantity)} KG</td></tr>
+          <tr><td class="bl">3. Quantity (Nos./Weight/Litre/Metre)</td><td class="br">${money(firstItem.quantity)} ${escapeHtml(firstItem.unit_name || item.unit_name || 'KG')}</td></tr>
           <tr><td class="bl">4. HSN/SAC</td><td class="br">${escapeHtml(firstItem.hsn_code || '')}</td></tr>
           <tr><td class="bl">5. Estimated value of inputs</td><td class="br">${money(challan.estimated_values)}</td></tr>
           <tr>
@@ -162,7 +171,7 @@ async function generateJobChallanPDF(payload) {
           <tr><td class="bl">7. Total amount of GST</td><td class="br">Rs. ${money(taxAmount)}</td></tr>
           <tr><td class="bl">8. Date and time of issue</td><td class="br">${issueDate} ${issueTime}</td></tr>
           <tr><td class="bl">9. Nature of processing/manufacturing required to be done</td><td class="br">${escapeHtml(titleName(challan.processing_type))}</td></tr>
-          <tr><td class="bl">10. Factory/Place of processing/Manufacturing</td><td class="br"><b>${escapeHtml(titleName(vendor.name))}</b><br>${escapeHtml(vendor.address || '')}<br><b>GSTIN:</b> ${escapeHtml(vendor.gst_no || '')}</td></tr>
+          <tr><td class="bl">10. Factory/Place of processing/Manufacturing</td><td class="br"><b>${escapeHtml(titleName(vendor.name))}</b><br>${escapeHtml(vendor.address || '').replace(/\r?\n/g, '<br>')}<br><b>GSTIN:</b> ${escapeHtml(vendor.gst_no || '')}</td></tr>
           <tr><td class="bl">11. Expected duration of processing/manufacturing</td><td class="br">${escapeHtml(challan.expected_days || '')} Day${Number(challan.expected_days) > 1 ? 's' : ''}</td></tr>
           <tr><td class="bl">12. Vehicle No.</td><td class="br">${escapeHtml(challan.vehicle_no || '')}</td></tr>
           <tr>
@@ -212,21 +221,9 @@ async function generateJobChallanPDF(payload) {
     </html>
   `;
 
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
-
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: 'networkidle0' });
-  const pdfBuffer = await page.pdf({
-    format: 'A4',
-    margin: { top: '5mm', right: '5mm', bottom: '5mm', left: '5mm' },
-    printBackground: true
-  });
-
-  await browser.close();
-  return pdfBuffer;
+  // TCPDF interprets the template's px dimensions in PDF points.
+  const printHtml = html.replace(/(\d+(?:\.\d+)?)px/g, '$1pt');
+  return require('../../utils/legacyPdf').render(printHtml);
 }
 
 module.exports = {

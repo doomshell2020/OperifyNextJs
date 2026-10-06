@@ -357,6 +357,7 @@ exports.viewDesignSheet = async (req, res, next) => {
         LEFT JOIN st_additem a ON d.item_id = a.id
         LEFT JOIN contracts c ON d.contract_id = c.id
         WHERE d.designsheetno = :designsheetno
+        ORDER BY d.id ASC
     `, { replacements: { designsheetno }, type: QueryTypes.SELECT });
     
     const sitesetting = await req.models.sitesettings.findOne({ raw: true });
@@ -369,6 +370,14 @@ exports.viewDesignSheet = async (req, res, next) => {
         if (c) designsheet.contract_no = `${c.title}(${c.workorder})`;
     }
     
+    if (req.pdfDownload) {
+      if (!designsheet) return res.status(404).json({message:'Design sheet not found'});
+      const {generateDesignSheetPDF} = require('./designsheet.pdf');
+      const pdf = await generateDesignSheetPDF({designsheet, designsheetdetails, sitesetting, site_details});
+      res.setHeader('Content-Type','application/pdf');
+      res.setHeader('Content-Disposition',`inline; filename="Design_Sheet_${Number(designsheetno)}.pdf"`);
+      return res.send(pdf);
+    }
     res.json({ designsheet, designsheetdetails, sitesetting, site_details });
   } catch (error) {
     next(error);

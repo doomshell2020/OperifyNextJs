@@ -28,13 +28,18 @@ class JobChallanService {
 
     const { count, rows } = await models.job_challans.findAndCountAll({
       where,
-      include: [{ model: models.vendors, as: 'vendor', attributes: ['id', 'name'] }],
+      attributes: {exclude:['final_amount','gst_no','semi_finished_item_id','added_by']},
       order: [['jc_date', 'DESC'], ['id', 'DESC']],
       limit:  parseInt(limit),
       offset: parseInt(offset)
     });
 
-    return { total: count, items: rows, page: parseInt(page), limit: parseInt(limit) };
+    const ids = [...new Set(rows.map(row => row.sub_contractors_id))];
+    const db = await getTenantSequelize(dbName);
+    const recipients = ids.length ? await db.query('SELECT id, name FROM sub_contractors WHERE id IN (:ids)', {replacements:{ids},type:QueryTypes.SELECT}) : [];
+    const byId = new Map(recipients.map(recipient => [Number(recipient.id), recipient]));
+    const items = rows.map(row => ({...row.get({plain:true}), final_amount:Number(row.total_amount || 0) + Number(row.gst_amount || 0), vendor:byId.get(Number(row.sub_contractors_id)) || null}));
+    return { total: count, items, page: parseInt(page), limit: parseInt(limit) };
   }
 
   // ─── ITEM SEARCH (by name, filtered by itemtype) ─────────────────────────
@@ -92,23 +97,19 @@ class JobChallanService {
 
   // ─── VENDOR GST FETCH ─────────────────────────────────────────────────────
   async getVendorGst(dbName, vendor_id) {
-    const models = await getTenantModels(dbName);
+    const db = await getTenantSequelize(dbName);
     const parsedId = parseInt(vendor_id);
     if (!parsedId || isNaN(parsedId)) throw new Error('Invalid vendor ID');
 
-    const vendor = await models.vendors.findByPk(parsedId, { attributes: ['id', 'name', 'gst_no'] });
+    const [vendor] = await db.query('SELECT id, name, gst_no FROM sub_contractors WHERE id=:id', {replacements:{id:parsedId},type:QueryTypes.SELECT});
     if (!vendor) throw new Error('Vendor not found');
     return { gst_no: vendor.gst_no || '' };
   }
 
   // ─── VENDORS LIST for dropdown ────────────────────────────────────────────
   async listVendors(dbName) {
-    const models = await getTenantModels(dbName);
-    return await models.vendors.findAll({
-      where: { status: 'Y' },
-      attributes: ['id', 'name', 'gst_no'],
-      order: [['name', 'ASC']]
-    });
+    const db = await getTenantSequelize(dbName);
+    return db.query('SELECT id, name, gst_no FROM sub_contractors ORDER BY name ASC', {type:QueryTypes.SELECT});
   }
 
   // ─── TAX MASTER LIST for dropdown ────────────────────────────────────────
@@ -144,7 +145,7 @@ class JobChallanService {
       // 3. Validate sub-contractor
       const sub_contractors_id = parseInt(payload.sub_contractors_id);
       if (!sub_contractors_id || isNaN(sub_contractors_id)) throw new Error('Sub Contractor is required.');
-      const vendor = await models.vendors.findByPk(sub_contractors_id, { transaction: t });
+      const [vendor] = await sequelize.query('SELECT id FROM sub_contractors WHERE id=:id', {replacements:{id:sub_contractors_id},type:QueryTypes.SELECT,transaction:t});
       if (!vendor) throw new Error('Invalid Sub Contractor.');
 
       // 4. Validate process type
@@ -343,9 +344,9 @@ class JobChallanService {
         jc.*,
         v.name AS vendor_name,
         v.address AS vendor_address,
-        v.gst_number AS vendor_gst_no
+        v.gst_no AS vendor_gst_no
       FROM job_challans jc
-      LEFT JOIN vendors v ON v.id = jc.sub_contractors_id
+      LEFT JOIN sub_contractors v ON v.id = jc.sub_contractors_id
       WHERE jc.id = :id
       LIMIT 1
     `, {
@@ -372,7 +373,7 @@ class JobChallanService {
       type: QueryTypes.SELECT
     });
 
-    const siteRows = await sequelize.query('SELECT * FROM sitesettings_details LIMIT 1', { type: QueryTypes.SELECT });
+    const siteRows = await sequelize.query("SELECT * FROM sitesettings_details WHERE status = 'Y' LIMIT 1", { type: QueryTypes.SELECT });
     const settingRows = await sequelize.query('SELECT * FROM sitesettings LIMIT 1', { type: QueryTypes.SELECT });
 
     challan.vendor = {
@@ -394,9 +395,31 @@ class JobChallanService {
 
     return {
       challan,
+      source_db: dbName,
       site_details: siteRows[0] || null,
       sitesetting: settingRows[0] || null
     };
+  }
+
+  async getPdfDetail(dbName, id, senderDb) {
+    const db = await getTenantSequelize(dbName);
+    const linked = await db.query("SELECT DISTINCT database_name FROM sub_contractors WHERE database_name IS NOT NULL AND database_name != '' AND database_name != :dbName", {
+      replacements:{dbName}, type:QueryTypes.SELECT
+    });
+    const sources = linked.map(row=>row.database_name).filter(name=>/^[a-zA-Z0-9_]+$/.test(name));
+    if (senderDb && senderDb !== dbName) {
+      if (!sources.includes(senderDb)) { const error=new Error('Sender company is not linked to this tenant'); error.statusCode=403; throw error; }
+      return this.getDetail(senderDb,id);
+    }
+    try { return await this.getDetail(dbName,id); }
+    catch (error) {
+      if (error.message !== 'Job Challan not found') throw error;
+      for (const source of sources) {
+        try { return await this.getDetail(source,id); }
+        catch (lookupError) { if (lookupError.message !== 'Job Challan not found') throw lookupError; }
+      }
+      throw error;
+    }
   }
 
   // ─── DELETE (with JC Receive guard) ─────────────────────────────────────

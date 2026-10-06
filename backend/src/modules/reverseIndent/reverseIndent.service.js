@@ -156,7 +156,7 @@ class ReverseIndentService {
       FROM st_stock_register s
       LEFT JOIN st_additem i ON s.item_id = i.id
       LEFT JOIN st_measurementunits u ON i.uom = u.id
-      WHERE s.reverse_id = ? AND s.store_type = '3'
+      WHERE s.reverse_id = ? ORDER BY s.id ASC
     `, { replacements: [reverse_id], type: QueryTypes.SELECT });
 
     return {
