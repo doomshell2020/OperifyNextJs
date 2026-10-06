@@ -1,7 +1,8 @@
 const { QueryTypes } = require('sequelize');
+const {listOrder} = require('../../utils/listPagination');
 
 class GrnRepository {
-  async getList(dbPool, { offset, limit, po_id, vendor_id, from_date, to_date }) {
+  async getList(dbPool, { offset, limit, po_id, vendor_id, from_date, to_date, sort:sortName, direction }) {
     let query = `
       SELECT 
         grn.id,
@@ -11,6 +12,7 @@ class GrnRepository {
         grn.bill_date,
         grn.total_qty,
         grn.total_amt,
+        grn.status,
         v.name as vendor_name,
         v.id as vendor_id
       FROM st_goodsreceive grn
@@ -20,26 +22,27 @@ class GrnRepository {
     const params = {};
 
     if (po_id) {
-      query += ` AND grn.purchaseorder_id LIKE :po_id`;
-      params.po_id = `%${po_id}%`;
+      query += ` AND grn.purchaseorder_id = :po_id`;
+      params.po_id = po_id;
     }
     if (vendor_id) {
       query += ` AND grn.vendor_id = :vendor_id`;
       params.vendor_id = vendor_id;
     }
-    if (from_date) {
-      query += ` AND grn.inwarddate >= :from_date`;
+    if (from_date && from_date !== '1970-01-01') {
+      query += ` AND DATE(grn.inwarddate) >= :from_date`;
       params.from_date = from_date;
     }
-    if (to_date) {
-      query += ` AND grn.inwarddate <= :to_date`;
+    if (to_date && to_date !== '1970-01-01') {
+      query += ` AND DATE(grn.inwarddate) <= :to_date`;
       params.to_date = to_date;
     }
 
     let countQuery = query.replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as total FROM');
     const countRows = await dbPool.query(countQuery, { replacements: params, type: QueryTypes.SELECT });
 
-    query += ` ORDER BY grn.id DESC LIMIT :limit OFFSET :offset`;
+    const sort = listOrder(sortName,direction,{id:'grn.id',purchaseorder_id:'grn.purchaseorder_id',inwarddate:'grn.inwarddate',bill_no:'grn.bill_no',bill_date:'grn.bill_date',total_qty:'grn.total_qty',total_amt:'grn.total_amt'},'grn.id');
+    query += ` ORDER BY ${sort.column} ${sort.direction}${sort.column === 'grn.id' ? '' : ', grn.id DESC'} LIMIT :limit OFFSET :offset`;
     params.limit = parseInt(limit);
     params.offset = parseInt(offset);
     
@@ -160,23 +163,23 @@ class GrnRepository {
     const params = {};
 
     if (po_id) {
-      query += ` AND grn.purchaseorder_id LIKE :po_id`;
-      params.po_id = `%${po_id}%`;
+      query += ` AND grn.purchaseorder_id = :po_id`;
+      params.po_id = po_id;
     }
     if (vendor_id) {
       query += ` AND grn.vendor_id = :vendor_id`;
       params.vendor_id = vendor_id;
     }
-    if (from_date) {
-      query += ` AND grn.inwarddate >= :from_date`;
+    if (from_date && from_date !== '1970-01-01') {
+      query += ` AND DATE(grn.inwarddate) >= :from_date`;
       params.from_date = from_date;
     }
-    if (to_date) {
-      query += ` AND grn.inwarddate <= :to_date`;
+    if (to_date && to_date !== '1970-01-01') {
+      query += ` AND DATE(grn.inwarddate) <= :to_date`;
       params.to_date = to_date;
     }
 
-    query += ` ORDER BY grn.id DESC`;
+    query += ` ORDER BY grn.inwarddate DESC, grn.id DESC`;
     
     return await dbPool.query(query, { replacements: params, type: QueryTypes.SELECT });
   }

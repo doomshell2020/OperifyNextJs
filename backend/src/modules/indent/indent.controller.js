@@ -71,7 +71,7 @@ class IndentController {
     try {
       const { indent_id, date_from, date_to } = req.query;
       const indents = await indentService.listIndents(req.dbPool, { indent_id, date_from, date_to });
-      return res.status(200).json({ success: true, data: indents });
+      return res.status(200).json({ success: true, data: indents, total:indents.length, paginationMode:'client', defaultLimit:50 });
     } catch (error) {
       next(error);
     }

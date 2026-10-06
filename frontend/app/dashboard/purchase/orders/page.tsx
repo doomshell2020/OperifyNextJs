@@ -1,9 +1,13 @@
 'use client';
 
+import { useListLocation } from '@/components/ui/useListLocation';
+import { ListPagination, LEGACY_LIST_LIMIT } from '@/components/ui/ListPagination';
+import { createPortal } from 'react-dom';
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import indentService from '@/services/indent.service';
 import purchaseOrderService from '../../../../services/purchaseOrder.service';
-import { API_URL } from '../../../../services/apiClient';
+import apiClient, { API_URL } from '../../../../services/apiClient';
 import { PurchaseOrderDetailsModal } from '../../../../components/dashboard/PurchaseOrderDetailsModal';
 import { PurchaseOrderFormModal } from '../../../../components/dashboard/PurchaseOrderFormModal';
 import { DeliveryNoteModal } from '../../../../components/dashboard/DeliveryNoteModal';
@@ -14,19 +18,38 @@ import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { DatePicker } from '../../../../components/ui/DatePicker';
 import { formatContractDate } from '../../../../utils/dateFormatter';
+import { usePermission } from '../../../../contexts/PermissionContext';
 
 export default function PurchaseOrdersPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { hasPermission } = usePermission();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
     po_number: '',
-    vendor_name: '',
+    vendor_name: '', vendor_id: '',
     datefrom: '',
     dateto: '',
-    status: ''
+    status: '', search: '', type: 'po', item_id: '', item_name: ''
   });
   
+  const [activeFilters, setActiveFilters] = useState(filters);
+  const { data: productSuggestions = [] } = useQuery({
+    queryKey: ['po-list-product-search', filters.item_name],
+    queryFn: () => indentService.searchItems(filters.item_name),
+    enabled: filters.item_name.length >= 2,
+  });
+  const { data: vendorSuggestions = [] } = useQuery({
+    queryKey: ['po-list-vendor-search', filters.vendor_name],
+    queryFn: async () => (await apiClient.get('/vendors/search', { params: { q: filters.vendor_name } })).data.data as { id: number; name: string }[],
+    enabled: filters.vendor_name.length >= 2,
+  });
+  const productLabel = (item: { item_name: string; size_name?: string }) => item.item_name + (item.size_name ? ` (${item.size_name})` : '');
+  const applyFilters = () => {
+    const product = productSuggestions.find(item => productLabel(item) === filters.item_name);
+    setActiveFilters({ ...filters, vendor_id: vendorSuggestions.find(vendor => vendor.name === filters.vendor_name)?.id.toString() || filters.vendor_id, item_id: product ? String(product.id) : filters.item_id, search: '1' });
+    setPage(1);
+  };
   // Modals state
   const [viewPoId, setViewPoId] = useState<number | null>(null);
   const [revisePoId, setRevisePoId] = useState<number | null>(null);
@@ -35,13 +58,17 @@ export default function PurchaseOrdersPage() {
   const [printPoId, setPrintPoId] = useState<number | null>(null);
   
   // Action Dropdown state
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
   const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
 
+  const locationReady = useListLocation(activeFilters, page, ['po_number', 'vendor_name', 'vendor_id', 'datefrom', 'dateto', 'status', 'search', 'type', 'item_id', 'item_name', 'sort', 'direction'], (next, nextPage) => { setActiveFilters(next); setFilters(next); setPage(nextPage); });
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['purchase-orders', { page, ...filters }],
-    queryFn: () => purchaseOrderService.listPurchaseOrders({ page, limit: 10, ...filters }),
-    placeholderData: (prev) => prev,
+    queryKey: ['purchase-orders', { page, ...activeFilters }],
+    enabled: locationReady,
+    queryFn: () => purchaseOrderService.listPurchaseOrders({ page, limit: LEGACY_LIST_LIMIT, ...activeFilters }),
   });
+
+  useEffect(() => { setOpenDropdownId(null); }, [page, activeFilters]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => purchaseOrderService.deletePurchaseOrder(id),
@@ -53,12 +80,13 @@ export default function PurchaseOrdersPage() {
   });
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    setPage(1);
+    const { name, value } = e.target;
+    setFilters(prev => ({ ...prev, [name]: value, ...(name === 'vendor_name' ? { vendor_id: vendorSuggestions.find(vendor => vendor.name === value)?.id.toString() || '' } : {}), ...(name === 'item_name' ? { item_id: productSuggestions.find(item => productLabel(item) === value)?.id.toString() || '' } : {}) }));
   };
 
   const resetFilters = () => {
-    setFilters({ po_number: '', vendor_name: '', datefrom: '', dateto: '', status: '' });
+    setFilters({ po_number: '', vendor_name: '', vendor_id: '', datefrom: '', dateto: '', status: '', search: '', type: 'po', item_id: '', item_name: '' });
+    setActiveFilters({ po_number: '', vendor_name: '', vendor_id: '', datefrom: '', dateto: '', status: '', search: '', type: 'po', item_id: '', item_name: '' });
     setPage(1);
   };
 
@@ -68,6 +96,13 @@ export default function PurchaseOrdersPage() {
     }
     setOpenDropdownId(null);
   };
+
+  const canUsePurchaseOrder = hasPermission('purchaseorder:view') || hasPermission('legacy:admin/purchaseorder/index');
+  const canAdd = hasPermission('purchaseorder:add') || hasPermission('legacy:admin/purchaseorder/add') || canUsePurchaseOrder;
+  const canRevise = hasPermission('purchaseorder:revise') || hasPermission('legacy:admin/purchaseorder/revised') || canUsePurchaseOrder;
+  const canDelete = hasPermission('purchaseorder:delete') || hasPermission('legacy:admin/purchaseorder/delete') || canUsePurchaseOrder;
+  const canDeliveryNote = hasPermission('purchaseorder:deliverynote') || hasPermission('legacy:admin/purchaseorder/deliverynote') || canUsePurchaseOrder;
+  const canPrint = hasPermission('purchaseorder:pdf') || hasPermission('legacy:admin/purchaseorder/view') || hasPermission('legacy:admin/purchaseorder/viewpodetailspdf') || hasPermission('legacy:admin/purchaseorder/printallpo') || canUsePurchaseOrder;
 
   return (
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
@@ -82,9 +117,11 @@ export default function PurchaseOrdersPage() {
           <button onClick={() => refetch()} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-sm font-medium transition">
             <RefreshCw className="w-4 h-4" /> Refresh
           </button>
-          <button onClick={() => router.push('/dashboard/purchase/orders/add')} className="flex items-center gap-1.5 px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition shadow-sm">
-            <Plus className="w-4 h-4" /> Generate PO
-          </button>
+          {canAdd && (
+            <button onClick={() => router.push('/dashboard/purchase/orders/add')} className="flex items-center gap-1.5 px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition shadow-sm">
+              <Plus className="w-4 h-4" /> Generate PO
+            </button>
+          )}
         </div>
       </div>
 
@@ -96,7 +133,7 @@ export default function PurchaseOrdersPage() {
         </div>
         <div>
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Vendor</label>
-          <input type="text" name="vendor_name" value={filters.vendor_name} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition" placeholder="Vendor name" />
+          <input type="text" name="vendor_name" list="po-vendor-options" value={filters.vendor_name} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition" placeholder="Vendor name" /><datalist id="po-vendor-options">{vendorSuggestions.map(vendor => <option key={vendor.id} value={vendor.name} />)}</datalist>
         </div>
         <div>
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Date From</label>
@@ -114,8 +151,10 @@ export default function PurchaseOrdersPage() {
             <option value="C">Closed</option>
           </select>
         </div>
+        <div><label className="block text-xs font-semibold text-slate-500 mb-1">Date Type</label><select name="type" value={filters.type} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm"><option value="po">PO Date</option><option value="deli">Delivery Schedule</option></select></div>
+        <div><label className="block text-xs font-semibold text-slate-500 mb-1">Product Name</label><input name="item_name" list="po-product-options" value={filters.item_name} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm" /><datalist id="po-product-options">{productSuggestions.map(item => <option key={item.id} value={productLabel(item)} />)}</datalist></div>
         <div className="flex gap-2">
-          <button onClick={() => refetch()} className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md p-2 flex items-center justify-center font-medium shadow-sm transition">
+          <button onClick={applyFilters} className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md p-2 flex items-center justify-center font-medium shadow-sm transition">
             Search
           </button>
           <button onClick={resetFilters} className="bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-md p-2 flex items-center justify-center font-medium transition" title="Reset Filters">
@@ -160,7 +199,7 @@ export default function PurchaseOrdersPage() {
                 data.items.map((po) => (
                   <tr key={po.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
                     <td className="p-4 font-medium text-cyan-700 cursor-pointer hover:underline" onClick={() => setViewPoId(po.id)}>
-                      {po.po_number}
+                      {po.display_po_number || po.po_number}
                     </td>
                     <td className="p-4 text-slate-600">{formatContractDate(po.po_date)}</td>
                     <td className="p-4 font-medium text-blue-600 cursor-pointer hover:underline truncate max-w-[200px]" onClick={() => setViewVendorId(po.vendor_id)}>
@@ -179,28 +218,46 @@ export default function PurchaseOrdersPage() {
                     <td className="p-4 text-slate-600">{formatContractDate(po.delivery_date) || '-'}</td>
                     <td className="p-4 text-center relative">
                       <button 
-                        onClick={() => setOpenDropdownId(openDropdownId === po.id ? null : po.id)}
-                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-md transition"
+                        onClick={event => {
+                          const rect = event.currentTarget.getBoundingClientRect();
+                          setDropdownPosition({ top: Math.max(8, Math.min(rect.bottom + 4, window.innerHeight - 220)), left: Math.max(8, Math.min(rect.right - 224, window.innerWidth - 232)) });
+                          setOpenDropdownId(openDropdownId === po.id ? null : po.id);
+                        }}
+                        className="px-3 py-1.5 bg-red-700 hover:bg-red-800 text-white rounded-md transition text-xs font-bold inline-flex items-center gap-1"
                       >
-                        <MoreVertical className="w-5 h-5" />
+                        Action <MoreVertical className="w-4 h-4" />
                       </button>
 
-                      {openDropdownId === po.id && (
-                        <div className="absolute right-8 top-10 bg-white border border-slate-200 shadow-xl rounded-lg py-1 w-44 z-50 animate-in fade-in zoom-in-95 duration-100">
-                          <button onClick={() => { setRevisePoId(po.id); setOpenDropdownId(null); }} className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-cyan-600 flex items-center gap-2">
-                            <Edit className="w-4 h-4" /> Revise PO
-                          </button>
-                          <button onClick={() => { setDeliveryPoId(po.id); setOpenDropdownId(null); }} className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-indigo-600 flex items-center gap-2">
-                            <Box className="w-4 h-4" /> Delivery Note
-                          </button>
-                          <button onClick={() => { window.open(`${API_URL}/purchase-orders/${po.id}/pdf?token=${localStorage.getItem('accessToken')}`, '_blank'); setOpenDropdownId(null); }} className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 flex items-center gap-2">
-                            <Printer className="w-4 h-4" /> Print PO
-                          </button>
-                          <div className="h-px bg-slate-100 my-1"></div>
-                          <button onClick={() => handleDelete(po.id)} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
-                            <Trash2 className="w-4 h-4" /> Delete PO
-                          </button>
-                        </div>
+                      {openDropdownId === po.id && createPortal(
+                        <div style={dropdownPosition} className="fixed bg-white border border-slate-200 shadow-xl rounded-md py-2 w-56 z-50 animate-in fade-in zoom-in-95 duration-100">
+                          {po.is_latest_revision === 1 && canRevise && (
+                            <button onClick={() => { setRevisePoId(po.id); setOpenDropdownId(null); }} className="w-full text-left px-4 py-1.5 text-sm font-bold text-slate-900 hover:bg-slate-50 hover:text-cyan-700">
+                              Revise PO
+                            </button>
+                          )}
+                          {po.is_latest_revision === 1 && canDelete && (
+                            <button onClick={() => handleDelete(po.id)} className="w-full text-left px-4 py-1.5 text-sm font-bold text-red-600 hover:bg-red-50">
+                              Delete
+                            </button>
+                          )}
+                          {po.is_latest_revision === 1 && canDeliveryNote && (
+                            <button onClick={() => { setDeliveryPoId(po.id); setOpenDropdownId(null); }} className="w-full text-left px-4 py-1.5 text-sm font-bold text-slate-900 hover:bg-slate-50 hover:text-indigo-700">
+                              {Number(po.delivery_notes_count || 0) > 0 ? 'Edit Delivery Note' : 'Add Delivery Note'}
+                            </button>
+                          )}
+                          {canPrint && (
+                            <>
+                              <button onClick={() => { window.open(`${API_URL}/purchase-orders/${po.id}/pdf?token=${localStorage.getItem('accessToken')}`, '_blank'); setOpenDropdownId(null); }} className="w-full text-left px-4 py-1.5 text-sm font-bold text-blue-700 hover:bg-blue-50">
+                                Print PO {po.display_po_number || po.po_number}
+                              </button>
+                              {po.amendment_no > 0 && (
+                                <button onClick={() => { window.open(`${API_URL}/purchase-orders/${po.id}/pdf?token=${localStorage.getItem('accessToken')}`, '_blank'); setOpenDropdownId(null); }} className="w-full text-left px-4 py-1.5 text-sm font-bold text-blue-700 hover:bg-blue-50">
+                                  Print Revised PO
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>, document.body
                       )}
                     </td>
                   </tr>
@@ -217,29 +274,7 @@ export default function PurchaseOrdersPage() {
         </div>
 
         {/* Pagination */}
-        {data?.totalPages > 1 && (
-          <div className="flex items-center justify-between p-4 border-t border-slate-200 bg-slate-50">
-            <span className="text-sm text-slate-500">
-              Showing page <span className="font-semibold text-slate-700">{data.page}</span> of <span className="font-semibold text-slate-700">{data.totalPages}</span>
-            </span>
-            <div className="flex gap-1">
-              <button
-                disabled={data.page === 1}
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                className="px-3 py-1.5 border border-slate-200 rounded-md text-sm font-medium text-slate-600 hover:bg-white disabled:opacity-50 transition"
-              >
-                Previous
-              </button>
-              <button
-                disabled={data.page === data.totalPages}
-                onClick={() => setPage(p => p + 1)}
-                className="px-3 py-1.5 border border-slate-200 rounded-md text-sm font-medium text-slate-600 hover:bg-white disabled:opacity-50 transition"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        {data && <ListPagination page={data?.page || page} limit={LEGACY_LIST_LIMIT} total={data?.total || 0} onPageChange={setPage} busy={isLoading} />}
       </div>
 
       {/* Modals */}

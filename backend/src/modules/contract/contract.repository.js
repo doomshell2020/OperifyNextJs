@@ -1,4 +1,5 @@
-const { Op, QueryTypes, col, fn, literal } = require('sequelize');
+const { Op, QueryTypes, col, fn, literal, where: sqlWhere } = require('sequelize');
+const {listOrder} = require('../../utils/listPagination');
 
 class ContractRepository {
   async findFiltered(dbPool, filters = {}) {
@@ -10,6 +11,8 @@ class ContractRepository {
     }
 
     const where = {};
+    if (filters.contract_id) where.id = filters.contract_id;
+    if (filters.vendor_id) where.supplier_id = filters.vendor_id;
     if (filters.contract_name) {
       where[Op.or] = [
         { title: { [Op.like]: `%${filters.contract_name}%` } },
@@ -20,10 +23,10 @@ class ContractRepository {
       where.cost = { [Op.like]: `%${filters.cost}%` };
     }
     if (filters.datefrom && filters.datefrom !== '1970-01-01') {
-      where.contract_start_date = { [Op.gte]: filters.datefrom };
+      where[Op.and] = [...(where[Op.and] || []), sqlWhere(fn('DATE',col('contracts.contract_start_date')), { [Op.gte]: filters.datefrom })];
     }
     if (filters.dateto && filters.dateto !== '1970-01-01') {
-      where.contract_end_date = { [Op.lte]: filters.dateto };
+      where[Op.and] = [...(where[Op.and] || []), sqlWhere(fn('DATE',col('contracts.contract_end_date')), { [Op.lte]: filters.dateto })];
     }
 
     const vendorWhere = {};
@@ -33,9 +36,10 @@ class ContractRepository {
 
     const isInnerJoin = Object.keys(vendorWhere).length > 0;
 
+    const sort = listOrder(filters.sort,filters.direction,{id:'id',title:'title',workorder:'workorder',cost:'cost',contract_start_date:'contract_start_date',contract_end_date:'contract_end_date',issuedate:'issuedate'},'id');
     return await contracts.findAndCountAll({
       attributes: [
-        'id', 'title', 'workorder', 'cost', 'contract_start_date', 'contract_end_date', 'issuedate', 'description', 'status', 'added_time',
+        'id', 'supplier_id', 'title', 'workorder', 'cost', 'contract_start_date', 'contract_end_date', 'issuedate', 'description', 'status', 'added_time',
         [col('vendor.name'), 'vendor_name'],
         [literal(`(SELECT COUNT(*) FROM designsheet WHERE contract_id = contracts.id)`), 'designsheet_count']
       ],
@@ -47,7 +51,7 @@ class ContractRepository {
         required: isInnerJoin
       }],
       where,
-      order: [['id', 'DESC']],
+      order: sort.column === 'id' ? [['id',sort.direction]] : [[sort.column,sort.direction],['id','DESC']],
       limit: filters.limit ? parseInt(filters.limit, 10) : undefined,
       offset: filters.offset ? parseInt(filters.offset, 10) : undefined,
       raw: true

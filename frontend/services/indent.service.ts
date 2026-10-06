@@ -17,6 +17,8 @@ export interface IndentItem {
 }
 
 export interface IndentSummary {
+  remaining_qty: number;
+  status: string;
   indent_id: number;
   added_time: string;
   created_by: string;

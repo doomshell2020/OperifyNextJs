@@ -1,5 +1,6 @@
 'use client';
 
+import { ListPagination, LEGACY_LIST_LIMIT } from '@/components/ui/ListPagination';
 import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
@@ -149,6 +150,8 @@ function SearchBar({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function IndentsListPage() {
+  const [page, setPage] = useState(1);
+  const [quickSearch, setQuickSearch] = useState('');
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
 
@@ -162,13 +165,22 @@ export default function IndentsListPage() {
       }),
   });
 
-  const handleSearch = useCallback(() => setAppliedFilters({ ...filters }), [filters]);
+  const handleSearch = useCallback(() => { setAppliedFilters({ ...filters }); setPage(1); }, [filters]);
   const handleReset = useCallback(() => {
+    setPage(1);
+    setQuickSearch('');
     setFilters(EMPTY_FILTERS);
     setAppliedFilters(EMPTY_FILTERS);
   }, []);
 
-  const indents = data ?? [];
+  // Legacy Indent uses DataTables on the complete, unique list, with sorting disabled.
+  const words = quickSearch.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  const indents = (data ?? []).filter(indent => {
+    const text = [indent.indent_id, indent.total_qty, indent.created_by, formatContractDate(indent.added_time), ...indent.items.flatMap(item => [item.item_name, item.size_name, item.quantity, item.stock_in_hand])].join(' ').toLowerCase();
+    return words.every(word => text.includes(word));
+  });
+  const currentPage = Math.min(page, Math.max(1, Math.ceil(indents.length / LEGACY_LIST_LIMIT)));
+  const visibleIndents = indents.slice((currentPage - 1) * LEGACY_LIST_LIMIT, currentPage * LEGACY_LIST_LIMIT);
 
   return (
     <div className="max-w-7xl mx-auto space-y-5">
@@ -200,6 +212,9 @@ export default function IndentsListPage() {
         onReset={handleReset}
       />
 
+      <label className="flex justify-end items-center gap-2 text-xs text-slate-600">Search:
+        <input aria-label="Search indent table" value={quickSearch} onChange={e => { setQuickSearch(e.target.value); setPage(1); }} className="border border-slate-200 rounded px-3 py-2" />
+      </label>
       {/* Table Card */}
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
         {isLoading && (
@@ -259,9 +274,9 @@ export default function IndentsListPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {indents.map((indent, idx) => (
+              {visibleIndents.map((indent, idx) => (
                 <tr key={indent.indent_id} className="hover:bg-slate-50/60 transition-colors">
-                  <td className="px-5 py-4 text-xs text-slate-400 font-medium">{idx + 1}</td>
+                  <td className="px-5 py-4 text-xs text-slate-400 font-medium">{(currentPage - 1) * LEGACY_LIST_LIMIT + idx + 1}</td>
                   <td className="px-5 py-4">
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-50 text-cyan-700 font-bold text-xs border border-cyan-100">
                       <ListTodo className="w-3 h-3" />#{indent.indent_id}
@@ -295,13 +310,13 @@ export default function IndentsListPage() {
                       >
                         <FileText className="w-4 h-4" />
                       </Link>
-                      <Link
-                        href={`/dashboard/purchase/orders?indent_id=${indent.indent_id}`}
+                      {Number(indent.remaining_qty) > 0 && <Link
+                        href={`/dashboard/purchase/orders/add?indent_id=${indent.indent_id}`}
                         title="Create Purchase Order"
                         className="p-1.5 rounded-lg bg-cyan-50 text-cyan-600 hover:bg-cyan-100 transition-colors"
                       >
                         <ShoppingBag className="w-4 h-4" />
-                      </Link>
+                      </Link>}
                     </div>
                   </td>
                 </tr>
@@ -311,13 +326,7 @@ export default function IndentsListPage() {
         )}
       </div>
 
-      {/* Footer count */}
-      {!isLoading && !isError && indents.length > 0 && (
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <Clock className="w-3 h-3" />
-          Showing {indents.length} indent{indents.length !== 1 ? 's' : ''}
-        </div>
-      )}
+      {!isLoading && !isError && <ListPagination page={currentPage} limit={LEGACY_LIST_LIMIT} total={indents.length} onPageChange={setPage} />}
     </div>
   );
 }

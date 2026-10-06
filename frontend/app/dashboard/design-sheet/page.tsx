@@ -1,5 +1,7 @@
 'use client';
 
+import { useListLocation } from '@/components/ui/useListLocation';
+import { ListPagination, LEGACY_LIST_LIMIT } from '@/components/ui/ListPagination';
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
@@ -21,12 +23,14 @@ export default function DesignSheetsPage() {
     dateto: ''
   });
 
-  const [activeFilters, setActiveFilters] = useState<DesignSheetFilter>({ page: 1, limit: 50 });
+  const [activeFilters, setActiveFilters] = useState<DesignSheetFilter>({ page: 1, limit: LEGACY_LIST_LIMIT });
   const [selectedSheetNo, setSelectedSheetNo] = useState<string | null>(null);
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
 
+  const locationReady = useListLocation(activeFilters, activeFilters.page || 1, ['contract_id', 'datestart', 'dateto', 'sort', 'direction'], (next, nextPage) => { setActiveFilters({ ...next, page: nextPage, limit: LEGACY_LIST_LIMIT }); setFilters(next); });
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['designsheets', activeFilters],
+    enabled: locationReady,
     queryFn: () => designsheetService.getDesignSheets(activeFilters),
     staleTime: 5 * 60 * 1000
   });
@@ -49,13 +53,13 @@ export default function DesignSheetsPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setActiveFilters({ ...filters, page: 1, limit: 50 });
+    setActiveFilters({ ...filters, page: 1, limit: LEGACY_LIST_LIMIT });
   };
 
   const handleReset = () => {
     const empty = { contract_id: '', datestart: '', dateto: '' };
     setFilters(empty);
-    setActiveFilters({ page: 1, limit: 50 });
+    setActiveFilters({ page: 1, limit: LEGACY_LIST_LIMIT });
   };
   
   const handlePageChange = (newPage: number) => {
@@ -136,7 +140,7 @@ export default function DesignSheetsPage() {
         </div>
       ) : (
         <>
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-white border border-slate-200 rounded-xl overflow-x-auto shadow-sm">
           <table className="w-full text-left border-collapse text-xs font-medium text-slate-600">
             <thead>
               <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200">
@@ -151,6 +155,7 @@ export default function DesignSheetsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
+              {designs.length === 0 && <tr><td colSpan={8} className="p-8 text-center text-slate-500">No design sheets found matching your filters.</td></tr>}
               {designs.map((d: any, idx: number) => (
                 <tr key={d.id} className="hover:bg-slate-50/50 transition">
                   <td className="px-6 py-4 font-bold text-slate-900">{((activeFilters.page || 1) - 1) * (activeFilters.limit || 50) + idx + 1}</td>
@@ -171,10 +176,17 @@ export default function DesignSheetsPage() {
                   <td className="px-6 py-4 font-bold text-slate-900">{formatQty(d.quantity)}</td>
                   <td className="px-6 py-4 text-center font-semibold">{formatContractDate(d.datefrom)}</td>
                   <td className="px-6 py-4 text-center">
-                    {d.design_sheet ? (
-                        <a href={`/designsheet/${d.design_sheet}`} target="_blank" rel="noreferrer" className="text-cyan-600 underline">
-                            Download
-                        </a>
+                    {(d.design_sheet || [1, 2, 3, 4, 5].some(rev => d[`r${rev}`])) ? (
+                        <span className="inline-flex items-center justify-center gap-2 flex-wrap">
+                          {d.design_sheet && <a href={`/designsheet/${d.design_sheet}`} target="_blank" rel="noreferrer" className="text-cyan-600 underline">
+                              Download
+                          </a>}
+                          {[1, 2, 3, 4, 5].map((rev) => d[`r${rev}`] ? (
+                            <a key={rev} href={`/designsheet/${d[`r${rev}`]}`} target="_blank" rel="noreferrer" className="text-cyan-600 underline">
+                              R{rev}
+                            </a>
+                          ) : null)}
+                        </span>
                     ) : '-'}
                   </td>
                   <td className="px-6 py-4 flex items-center justify-center gap-3">
@@ -183,15 +195,10 @@ export default function DesignSheetsPage() {
                         <Edit className="w-4 h-4" />
                       </Link>
                     )}
-                    {hasPermission("designsheet:delete") && d.indentpo_count === 0 && (
+                    {hasPermission("designsheet:delete") && Number(d.indentpo_count) === 0 && (
                       <button onClick={() => handleDelete(d.id)} className="text-rose-500 hover:text-rose-700 transition" title="Delete">
                         <Trash2 className="w-4 h-4" />
                       </button>
-                    )}
-                    {hasPermission("designsheet:pdf") && (
-                      <Link href={`/dashboard/design-sheet/print/${d.designsheetno}`} target="_blank" className="text-emerald-600 hover:text-emerald-800 transition" title="Print">
-                        <Printer className="w-4 h-4" />
-                      </Link>
                     )}
                   </td>
                 </tr>
@@ -201,39 +208,11 @@ export default function DesignSheetsPage() {
 
         </div>
         {/* Pagination UI */}
-        {data && data.total > 0 && (
-          <div className="flex justify-end items-center mt-4">
-            <div className="flex items-center border border-slate-200 rounded bg-white overflow-hidden text-xs">
-              <button 
-                onClick={() => handlePageChange(Math.max(1, (activeFilters.page || 1) - 1))}
-                disabled={(activeFilters.page || 1) === 1}
-                className="px-3 py-1.5 border-r border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-              >
-                Previous
-              </button>
-              
-              {Array.from({ length: Math.ceil((data.total || 0) / (activeFilters.limit || 50)) }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => handlePageChange(i + 1)}
-                  className={`px-3 py-1.5 border-r border-slate-200 font-medium ${(activeFilters.page || 1) === i + 1 ? 'bg-cyan-50 text-cyan-700' : 'text-slate-600 hover:bg-slate-50'}`}
-                >
-                  {i + 1}
-                </button>
-              ))}
 
-              <button 
-                onClick={() => handlePageChange(Math.min(Math.ceil((data.total || 0) / (activeFilters.limit || 50)), (activeFilters.page || 1) + 1))}
-                disabled={(activeFilters.page || 1) === Math.ceil((data.total || 0) / (activeFilters.limit || 50))}
-                className="px-3 py-1.5 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
         </>
       )}
+
+      {!isLoading && !isError && data && <ListPagination page={activeFilters.page || 1} limit={LEGACY_LIST_LIMIT} total={data.total || 0} onPageChange={handlePageChange} />}
 
       {selectedSheetNo !== null && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedSheetNo(null)}>
@@ -247,7 +226,7 @@ export default function DesignSheetsPage() {
                 <div className="relative mb-6">
                     <h3 className="text-base font-extrabold text-slate-900 text-center">Design Sheet Details</h3>
                     <div className="absolute right-0 top-0">
-                        {hasPermission("designsheet:pdf") && (
+                        {(hasPermission("designsheet:viewdetails") || hasPermission("legacy:admin/designsheet/viewdesignsheet") || hasPermission("designsheet:view") || hasPermission("legacy:admin/designsheet/index")) && (
                           <Link href={`/dashboard/design-sheet/print/${detailsData.designsheet.designsheetno}`} target="_blank" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-semibold shadow-sm transition">
                             <Printer className="w-3.5 h-3.5" /> Print
                         </Link>

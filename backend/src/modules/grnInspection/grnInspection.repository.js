@@ -1,4 +1,5 @@
 const { QueryTypes } = require('sequelize');
+const {listOrder} = require('../../utils/listPagination');
 
 class GrnInspectionRepository {
   async list(dbPool, filters, limit, offset) {
@@ -17,15 +18,20 @@ class GrnInspectionRepository {
       baseQuery += ` AND g.bill_no LIKE :bill_no`;
       params.bill_no = `%${filters.bill_no}%`;
     }
-    if (filters.po_id) {
-      baseQuery += ` AND g.po_id LIKE :po_id`;
-      params.po_id = `%${filters.po_id}%`;
+    if (filters.po_id || filters.purchaseorder_id) {
+      baseQuery += ` AND g.po_id = :po_id`;
+      params.po_id = filters.po_id || filters.purchaseorder_id;
+    }
+    for (const [key,operator] of [['from_date','>='],['to_date','<=']]) {
+      const value=filters[key] || filters[key === 'from_date' ? 'datefrom' : 'dateto'];
+      if (value && value !== '1970-01-01') {baseQuery += ` AND DATE(g.inwarddate) ${operator} :${key}`;params[key]=value;}
     }
 
     const countQuery = `SELECT COUNT(*) as count ${baseQuery}`;
     const countRows = await dbPool.query(countQuery, { replacements: params, type: QueryTypes.SELECT });
     const total = countRows[0].count;
 
+    const sort = listOrder(filters.sort,filters.direction,{id:'g.id',inspection_id:'g.inspection_id',po_id:'g.po_id',inwarddate:'g.inwarddate',bill_no:'g.bill_no',bill_date:'g.bill_date',total_qty:'g.total_qty',total_amt:'g.total_amt'},'g.id');
     const query = `
       SELECT 
         g.id,
@@ -36,9 +42,10 @@ class GrnInspectionRepository {
         g.bill_date,
         g.total_qty,
         g.total_amt,
+        g.status,
         v.name as supplier
       ${baseQuery}
-      ORDER BY g.id DESC
+      ORDER BY ${sort.column} ${sort.direction}${sort.column === 'g.id' ? '' : ', g.id DESC'}
       LIMIT :limit OFFSET :offset
     `;
     params.limit = parseInt(limit);

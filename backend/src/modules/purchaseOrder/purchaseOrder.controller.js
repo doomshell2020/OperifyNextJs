@@ -40,8 +40,8 @@ class PurchaseOrderController {
 
   async listPurchaseOrders(req, res, next) {
     try {
-      const { page = 1, limit = 10, ...filters } = req.query;
-      const data = await purchaseOrderService.listPurchaseOrders(req.dbPool, filters, parseInt(page), parseInt(limit));
+      const { page, limit, ...filters } = req.query;
+      const data = await purchaseOrderService.listPurchaseOrders(req.dbPool, filters, page, limit);
       res.status(200).json({ success: true, ...data });
     } catch (error) {
       next(error);

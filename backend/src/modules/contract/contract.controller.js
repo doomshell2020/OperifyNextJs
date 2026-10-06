@@ -1,23 +1,25 @@
 const contractService = require('./contract.service');
+const {paginationInput,paginationResult} = require('../../utils/listPagination');
 
 class ContractController {
   async getContracts(req, res, next) {
     try {
       const dbPool = req.dbPool;
-      console.log('Backend getContracts req.query:', req.query);
       const {
         contract_name,
         vendor_name,
         cost,
         datefrom,
         dateto,
-        page = 1,
-        limit = 10
       } = req.query;
 
-      const offset = (Number(page) - 1) * Number(limit);
+      const {page,limit,offset} = paginationInput(req.query,'contract');
 
       const filters = {
+        contract_id:req.query.contract_id,
+        vendor_id:req.query.vendor_id,
+        sort:req.query.sort,
+        direction:req.query.direction,
         contract_name: contract_name ? String(contract_name).trim() : undefined,
         vendor_name: vendor_name ? String(vendor_name).trim() : undefined,
         cost: cost || undefined,
@@ -32,7 +34,7 @@ class ContractController {
       return res.status(200).json({
         success: true,
         data: result.rows,
-        total: result.count
+        ...paginationResult(result.count,page,limit,result.rows.length)
       });
     } catch (err) {
       next(err);

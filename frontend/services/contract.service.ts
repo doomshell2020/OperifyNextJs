@@ -1,6 +1,7 @@
 import apiClient from './apiClient';
 
 export interface ContractListItem {
+  supplier_id: number;
   id: number;
   title: string;
   workorder: string;
@@ -69,6 +70,10 @@ export interface ContractFormData {
   items: { id: number; name: string }[];
 }
 export interface ContractFilters {
+  sort?: string;
+  direction?: string;
+  contract_id?: number;
+  vendor_id?: number;
   contract_name?: string;
   vendor_name?: string;
   cost?: string;
@@ -81,6 +86,12 @@ export interface ContractFilters {
 export interface PaginatedContracts {
   data: ContractListItem[];
   total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  current: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
 }
 
 class ContractService {
@@ -108,6 +119,10 @@ class ContractService {
     const params = new URLSearchParams();
     if (filters.contract_name) params.append('contract_name', filters.contract_name);
     if (filters.vendor_name) params.append('vendor_name', filters.vendor_name);
+    if (filters.contract_id) params.append('contract_id', String(filters.contract_id));
+    if (filters.vendor_id) params.append('vendor_id', String(filters.vendor_id));
+    if (filters.sort) params.append('sort', filters.sort);
+    if (filters.direction) params.append('direction', filters.direction);
     if (filters.cost) params.append('cost', filters.cost);
     if (filters.datefrom) params.append('datefrom', filters.datefrom);
     if (filters.dateto) params.append('dateto', filters.dateto);
@@ -115,10 +130,7 @@ class ContractService {
     if (filters.limit) params.append('limit', filters.limit.toString());
 
     const response = await apiClient.get(`/contracts?${params.toString()}`);
-    return {
-      data: response.data.data,
-      total: response.data.total
-    };
+    return response.data;
   }
 
   async getDetails(id: number | string): Promise<ContractDetailsData> {

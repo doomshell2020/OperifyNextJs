@@ -1,12 +1,14 @@
 const { Op, QueryTypes, col, fn, literal } = require('sequelize');
 const fs = require('fs');
 const path = require('path');
+const {paginationInput,paginationResult,listOrder} = require('../../utils/listPagination');
 
 const getUploadDir = () => path.join(__dirname, '../../../../frontend/public/designsheet');
 
 exports.index = async (req, res, next) => {
   try {
-    const { contract_id, datestart, dateto, page = 1, limit = 20 } = req.query;
+    const { contract_id, datestart, dateto } = req.query;
+    const {page,limit,offset} = paginationInput(req.query,'designsheet');
     
     let query = `
       SELECT d.*, c.title as contract_title, c.workorder, a.item_name, (SELECT COUNT(*) FROM indentpo i WHERE i.contract_id = d.contract_id AND i.finishedproduct_id = d.item_id) as indentpo_count
@@ -18,8 +20,8 @@ exports.index = async (req, res, next) => {
     const params = {};
     
     if (contract_id) {
-      query += ' AND d.contract_id LIKE :contract_id';
-      params.contract_id = `%${contract_id}%`;
+      query += ' AND d.contract_id = :contract_id';
+      params.contract_id = contract_id;
     }
     
     if (datestart && datestart !== '1970-01-01') {
@@ -34,8 +36,8 @@ exports.index = async (req, res, next) => {
     
     let countQuery = query.replace('SELECT d.*, c.title as contract_title, c.workorder, a.item_name, (SELECT COUNT(*) FROM indentpo i WHERE i.contract_id = d.contract_id AND i.finishedproduct_id = d.item_id) as indentpo_count', 'SELECT COUNT(*) as total');
     
-    query += ' ORDER BY d.id DESC LIMIT :limit OFFSET :offset';
-    const offset = (page - 1) * limit;
+    const sort = listOrder(req.query.sort,req.query.direction,{id:'d.id',designsheetno:'d.designsheetno',datefrom:'d.datefrom',quantity:'d.quantity',contract_id:'d.contract_id'},'d.id');
+    query += ` ORDER BY ${sort.column} ${sort.direction}${sort.column === 'd.id' ? '' : ', d.id DESC'} LIMIT :limit OFFSET :offset`;
     params.limit = parseInt(limit);
     params.offset = parseInt(offset);
     
@@ -43,7 +45,7 @@ exports.index = async (req, res, next) => {
     const countResult = await req.dbPool.query(countQuery, { replacements: params, type: QueryTypes.SELECT });
     const total = countResult[0].total;
     
-    res.json({ data: designs, total, page, limit });
+    res.json({ data: designs, ...paginationResult(total,page,limit,designs.length) });
   } catch (error) {
     next(error);
   }

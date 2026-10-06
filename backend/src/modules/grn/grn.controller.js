@@ -12,21 +12,12 @@ class GrnController {
     } catch (error) { next(error); }
   }
 
-  async listGrns(req, res) {
+  async listGrns(req, res, next) {
     try {
-      const { page = 1, limit = 10, po_id, vendor_id, from_date, to_date } = req.query;
-      const result = await grnService.listGrns(req.dbPool, {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        po_id,
-        vendor_id,
-        from_date,
-        to_date
-      });
+      const result = await grnService.listGrns(req.dbPool, {...req.query,po_id:req.query.po_id || req.query.purchaseorder_id,from_date:req.query.from_date || req.query.datefrom,to_date:req.query.to_date || req.query.dateto});
       res.status(200).json(result);
     } catch (error) {
-      console.error("Error in listGrns:", error);
-      res.status(500).json({ success: false, message: "Internal server error" });
+      next(error);
     }
   }
 

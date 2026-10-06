@@ -1,20 +1,16 @@
 const repo = require('./grn.repository');
 const { formatQty, formatAmt } = require('../../utils/formatters');
+const {paginationInput,paginationResult} = require('../../utils/listPagination');
 
 class GrnService {
   async listGrns(dbPool, params) {
-    const { page, limit } = params;
+    const {page,limit} = paginationInput(params,'grn');
     const offset = (page - 1) * limit;
-    const result = await repo.getList(dbPool, { ...params, offset });
+    const result = await repo.getList(dbPool, { ...params, limit, offset });
     
     return {
       data: result.data,
-      pagination: {
-        total: result.total,
-        page,
-        limit,
-        totalPages: Math.ceil(result.total / limit)
-      }
+      pagination: paginationResult(result.total,page,limit,result.data.length)
     };
   }
 

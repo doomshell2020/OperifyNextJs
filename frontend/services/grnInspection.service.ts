@@ -1,6 +1,10 @@
 import apiClient from './apiClient';
 
 class GrnInspectionService {
+  async exportInspections() {
+    const response = await apiClient.get('/grn-inspection/export/excel', { responseType: 'blob' });
+    return response.data;
+  }
   async listInspections(params: any) {
     const response = await apiClient.get('/grn-inspection', { params });
     return response.data;

@@ -1,5 +1,7 @@
 'use client';
 
+import { useListLocation } from '@/components/ui/useListLocation';
+import { ListPagination, LEGACY_LIST_LIMIT } from '@/components/ui/ListPagination';
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { grnService } from '../../../../services/grn.service';
@@ -26,6 +28,8 @@ export default function GrnIndexPage() {
   const [vendorSuggestions, setVendorSuggestions] = useState<any[]>([]);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
 
+  const [activeFilters, setActiveFilters] = useState(filters);
+  const applyFilters = () => { setActiveFilters({ ...filters }); setPage(1); };
   const [selectedPoId, setSelectedPoId] = useState<string | null>(null);
   const [isPoModalOpen, setIsPoModalOpen] = useState(false);
   const [selectedGrnId, setSelectedGrnId] = useState<string | null>(null);
@@ -72,19 +76,20 @@ export default function GrnIndexPage() {
     }
   };
 
+  const locationReady = useListLocation(activeFilters, page, ['po_id', 'vendor_id', 'from_date', 'to_date', 'sort', 'direction'], (next, nextPage) => { setActiveFilters(next); setFilters(next); setPage(nextPage); });
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['grn', { page, ...filters }],
-    queryFn: () => grnService.getList({ page, limit: 10, ...filters }),
-    placeholderData: (prev) => prev,
+    queryKey: ['grn', { page, ...activeFilters }],
+    enabled: locationReady,
+    queryFn: () => grnService.getList({ page, limit: LEGACY_LIST_LIMIT, ...activeFilters }),
   });
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilters(prev => ({ ...prev, [e.target.name]: e.target.value }));
-    setPage(1);
   };
 
   const resetFilters = () => {
     setFilters({ po_id: '', vendor_id: '', from_date: '', to_date: '' });
+    setActiveFilters({ po_id: '', vendor_id: '', from_date: '', to_date: '' });
     setVendorSearchText('');
     setPage(1);
   };
@@ -92,7 +97,7 @@ export default function GrnIndexPage() {
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      const blob = await grnService.exportGrns(filters);
+      const blob = await grnService.exportGrns(activeFilters);
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -181,7 +186,7 @@ export default function GrnIndexPage() {
           <DatePicker dateFormat="dd-MM-yyyy" name="to_date" value={filters.to_date} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
         </div>
         <div className="flex gap-2">
-          <button onClick={() => refetch()} className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md p-2 flex items-center justify-center font-medium shadow-sm transition">
+          <button onClick={applyFilters} className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md p-2 flex items-center justify-center font-medium shadow-sm transition">
             <Search className="w-4 h-4 mr-2" /> Search
           </button>
           <button onClick={resetFilters} className="bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-md p-2 flex items-center justify-center font-medium transition" title="Reset Filters">
@@ -260,29 +265,7 @@ export default function GrnIndexPage() {
           </table>
         </div>
 
-        {data?.pagination && data.pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between p-4 border-t border-slate-200 bg-slate-50">
-            <span className="text-sm text-slate-500">
-              Showing page <span className="font-semibold text-slate-700">{data.pagination.page}</span> of <span className="font-semibold text-slate-700">{data.pagination.totalPages}</span>
-            </span>
-            <div className="flex gap-1">
-              <button
-                disabled={data.pagination.page === 1}
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                className="px-3 py-1.5 border border-slate-200 rounded-md text-sm font-medium text-slate-600 hover:bg-white disabled:opacity-50 transition"
-              >
-                Previous
-              </button>
-              <button
-                disabled={data.pagination.page === data.pagination.totalPages}
-                onClick={() => setPage(p => Math.min(data.pagination.totalPages, p + 1))}
-                className="px-3 py-1.5 border border-slate-200 rounded-md text-sm font-medium text-slate-600 hover:bg-white disabled:opacity-50 transition"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
+        {data && <ListPagination page={data?.pagination?.page || page} limit={LEGACY_LIST_LIMIT} total={data?.pagination?.total || 0} onPageChange={setPage} busy={isLoading} />}
       </div>
 
       {isPoModalOpen && selectedPoId && (

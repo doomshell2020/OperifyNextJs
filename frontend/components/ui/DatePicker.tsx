@@ -24,6 +24,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       <div className="relative w-full">
         <input
           {...props}
+          name={undefined}
           type="text"
           value={displayValue}
           readOnly
@@ -35,6 +36,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
         </div>
         <input
           type="date"
+          name={props.name}
           ref={hiddenDateRef}
           value={value || ''}
           onChange={onChange}

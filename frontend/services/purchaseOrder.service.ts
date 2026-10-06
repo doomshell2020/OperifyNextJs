@@ -94,15 +94,21 @@ export interface PurchaseOrderDetailsData {
 export interface PurchaseOrderListItem {
   id: number;
   po_number: string;
+  display_po_number?: string;
+  amendment_no: number;
+  is_latest_revision: number;
   po_date: string;
   vendor_id: number;
   vendor_name: string;
   mobile: string;
   quantity: number;
   received_qty: number;
+  delivery_notes_count?: number;
   amount: number;
   delivery_date: string;
   status: string;
+  postatus?: string;
+  record_status?: string;
 }
 
 export interface PaginatedResponse<T> {

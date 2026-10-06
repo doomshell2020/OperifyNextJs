@@ -1,4 +1,5 @@
 const { QueryTypes } = require('sequelize');
+const {listOrder} = require('../../utils/listPagination');
 
 class PurchaseOrderRepository {
   async getHoverDetails(dbPool, idOrNumber) {
@@ -207,55 +208,67 @@ class PurchaseOrderRepository {
     return uniquePOs.slice(0, 5);
   }
 
+  buildListFilters(filters = {}) {
+    const clauses = [], params = {};
+    const poNumber = filters.po_number || filters.purchaseorder_id;
+    if (poNumber) {clauses.push('po.purchaseorder_id = :po_number');params.po_number=poNumber;}
+    if (filters.vendor_id) {clauses.push('po.vendor_id = :vendor_id');params.vendor_id=filters.vendor_id;}
+    if (filters.vendor_name) {clauses.push('v.name LIKE :vendor_name');params.vendor_name=`%${filters.vendor_name}%`;}
+    if (filters.datefrom && filters.dateto && filters.datefrom !== '1970-01-01' && filters.dateto !== '1970-01-01') {
+      const dateColumn=filters.type === 'deli' ? 'delivery_date' : 'added_time';
+      clauses.push(`DATE(po.${dateColumn}) BETWEEN :datefrom AND :dateto`);
+      params.datefrom=filters.datefrom;params.dateto=filters.dateto;
+    }
+    if (filters.status) {clauses.push('po.postatus = :status');params.status=filters.status;}
+    // Cake's AJAX search includes PO numbers from its detail query (not a join).
+    const searching=filters.search === '1' || Boolean(poNumber || filters.vendor_id || filters.vendor_name || filters.datefrom || filters.dateto || filters.status || filters.item_id);
+    if (searching) {
+      clauses.push(`EXISTS (SELECT 1 FROM st_purchaseorderdetails pd WHERE pd.purchaseorder_id=po.purchaseorder_id${filters.item_id ? ' AND pd.item_id=:item_id' : ''})`);
+      if (filters.item_id) params.item_id=filters.item_id;
+    } else clauses.push("po.status IN ('Y', 'R')");
+    return {whereString:'WHERE '+clauses.join(' AND '),queryParams:params};
+  }
+
   async listPurchaseOrders(dbPool, filters, offset, limit) {
-    let whereClauses = [];
-    let queryParams = {};
-
-    if (filters.po_number) {
-      whereClauses.push('po.purchaseorder_id LIKE :po_number');
-      queryParams.po_number = `%${filters.po_number}%`;
-    }
-    if (filters.vendor_name) {
-      whereClauses.push('v.name LIKE :vendor_name');
-      queryParams.vendor_name = `%${filters.vendor_name}%`;
-    }
-    if (filters.datefrom && filters.dateto) {
-      whereClauses.push('DATE(po.added_time) BETWEEN :datefrom AND :dateto');
-      queryParams.datefrom = filters.datefrom;
-      queryParams.dateto = filters.dateto;
-    }
-    if (filters.status) {
-      whereClauses.push('po.postatus = :status');
-      queryParams.status = filters.status;
-    }
-
-    const whereString = whereClauses.length ? 'WHERE ' + whereClauses.join(' AND ') : '';
-    
+    const {whereString,queryParams}=this.buildListFilters(filters);
+    const sort=listOrder(filters.sort,filters.direction,{id:'po.id',purchaseorder_id:'po.purchaseorder_id',added_time:'po.added_time',delivery_date:'po.delivery_date',total_qty:'po.total_qty',total_amt:'po.total_amt',is_revised:'po.is_revised'},'po.id');
     const query = `
       SELECT 
         po.id,
         po.purchaseorder_id as po_number,
+        po.is_revised as amendment_no,
+        CASE WHEN po.is_revised > 0 THEN CONCAT(po.purchaseorder_id, ' R-', po.is_revised) ELSE po.purchaseorder_id END as display_po_number,
+        CASE WHEN po.is_revised = latest.latest_revision THEN 1 ELSE 0 END as is_latest_revision,
         DATE(po.added_time) as po_date,
         v.id as vendor_id,
         v.name as vendor_name,
         COALESCE(v.contact_no, 'N/A') as mobile,
         po.total_qty as quantity,
-        (SELECT COALESCE(SUM(item_qty), 0) FROM po_delivery_note WHERE poprimary_id = po.id) as received_qty,
+        (SELECT COALESCE(SUM(sr.quantity), 0) FROM st_stock_register sr WHERE sr.po_id=po.purchaseorder_id AND sr.purchaseorder_id=po.id AND sr.store_type='1') as received_qty,
+        (SELECT COUNT(*) FROM po_delivery_note WHERE poprimary_id = po.id AND COALESCE(status, 'Y') != 'N') as delivery_notes_count,
         po.total_amt as amount,
         DATE(po.delivery_date) as delivery_date,
         CASE 
           WHEN po.postatus = 'O' THEN 'Open'
           WHEN po.postatus = 'C' THEN 'Closed'
           ELSE 'Active'
-        END as status
+        END as status,
+        po.postatus,
+        po.status as record_status
       FROM st_purchaseorder po
       LEFT JOIN vendors v ON po.vendor_id = v.id
+      LEFT JOIN (
+        SELECT purchaseorder_id, MAX(is_revised) AS latest_revision
+        FROM st_purchaseorder
+        WHERE status IN ('Y', 'R')
+        GROUP BY purchaseorder_id
+      ) latest ON latest.purchaseorder_id = po.purchaseorder_id
       ${whereString}
-      ORDER BY po.id DESC
+      ORDER BY ${sort.column} ${sort.direction}${sort.column === 'po.id' ? '' : ', po.id DESC'}
       LIMIT :limit OFFSET :offset
     `;
 
-    queryParams.limit = Number(limit) || 10;
+    queryParams.limit = limit;
     queryParams.offset = Number(offset) || 0;
     
     const rows = await dbPool.query(query, { replacements: queryParams, type: QueryTypes.SELECT });
@@ -263,32 +276,9 @@ class PurchaseOrderRepository {
   }
 
   async countPurchaseOrders(dbPool, filters) {
-    let whereClauses = [];
-    let queryParams = {};
-
-    if (filters.po_number) {
-      whereClauses.push('po.purchaseorder_id LIKE :po_number');
-      queryParams.po_number = `%${filters.po_number}%`;
-    }
-    if (filters.vendor_name) {
-      whereClauses.push('v.name LIKE :vendor_name');
-      queryParams.vendor_name = `%${filters.vendor_name}%`;
-    }
-    if (filters.datefrom && filters.dateto) {
-      whereClauses.push('DATE(po.added_time) BETWEEN :datefrom AND :dateto');
-      queryParams.datefrom = filters.datefrom;
-      queryParams.dateto = filters.dateto;
-    }
-    if (filters.status) {
-      whereClauses.push('po.postatus = :status');
-      queryParams.status = filters.status;
-    }
-
-    const whereString = whereClauses.length ? 'WHERE ' + whereClauses.join(' AND ') : '';
-    const query = `SELECT COUNT(*) as total FROM st_purchaseorder po LEFT JOIN vendors v ON po.vendor_id = v.id ${whereString}`;
-    
-    const rows = await dbPool.query(query, { replacements: queryParams, type: QueryTypes.SELECT });
-    return rows[0].total;
+    const {whereString,queryParams}=this.buildListFilters(filters);
+    const rows=await dbPool.query(`SELECT COUNT(*) as total FROM st_purchaseorder po LEFT JOIN vendors v ON po.vendor_id=v.id ${whereString}`, {replacements:queryParams,type:QueryTypes.SELECT});
+    return Number(rows[0].total);
   }
 
   async updatePurchaseOrder(dbPool, id, poData, transaction) {

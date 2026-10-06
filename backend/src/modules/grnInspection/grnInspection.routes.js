@@ -11,6 +11,7 @@ router.use(tenantMiddleware);
 router.get('/', grnInspectionController.listInspections);
 router.post('/', grnInspectionController.createInspection);
 router.get('/next-id', grnInspectionController.getNextInspectionNumber);
+router.get('/export/excel', grnInspectionController.exportInspections);
 router.get('/po/:po_id', grnInspectionController.getPoDetails);
 router.get('/:id', grnInspectionController.getDetails);
 

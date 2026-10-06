@@ -1,4 +1,5 @@
 const purchaseOrderRepository = require('./purchaseOrder.repository');
+const {paginationInput,paginationResult} = require('../../utils/listPagination');
 
 class PurchaseOrderService {
   async getHoverDetails(dbPool, idOrNumber) {
@@ -21,17 +22,15 @@ class PurchaseOrderService {
     return purchaseOrderRepository.getItemHistory(dbPool, itemId);
   }
 
-  async listPurchaseOrders(dbPool, filters, page = 1, limit = 10) {
+  async listPurchaseOrders(dbPool, filters, page, limit) {
+    ({page,limit} = paginationInput({page,limit},'purchaseOrder'));
     const offset = (page - 1) * limit;
     const items = await purchaseOrderRepository.listPurchaseOrders(dbPool, filters, offset, limit);
     const total = await purchaseOrderRepository.countPurchaseOrders(dbPool, filters);
     
     return {
       items,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit)
+      ...paginationResult(total,page,limit,items.length)
     };
   }
 

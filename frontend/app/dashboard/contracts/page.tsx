@@ -1,8 +1,11 @@
 'use client';
 
+import { useListLocation } from '@/components/ui/useListLocation';
+import { ListPagination, LEGACY_LIST_LIMIT } from '@/components/ui/ListPagination';
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
+import apiClient from '@/services/apiClient';
 import contractService, { ContractFilters } from '../../../services/contract.service';
 import { ContractDetailsModal } from '../../../components/dashboard/ContractDetailsModal';
 import { usePermission } from '../../../contexts/PermissionContext';
@@ -42,15 +45,27 @@ export default function ContractsPage() {
   const [selectedContractId, setSelectedContractId] = useState<number | null>(null);
 
   const [page, setPage] = useState(1);
-  const limit = 20;
+  const limit = LEGACY_LIST_LIMIT;
 
   // Fetch contracts
+  const locationReady = useListLocation(activeFilters, page, ['contract_name', 'contract_id', 'vendor_name', 'vendor_id', 'cost', 'datefrom', 'dateto', 'sort', 'direction'], (next, nextPage) => { setActiveFilters(next); setFilters(next); setPage(nextPage); });
   const { data: paginatedData, isLoading, isError, refetch } = useQuery({
     queryKey: ['contracts', activeFilters, page],
+    enabled: locationReady,
     queryFn: () => contractService.getContracts({ ...activeFilters, page, limit }),
     staleTime: 5 * 60 * 1000
   });
 
+  const { data: contractSuggestions } = useQuery({
+    queryKey: ['contract-list-search', filters.contract_name],
+    queryFn: () => contractService.getContracts({ contract_name: filters.contract_name, limit: 20 }),
+    enabled: (filters.contract_name || '').length >= 2,
+  });
+  const { data: vendorSuggestions = [] } = useQuery({
+    queryKey: ['contract-vendor-search', filters.vendor_name],
+    queryFn: async () => (await apiClient.get('/vendors/search', { params: { q: filters.vendor_name } })).data.data as { id: number; name: string }[],
+    enabled: (filters.vendor_name || '').length >= 2,
+  });
   const contracts = paginatedData?.data || [];
   const total = paginatedData?.total || 0;
   const totalPages = Math.ceil(total / limit);
@@ -65,7 +80,9 @@ export default function ContractsPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setActiveFilters({ ...filters });
+    const contract = contractSuggestions?.data.find(c => c.title === filters.contract_name);
+    const vendor = vendorSuggestions.find(v => v.name === filters.vendor_name);
+    setActiveFilters({ ...filters, contract_id: contract?.id || filters.contract_id, vendor_id: vendor?.id || filters.vendor_id });
     setPage(1);
   };
 
@@ -113,11 +130,11 @@ export default function ContractsPage() {
               list="contract-names-list"
               placeholder="Enter Contract Name"
               value={filters.contract_name || ''}
-              onChange={(e) => setFilters({ ...filters, contract_name: e.target.value })}
+              onChange={(e) => setFilters({ ...filters, contract_name: e.target.value, contract_id: undefined })}
               className="w-full px-2 py-1.5 bg-white border border-[#ccc] rounded-[3px] text-xs text-[#333] placeholder-[#999] focus:outline-none focus:border-[#1683D8] h-8"
             />
             <datalist id="contract-names-list">
-              {contracts && contracts.map(c => (
+              {(contractSuggestions?.data || contracts).map(c => (
                 <option key={c.id} value={c.title} />
               ))}
             </datalist>
@@ -132,12 +149,12 @@ export default function ContractsPage() {
               list="supplier-names-list"
               placeholder="Enter Supplier Name"
               value={filters.vendor_name || ''}
-              onChange={(e) => setFilters({ ...filters, vendor_name: e.target.value })}
+              onChange={(e) => setFilters({ ...filters, vendor_name: e.target.value, vendor_id: undefined })}
               className="w-full px-2 py-1.5 bg-white border border-[#ccc] rounded-[3px] text-xs text-[#333] placeholder-[#999] focus:outline-none focus:border-[#1683D8] h-8"
             />
             <datalist id="supplier-names-list">
-              {contracts && Array.from(new Set(contracts.map(c => c.vendor_name))).filter(Boolean).map(vendor => (
-                <option key={vendor} value={vendor} />
+              {vendorSuggestions.map(vendor => (
+                <option key={vendor.id} value={vendor.name} />
               ))}
             </datalist>
           </div>
@@ -294,34 +311,11 @@ export default function ContractsPage() {
             </tbody>
           </table>
           
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-[#ccc] bg-[#f9f9f9]">
-              <span className="text-xs text-[#555]">
-                Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total} entries
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="px-3 py-1 bg-white border border-[#ccc] text-xs text-[#333] hover:bg-[#eee] disabled:opacity-50 disabled:cursor-not-allowed rounded-sm"
-                >
-                  Previous
-                </button>
-                <span className="px-3 py-1 text-xs text-[#333] font-semibold">
-                  Page {page} of {totalPages}
-                </span>
-                <button
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className="px-3 py-1 bg-white border border-[#ccc] text-xs text-[#333] hover:bg-[#eee] disabled:opacity-50 disabled:cursor-not-allowed rounded-sm"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
+
         </div>
       )}
+
+      {!isLoading && !isError && <ListPagination page={page} limit={limit} total={total} onPageChange={setPage} />}
 
       {/* Contract Details Dialog Modal Overlay */}
       {selectedContractId !== null && (

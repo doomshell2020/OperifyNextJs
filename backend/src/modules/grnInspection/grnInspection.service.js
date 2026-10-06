@@ -1,17 +1,14 @@
 const grnInspectionRepository = require('./grnInspection.repository');
+const {paginationInput,paginationResult} = require('../../utils/listPagination');
 
 class GrnInspectionService {
   async listInspections(dbPool, filters, page, limit) {
+    ({page,limit} = paginationInput({page,limit},'grnInspection'));
     const offset = (page - 1) * limit;
     const { data, total } = await grnInspectionRepository.list(dbPool, filters, limit, offset);
     return {
       data,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit)
-      }
+      pagination: paginationResult(total,page,limit,data.length)
     };
   }
 
