@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { centralSequelize } = require('../../config/sequelize');
 const bcrypt = require('bcryptjs');
+const { QueryTypes } = require('sequelize');
 
 class SettingsController {
   // ─── LOGO SETTINGS ─────────────────────────────────────────
@@ -42,11 +43,8 @@ class SettingsController {
   }
 
   async getProfile(req, res, next) {
-    let connection;
     try {
-      connection = await req.dbPool.getConnection();
-      
-      const [settings] = await connection.query(`
+      const settings = await req.dbPool.query(`
         SELECT 
           s.id,
           s.first_name,
@@ -71,7 +69,7 @@ class SettingsController {
         FROM sitesettings s
         LEFT JOIN sitesettings_details sd ON s.id = sd.sitesettings_id
         WHERE s.id = 1
-      `);
+      `, { type: QueryTypes.SELECT });
       
       if (!settings || settings.length === 0) {
         return res.json({ success: true, profile: null });
@@ -81,16 +79,11 @@ class SettingsController {
     } catch (error) {
       console.error('Error fetching profile:', error);
       next(error);
-    } finally {
-      if (connection) connection.release();
     }
   }
 
   async updateProfile(req, res, next) {
-    let connection;
     try {
-      connection = await req.dbPool.getConnection();
-      
       const {
         first_name, last_name, mobile, contact_email,
         address1, address2, phone, fax, website, status,
@@ -98,38 +91,39 @@ class SettingsController {
         company_number, alias
       } = req.body;
 
-      await connection.beginTransaction();
+      await req.dbPool.transaction(async transaction => {
+        await req.dbPool.query(`
+          UPDATE sitesettings
+          SET first_name = ?, last_name = ?, mobile = ?, contact_email = ?
+          WHERE id = 1
+        `, {
+          replacements: [first_name || '', last_name || '', mobile || '', contact_email || ''],
+          type: QueryTypes.UPDATE,
+          transaction
+        });
 
-      // Update sitesettings
-      await connection.query(`
-        UPDATE sitesettings 
-        SET first_name = ?, last_name = ?, mobile = ?, contact_email = ?
-        WHERE id = 1
-      `, [first_name || '', last_name || '', mobile || '', contact_email || '']);
-
-      // Update sitesettings_details
-      // Map company_number from frontend to affiliation_no in DB as per user requirement (no new columns)
-      await connection.query(`
-        UPDATE sitesettings_details 
-        SET address1 = ?, address2 = ?, phone = ?, fax = ?, website = ?, status = ?,
-            company_name = ?, pan_number = ?, gst_no = ?, tin_date = ?, account_number = ?, 
-            ifsc = ?, address = ?, alias = ?, affiliation_no = ?
-        WHERE sitesettings_id = 1
-      `, [
-        address1 || '', address2 || '', phone || '', fax || '', website || '', status || 'Y',
-        company_name || '', pan_number || '', gst_no || '', tin_date || null, account_number || '', 
-        ifsc || '', address || '', alias || '', company_number || ''
-      ]);
-
-      await connection.commit();
+        // The Company Number field is stored in the existing affiliation_no column.
+        await req.dbPool.query(`
+          UPDATE sitesettings_details
+          SET address1 = ?, address2 = ?, phone = ?, fax = ?, website = ?, status = ?,
+              company_name = ?, pan_number = ?, gst_no = ?, tin_date = ?, account_number = ?,
+              ifsc = ?, address = ?, alias = ?, affiliation_no = ?
+          WHERE sitesettings_id = 1
+        `, {
+          replacements: [
+            address1 || '', address2 || '', phone || '', fax || '', website || '', status || 'Y',
+            company_name || '', pan_number || '', gst_no || '', tin_date || null, account_number || '',
+            ifsc || '', address || '', alias || '', company_number || ''
+          ],
+          type: QueryTypes.UPDATE,
+          transaction
+        });
+      });
       
       return res.json({ success: true, message: 'Profile updated successfully' });
     } catch (error) {
-      if (connection) await connection.rollback();
       console.error('Error updating profile:', error);
       next(error);
-    } finally {
-      if (connection) connection.release();
     }
   }
 
