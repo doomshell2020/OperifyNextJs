@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { usePermission } from '../../contexts/PermissionContext';
 import { useJcAccess } from '../jobChallan/useJcAccess';
 import { DEFAULT_LOGO_URL, resolveApiAssetUrl } from '../../services/apiConfig';
+import apiClient from '../../services/apiClient';
 import {
   FolderClosed, CreditCard, FileText, Layers, FileSpreadsheet,
   ShoppingBag, ClipboardCheck, Truck, RefreshCw, Factory,
@@ -26,16 +27,25 @@ export const DashboardTopbar: React.FC = () => {
   const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
 
   useEffect(() => {
-    import('../../services/apiClient').then(({ default: apiClient }) => {
+    if (!user?.id) return;
+    let active = true;
+    setLogoUrl(DEFAULT_LOGO_URL);
+    const refreshLogo = () => {
       apiClient.get('/settings/logo')
         .then(res => {
-          if (res.data.success && res.data.logoUrl) {
+          if (active && res.data.success && res.data.logoUrl) {
             setLogoUrl(resolveApiAssetUrl(res.data.logoUrl));
           }
         })
         .catch(() => {});
-    });
-  }, []);
+    };
+    refreshLogo();
+    window.addEventListener('operify:logo-updated', refreshLogo);
+    return () => {
+      active = false;
+      window.removeEventListener('operify:logo-updated', refreshLogo);
+    };
+  }, [user?.id, user?.db]);
 
   const navItems = [
     { title: 'EMD', icon: <FolderClosed className="w-[18px] h-[18px]" />, path: '/dashboard/emd' },

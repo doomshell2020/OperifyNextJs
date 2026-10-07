@@ -105,17 +105,20 @@ export default function AdminProfilePage() {
       if (file) {
         const formData = new FormData();
         formData.append('logo', file);
-        await apiClient.post('/settings/upload-logo', formData, {
+        const response = await apiClient.post('/settings/upload-logo', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
+        if (response.data.logoUrl) {
+          const logoUrl = new URL(resolveApiAssetUrl(response.data.logoUrl));
+          logoUrl.searchParams.set('t', String(Date.now()));
+          setPreview(logoUrl.href);
+        }
+        setFile(null);
+        window.dispatchEvent(new Event('operify:logo-updated'));
       }
 
       setSuccess('Profile updated successfully!');
       
-      // Reload page only if logo changed to update sidebar/cache
-      if (file) {
-        setTimeout(() => window.location.reload(), 1000);
-      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'An error occurred during update.');
     } finally {
