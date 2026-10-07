@@ -1,0 +1,88 @@
+name: Validate Operify
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL || 'http://localhost:8080' }}
+      NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            backend/package-lock.json
+      - name: Install backend dependencies
+        run: npm ci --prefix backend
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+      - name: Check backend and build frontend
+        run: npm run check
+
+  deploy:
+    name: Deploy Ubuntu PM2 server
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && vars.AWS_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    concurrency:
+      group: operify-production
+      cancel-in-progress: false
+    env:
+      SSH_HOST: ${{ vars.AWS_SSH_HOST }}
+      SSH_USER: ${{ vars.AWS_SSH_USER }}
+      APP_ROOT: ${{ vars.AWS_APP_ROOT }}
+      PM2_FRONTEND_NAME: ${{ vars.PM2_FRONTEND_NAME || 'operify-frontend' }}
+      PM2_BACKEND_NAME: ${{ vars.PM2_BACKEND_NAME || 'operify-backend' }}
+      FRONTEND_PORT: ${{ vars.FRONTEND_PORT || '3000' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure SSH and validate settings
+        env:
+          SSH_KEY: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.AWS_SSH_KNOWN_HOSTS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SSH_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]]
+          [[ "$SSH_USER" =~ ^[a-zA-Z_][a-zA-Z0-9_-]*$ ]]
+          [[ "$APP_ROOT" =~ ^/[a-zA-Z0-9_./-]+$ && "$APP_ROOT" != / && "$APP_ROOT" != *..* ]]
+          [[ "$PM2_FRONTEND_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]
+          [[ "$PM2_BACKEND_NAME" =~ ^[a-zA-Z0-9_-]+$ ]]
+          [[ "$FRONTEND_PORT" =~ ^[0-9]+$ ]] && (( FRONTEND_PORT > 0 && FRONTEND_PORT < 65536 ))
+          [[ -n "$SSH_KEY" && -n "$KNOWN_HOSTS" ]]
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Transfer exact commit and deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_id="$GITHUB_SHA-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          git archive --format=tar.gz --output=release.tar.gz "$GITHUB_SHA"
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" "mkdir -p '$APP_ROOT/incoming'"
+          scp -o BatchMode=yes -o StrictHostKeyChecking=yes release.tar.gz "$SSH_USER@$SSH_HOST:$APP_ROOT/incoming/$release_id.tar.gz"
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" "bash -s -- '$APP_ROOT' '$release_id' '$PM2_FRONTEND_NAME' '$PM2_BACKEND_NAME' '$FRONTEND_PORT'" < deploy/ubuntu-pm2.sh
+      - name: Remove runner SSH key
+        if: always()
+        run: rm -f ~/.ssh/id_ed25519

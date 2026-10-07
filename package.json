@@ -1,0 +1,10 @@
+{
+  "name": "operify-workflow",
+  "private": true,
+  "engines": { "node": ">=22.12.0" },
+  "scripts": {
+    "check:backend": "node scripts/check-backend.cjs",
+    "check": "npm run check:backend && npm --prefix frontend run build",
+    "ship": "node scripts/ship.cjs"
+  }
+}

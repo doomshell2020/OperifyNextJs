@@ -1,0 +1,101 @@
+AWS Ubuntu server + PM2 automatic deployment
+============================================
+
+This targets a Linux server running PM2 directly, normally AWS EC2.
+If you actually use an ECS service, do not enable this workflow: ECS needs
+container images and an ECS service deployment rather than SSH/PM2 deployment.
+
+Daily use from your Windows project directory:
+  npm run ship -- "Describe your changes"
+
+On main: local checks -> commit/push -> GitHub checks -> Ubuntu release build
+-> PDF check -> PM2 activation -> HTTP checks -> save process list.
+Deployment is disabled until AWS_DEPLOY_ENABLED is set to true.
+
+ONE-TIME SERVER SETUP
+
+Use the same Linux user for SSH, npm, Puppeteer and PM2. Install Node 22.12+
+and PM2, plus curl, tar and flock. Node/npm/PM2 must be on PATH in noninteractive
+SSH sessions (an interactive-only nvm setup is insufficient).
+The GitHub runner needs SSH network access to this server on port 22. If the
+server is private, use a runner with network access and adapt runs-on accordingly.
+
+Choose a NEW deployment root, for example /home/ubuntu/operify-deploy.
+Do not point AWS_APP_ROOT at your existing live checkout.
+As your deployment user:
+  mkdir -p /home/ubuntu/operify-deploy/shared/public
+
+Create these private files outside Git using the examples in this repository:
+  /home/ubuntu/operify-deploy/shared/backend.env
+  /home/ubuntu/operify-deploy/shared/frontend.env
+  chmod 600 /home/ubuntu/operify-deploy/shared/*.env
+
+backend.env: NODE_ENV=production, PORT, FRONTEND_URL, BACKEND_URL, DB_HOST,
+DB_USER, DB_PASSWORD, DB_NAME, JWT_SECRET, JWT_REFRESH_SECRET, optional CORS_ORIGINS.
+frontend.env: NEXT_PUBLIC_API_URL and NEXT_PUBLIC_APP_URL with production origins.
+Frontend variables are used while building every release on the server.
+Keep production MySQL databases configured separately. No schema changes or
+database import scripts are run by this deployment.
+
+Copy ALL existing backend/public contents (including uploaded logos) into
+shared/public before switching to this setup. This directory persists across
+releases. Repository logos are seeded only when no shared file exists.
+
+Install Chrome's Ubuntu system libraries following backend/PDF_DEPLOYMENT.txt:
+  https://pptr.dev/troubleshooting
+The deployment installs npm dependencies (including Puppeteer's Chrome) and
+runs pdf:check before activating. No automatic privileged OS changes are made.
+
+Keep your Nginx/reverse proxy routing frontend to 127.0.0.1:3000 and backend to
+its configured PORT. Use FRONTEND_PORT if your frontend already uses another
+port. Configure HTTPS and MySQL access before enabling deployments.
+Use your current PM2 application names below to replace those processes.
+Ensure no unmanaged process is using the same ports during first activation.
+Run pm2 startup once and follow the command it prints to enable boot recovery.
+
+ONE-TIME GITHUB SETUP
+
+Repository: https://github.com/doomshell2020/OperifyNextJs/settings
+Create an environment named production in Settings > Environments.
+If fully automatic deployment is intended, do not add required reviewers.
+
+Settings > Secrets and variables > Actions > Variables (repository variables):
+  AWS_SSH_HOST          public server DNS name or IPv4 address
+  AWS_SSH_USER          deployment user, usually ubuntu
+  AWS_APP_ROOT          /home/ubuntu/operify-deploy (or your new chosen root)
+  PM2_FRONTEND_NAME     existing PM2 frontend name; default operify-frontend
+  PM2_BACKEND_NAME      existing PM2 backend name; default operify-backend
+  FRONTEND_PORT        optional; default 3000
+  NEXT_PUBLIC_API_URL  optional production API origin for CI validation
+  NEXT_PUBLIC_APP_URL  optional production website origin for CI validation
+  AWS_DEPLOY_ENABLED   true AFTER completing server and secret setup
+
+Secrets (repository secrets, or secrets on the production environment):
+  AWS_SSH_PRIVATE_KEY  dedicated SSH private key authorized for deployment user
+  AWS_SSH_KNOWN_HOSTS  verified server host key line(s) in known_hosts format
+Keep private keys out of Git and chat. Verify the host key through a trusted
+connection/server console before adding it; host-key checking is required.
+This workflow uses SSH and does not require AWS access keys.
+
+FIRST DEPLOYMENT
+
+Commit and push the new workflow using npm run ship, then watch:
+  https://github.com/doomshell2020/OperifyNextJs/actions
+You can also rerun it on main using Actions > Validate Operify > Run workflow.
+After success, check your public website, login, database features and PDFs.
+HTTP health checks validate responses, not database correctness.
+
+RECOVERY AND LIMITATIONS
+
+Releases are built separately under AWS_APP_ROOT/releases; current links to the
+active release. Environment files and uploads stay in shared outside releases.
+If activation or HTTP checks fail, the script attempts to restore the previous
+managed release and restart PM2. The first deployment has no previous managed
+release to restore; inspect pm2 logs and restore your previous processes manually.
+PM2 restarts can briefly interrupt requests; this is not a zero-downtime setup.
+Old releases and incoming archives are kept for recovery; remove old ones
+periodically, preserving current and at least the previous working release.
+Rollback only covers app files/processes, not database or shared upload changes.
+Disable future automatic deployments by setting AWS_DEPLOY_ENABLED to false.
+The workflow has been prepared locally; server deployment must be verified after
+your GitHub variables/secrets and actual server are connected.

@@ -1,0 +1,35 @@
+Operify local-to-GitHub workflow
+===============================
+
+First-time setup:
+  Install Node.js 22.12 or later and Git, and sign in to GitHub through Git.
+  npm ci --prefix frontend
+  npm ci --prefix backend
+  Configure local environment files using ENVIRONMENT_SETUP.txt.
+
+After making local changes, run from the project directory:
+  npm run ship -- "Describe your changes"
+
+This checks backend JavaScript syntax, builds the frontend, stages ALL changes
+allowed by .gitignore, commits them, and pushes the current branch to origin.
+Review git status first. If you need to commit selected files, use Git manually.
+If remote changes exist, pull and resolve them before running ship again.
+No force push or automatic merge is performed.
+If push fails after committing, fix the sign-in/network issue and rerun ship.
+
+GitHub Actions automatically repeats the checks on every push and pull request
+to main. Results: https://github.com/doomshell2020/OperifyNextJs/actions
+The backend check covers syntax only, not live database or API behavior.
+
+Optional repository Actions variables:
+  NEXT_PUBLIC_API_URL = production API origin
+  NEXT_PUBLIC_APP_URL = production frontend origin
+CI uses local origins if these are absent; its build is a validation build.
+The production host must build with its actual production origins.
+
+Ubuntu + PM2 deployment is included in .github/workflows/ci.yml.
+Complete the one-time setup in AWS_DEPLOYMENT.txt, then enable it.
+Successful checks on main trigger deployment; other branches only run checks.
+Do not add database passwords, JWT secrets, private keys, or .env files to Git.
+Production backend configuration and Chrome/PDF setup are described in
+ENVIRONMENT_SETUP.txt and backend/PDF_DEPLOYMENT.txt.
