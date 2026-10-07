@@ -1,7 +1,8 @@
+require('./config/environment');
 const mysql = require('mysql2/promise');
 
 async function main() {
-  const conn = await mysql.createConnection({ host: 'localhost', user: 'root', password: '', database: 'tirupati_tppl' });
+  const conn = await mysql.createConnection({ host: process.env.DB_HOST, user: 'root', password: '', database: 'tirupati_tppl' });
 
   try {
     const tables = ['emd_guarantees', 'emd_amount', 'emd_remarks'];

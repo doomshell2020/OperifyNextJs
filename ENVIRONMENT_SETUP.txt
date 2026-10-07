@@ -1,0 +1,31 @@
+Environment setup
+
+Frontend: copy frontend/.env.example to frontend/.env.local.
+Backend: copy backend/.env.example to backend/.env and supply private secrets.
+
+Local:
+  frontend NEXT_PUBLIC_API_URL=http://localhost:8080
+  frontend NEXT_PUBLIC_APP_URL=http://localhost:3000
+  backend PORT=8080
+  backend FRONTEND_URL=http://localhost:3000
+  backend BACKEND_URL=http://localhost:8080
+
+For staging/production, set the frontend and backend origins to that environment's
+HTTPS origins. PORT is the internal backend listening port, even behind a proxy.
+DB_HOST and database credentials belong only in backend/.env.
+Existing NEXT_PUBLIC_API_URL values ending in /api remain compatible; /api is
+appended exactly once. Backend endpoints and same-site frontend links are unchanged.
+
+CORS allows FRONTEND_URL. Add any additional frontend origins to backend
+CORS_ORIGINS as a comma-separated list. Extra Next.js development hostnames can
+be supplied in frontend ALLOWED_DEV_ORIGINS. No database secrets use NEXT_PUBLIC_.
+
+Run npm run build in frontend after changing NEXT_PUBLIC_* variables, then
+restart frontend and backend processes. Public variables are embedded at build
+time. Set environment-specific values before building; do not reuse a frontend
+build made for another environment.
+
+Environment files, installed dependencies, generated bundles, and isolated test
+fixtures may contain loopback addresses. Application source uses environment
+variables. Audit scripts that start their own temporary server intentionally use
+loopback with that server's assigned port.

@@ -1,3 +1,4 @@
+require('./config/environment');
 const mysql = require('mysql2/promise');
 const fs = require('fs');
 const path = require('path');
@@ -47,7 +48,7 @@ async function importSQL(connection, filePath) {
 
 async function main() {
   const connectionConfig = {
-    host: process.env.DB_HOST || 'localhost',
+    host: process.env.DB_HOST,
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     multipleStatements: true

@@ -1,5 +1,6 @@
 const purchaseOrderService = require('./purchaseOrder.service');
 const { launchPdfBrowser } = require('../../utils/pdfBrowser');
+const { FRONTEND_URL } = require('../../config/environment');
 
 class PurchaseOrderController {
   async getHoverDetails(req, res, next) {
@@ -102,7 +103,7 @@ class PurchaseOrderController {
     try {
       const { id } = req.params;
       const token = req.query.token || (req.headers.authorization ? req.headers.authorization.split(' ')[1] : '');
-      const frontendUrl = process.env.FRONTEND_URL?.trim();
+      const frontendUrl = FRONTEND_URL;
       if (!frontendUrl) {
         const error = new Error('Set FRONTEND_URL in the backend environment to the deployed frontend address, then restart the backend.');
         error.code = 'PDF_FRONTEND_NOT_CONFIGURED';

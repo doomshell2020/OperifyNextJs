@@ -4,7 +4,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const cookieParser = require('cookie-parser');
-require('dotenv').config();
+const { CORS_ORIGINS } = require('./config/environment');
 
 const authRoutes = require('./modules/auth/auth.routes');
 const dashboardRoutes = require('./modules/dashboard/dashboard.routes');
@@ -32,7 +32,7 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 app.use(cors({
-  origin: true, // Dynamically mirror origin
+  origin: CORS_ORIGINS,
   credentials: true
 }));
 app.use(morgan('dev'));

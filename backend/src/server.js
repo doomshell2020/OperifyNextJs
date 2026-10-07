@@ -1,12 +1,11 @@
 const app = require('./app');
-require('dotenv').config();
-
-const PORT = process.env.PORT || 5000;
+const { PORT, BACKEND_URL } = require('./config/environment');
 
 const server = app.listen(PORT, () => {
   console.log(`=========================================`);
   console.log(`  Operify ERP Backend Server Running     `);
   console.log(`  Port: ${PORT}                          `);
+  console.log(`  Backend URL: ${BACKEND_URL}`);
   console.log(`  Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`=========================================`);
 });

@@ -1,9 +1,9 @@
 const { Sequelize } = require('sequelize');
-require('dotenv').config();
+const { DB_HOST } = require('./environment');
 
 // Default central database connection configuration
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
+  host: DB_HOST,
   username: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   dialect: 'mysql',
