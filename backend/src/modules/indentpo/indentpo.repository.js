@@ -342,6 +342,14 @@ class IndentpoRepository {
       sitesetting: siteSetting
     };
   }
+
+  async getIndentpoPdfDetailById(dbPool, id) {
+    const rows = await dbPool.query('SELECT indent_id FROM indentpo WHERE id = :id', {
+      replacements: { id }, type: QueryTypes.SELECT
+    });
+    if (!rows.length) return null;
+    return this.getIndentpoPdfDetail(dbPool, rows[0].indent_id);
+  }
 }
 
 module.exports = new IndentpoRepository();

@@ -146,6 +146,19 @@ class IndentpoController {
       next(err);
     }
   }
+
+  async downloadPdfById(req, res, next) {
+    try {
+      const detail = await require('./indentpo.repository').getIndentpoPdfDetailById(req.dbPool, req.params.id);
+      if (!detail) return res.status(404).json({ message: 'Indent PO not found' });
+      const pdfBuffer = await generateIndentpoPDF(detail);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="Indent_Details_${detail.indent_id}.pdf"`);
+      res.end(pdfBuffer, 'binary');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new IndentpoController();
