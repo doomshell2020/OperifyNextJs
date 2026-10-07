@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { API_URL } from '@/services/apiConfig';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,8 +8,7 @@ export async function GET(request: NextRequest, {params}: {params:Promise<{id:st
   const {id} = await params;
   if (!/^\d+$/.test(id)) return NextResponse.json({error:'Invalid GRN ID'}, {status:400});
   try {
-    const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-    const response = await fetch(`${apiUrl.replace(/\/$/,'')}/grn/${id}/pdf`, {
+    const response = await fetch(`${API_URL}/grn/${id}/pdf`, {
       headers: {Authorization:request.headers.get('authorization') || ''}, cache:'no-store',
     });
     if (!response.ok) {

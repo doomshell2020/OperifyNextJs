@@ -1,4 +1,4 @@
-import apiClient from './apiClient';
+import apiClient, { API_URL } from './apiClient';
 
 export interface ContractListItem {
   supplier_id: number;
@@ -142,7 +142,6 @@ class ContractService {
 
   async downloadPDF(id: number | string): Promise<void> {
     const token = localStorage.getItem('accessToken');
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
     const response = await fetch(`${API_URL}/contracts/${id}/pdf`, {
       method: 'GET',
       headers: {

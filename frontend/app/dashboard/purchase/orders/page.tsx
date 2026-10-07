@@ -7,7 +7,8 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import indentService from '@/services/indent.service';
 import purchaseOrderService from '../../../../services/purchaseOrder.service';
-import apiClient, { API_URL } from '../../../../services/apiClient';
+import apiClient from '../../../../services/apiClient';
+import { openPurchaseOrderPdf } from '../../../../services/purchaseOrderPdf.service';
 import { PurchaseOrderDetailsModal } from '../../../../components/dashboard/PurchaseOrderDetailsModal';
 import { PurchaseOrderFormModal } from '../../../../components/dashboard/PurchaseOrderFormModal';
 import { DeliveryNoteModal } from '../../../../components/dashboard/DeliveryNoteModal';
@@ -247,11 +248,11 @@ export default function PurchaseOrdersPage() {
                           )}
                           {canPrint && (
                             <>
-                              <button onClick={() => { window.open(`${API_URL}/purchase-orders/${po.id}/pdf?token=${localStorage.getItem('accessToken')}`, '_blank'); setOpenDropdownId(null); }} className="w-full text-left px-4 py-1.5 text-sm font-bold text-blue-700 hover:bg-blue-50">
+                              <button onClick={() => { void openPurchaseOrderPdf(po.id).catch(() => toast.error('Unable to open purchase order PDF. Please retry and allow popups.')); setOpenDropdownId(null); }} className="w-full text-left px-4 py-1.5 text-sm font-bold text-blue-700 hover:bg-blue-50">
                                 Print PO {po.display_po_number || po.po_number}
                               </button>
                               {po.amendment_no > 0 && (
-                                <button onClick={() => { window.open(`${API_URL}/purchase-orders/${po.id}/pdf?token=${localStorage.getItem('accessToken')}`, '_blank'); setOpenDropdownId(null); }} className="w-full text-left px-4 py-1.5 text-sm font-bold text-blue-700 hover:bg-blue-50">
+                                <button onClick={() => { void openPurchaseOrderPdf(po.id).catch(() => toast.error('Unable to open purchase order PDF. Please retry and allow popups.')); setOpenDropdownId(null); }} className="w-full text-left px-4 py-1.5 text-sm font-bold text-blue-700 hover:bg-blue-50">
                                   Print Revised PO
                                 </button>
                               )}

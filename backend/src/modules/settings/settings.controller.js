@@ -36,7 +36,7 @@ class SettingsController {
       }
       
       // Fallback to default
-      res.json({ success: true, logoUrl: 'https://staging.operify.in/image/logo.png' });
+      res.json({ success: true, logoUrl: '/public/uploads/logos/d80960ce77aede66a5c3c8eef8dfafda.png' });
     } catch (e) {
       next(e);
     }

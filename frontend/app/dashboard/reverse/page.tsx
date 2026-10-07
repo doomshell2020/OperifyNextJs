@@ -10,6 +10,7 @@ import Link from "next/link";
 import { ContractDetailsModal } from "../../../components/dashboard/ContractDetailsModal";
 import { formatDate, formatContractDate } from '../../../utils/dateFormatter';
 import { DatePicker } from "../../../components/ui/DatePicker";
+import { API_URL } from '../../../services/apiConfig';
 
 export default function ReverseIndentListPage() {
   const [indents, setIndents] = useState<ReverseIndent[]>([]);
@@ -327,7 +328,6 @@ function ReverseDetailsModal({ id, onClose }: { id: string, onClose: () => void 
           <div className="flex items-center gap-4">
             <button
               onClick={() => {
-                const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
                 window.open(`${API_URL}/reverse-indent/${id}/pdf?token=${localStorage.getItem('accessToken')}`, '_blank');
               }}
               className="flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded font-bold shadow-sm transition cursor-pointer text-sm"

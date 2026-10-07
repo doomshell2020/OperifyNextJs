@@ -14,6 +14,8 @@ Keep PUPPETEER_CACHE_DIR consistent if your host sets it.
 For purchase order PDFs, set this backend environment variable:
   FRONTEND_URL=https://new.operify.in
 The backend must be able to reach that frontend URL.
+This is the frontend website address, not NEXT_PUBLIC_API_URL or the API domain.
+There is no localhost fallback: FRONTEND_URL is required for purchase order PDFs.
 
 If the host already provides compatible Chrome, set PUPPETEER_EXECUTABLE_PATH
 to its absolute executable path instead of downloading Chrome.

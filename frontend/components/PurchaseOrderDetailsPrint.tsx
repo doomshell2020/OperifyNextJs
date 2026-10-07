@@ -1,5 +1,5 @@
 import React from 'react';
-import { API_URL } from '../services/apiClient';
+import { API_ASSET_URL } from '../services/apiConfig';
 import { formatDate, formatContractDate } from '../utils/dateFormatter';
 
 interface PurchaseOrderDetailsPrintProps {
@@ -11,7 +11,7 @@ interface PurchaseOrderDetailsPrintProps {
 export const PurchaseOrderDetailsPrint: React.FC<PurchaseOrderDetailsPrintProps> = ({ data, standalone }) => {
   if (!data) return null;
 
-  const baseUrl = API_URL.replace('/api', '');
+  const baseUrl = API_ASSET_URL;
 
   return (
     <div className={`${standalone ? 'block' : 'hidden print:block'} w-full text-black bg-white text-xs`} style={{ fontFamily: 'Arial, sans-serif' }}>
@@ -26,7 +26,7 @@ export const PurchaseOrderDetailsPrint: React.FC<PurchaseOrderDetailsPrintProps>
                   src={`${baseUrl}/public/uploads/logos/${data.site_details?.small_logo || data.site_details?.logo || 'd80960ce77aede66a5c3c8eef8dfafda.png'}`} 
                   alt="Logo" 
                   className="absolute top-[25px] left-4 h-[42px] max-w-[110px] object-contain"
-                  onError={(e) => { (e.target as HTMLImageElement).src = `${baseUrl}/public/uploads/logos/d80960ce77aede66a5c3c8eef8dfafda.png`; }}
+                  onError={(e) => { const img = e.target as HTMLImageElement; img.onerror = null; const fallback = `${baseUrl}/public/uploads/logos/d80960ce77aede66a5c3c8eef8dfafda.png`; if (img.src !== fallback) img.src = fallback; }}
                 />
               <div className="absolute left-4 bottom-[9px] font-bold text-[10px] leading-3 uppercase">
                 {data.site_details?.company_name || 'TIRUPATI PLASTOMATICS PVT. LTD.'}

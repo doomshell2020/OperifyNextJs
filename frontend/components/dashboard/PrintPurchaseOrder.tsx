@@ -4,7 +4,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import purchaseOrderService from '../../services/purchaseOrder.service';
 import { Loader } from 'lucide-react';
-import { API_URL } from '../../services/apiClient';
+import { API_ASSET_URL } from '../../services/apiConfig';
 
 interface PrintPurchaseOrderProps {
   poId: number;
@@ -38,7 +38,7 @@ function formatCurrency(amount: number | string | null | undefined) {
 }
 
 export function PrintPurchaseOrder({ poId }: PrintPurchaseOrderProps) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['purchase-order-details', poId],
     queryFn: () => purchaseOrderService.getDetails(poId),
     enabled: !!poId,
@@ -46,14 +46,14 @@ export function PrintPurchaseOrder({ poId }: PrintPurchaseOrderProps) {
 
   if (!poId) return null;
 
-  const baseUrl = API_URL.replace('/api', '');
+  const baseUrl = API_ASSET_URL;
   const legacyLogo = data?.site_details?.small_logo || data?.site_details?.logo || 'd80960ce77aede66a5c3c8eef8dfafda.png';
   const officer = data?.officer || {};
   const paymentTerms = data?.payment_terms || [];
   const schedules = data?.schedules || [];
 
   return (
-    <div className="bg-white w-full print:w-full print:max-w-none custom-scrollbar mx-auto">
+    <div data-pdf-ready={!!data && !isLoading && !isError} data-pdf-error={isError} className="bg-white w-full print:w-full print:max-w-none custom-scrollbar mx-auto">
         <style jsx global>{`
           @page {
             size: A4 portrait;
@@ -174,7 +174,7 @@ export function PrintPurchaseOrder({ poId }: PrintPurchaseOrderProps) {
                           <tr>
                             <td style={{ textAlign: 'left', verticalAlign: 'top', paddingTop: '18px' }} width="50%">
                               &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                              <img src={`${baseUrl}/public/uploads/logos/${legacyLogo}`} alt="LOGO" style={{ display: 'block', height: '62px', maxWidth: '150px', objectFit: 'contain', marginLeft: '20px' }} onError={(e) => { (e.target as HTMLImageElement).src = `${baseUrl}/public/uploads/logos/d80960ce77aede66a5c3c8eef8dfafda.png`; }} /><br />
+                              <img src={`${baseUrl}/public/uploads/logos/${legacyLogo}`} alt="LOGO" style={{ display: 'block', height: '62px', maxWidth: '150px', objectFit: 'contain', marginLeft: '20px' }} onError={(e) => { const img = e.target as HTMLImageElement; img.onerror = null; const fallback = `${baseUrl}/public/uploads/logos/d80960ce77aede66a5c3c8eef8dfafda.png`; if (img.src !== fallback) img.src = fallback; }} /><br />
                               <span style={{ display: 'block', color: '#000', fontSize: '10px', paddingLeft: '20px' }}><b>{data.site_details?.company_name || 'TIRUPATI PLASTOMATICS PVT. LTD.'}</b></span>
                             </td>
                             <td style={{ textAlign: 'right', fontSize: '10px', verticalAlign: 'top', paddingTop: '4px', paddingRight: '2px', lineHeight: '14px' }} width="50%" align="right">
@@ -569,7 +569,7 @@ export function PrintPurchaseOrder({ poId }: PrintPurchaseOrderProps) {
                           <tr>
                             <td style={{ textAlign: 'left', verticalAlign: 'top', paddingTop: '18px' }} width="50%">
                               &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                              <img src={`${baseUrl}/public/uploads/logos/${legacyLogo}`} alt="LOGO" style={{ display: 'block', height: '62px', maxWidth: '150px', objectFit: 'contain', marginLeft: '20px' }} onError={(e) => { (e.target as HTMLImageElement).src = `${baseUrl}/public/uploads/logos/d80960ce77aede66a5c3c8eef8dfafda.png`; }} /><br />
+                              <img src={`${baseUrl}/public/uploads/logos/${legacyLogo}`} alt="LOGO" style={{ display: 'block', height: '62px', maxWidth: '150px', objectFit: 'contain', marginLeft: '20px' }} onError={(e) => { const img = e.target as HTMLImageElement; img.onerror = null; const fallback = `${baseUrl}/public/uploads/logos/d80960ce77aede66a5c3c8eef8dfafda.png`; if (img.src !== fallback) img.src = fallback; }} /><br />
                               <span style={{ display: 'block', color: '#000', fontSize: '10px', paddingLeft: '20px' }}><b>{data.site_details?.company_name || 'TIRUPATI PLASTOMATICS PVT. LTD.'}</b></span>
                             </td>
                             <td style={{ textAlign: 'right', fontSize: '10px', verticalAlign: 'top', paddingTop: '4px', paddingRight: '2px', lineHeight: '14px' }} width="50%" align="right">

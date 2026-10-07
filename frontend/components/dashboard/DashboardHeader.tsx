@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermission } from '../../contexts/PermissionContext';
 import { useJcAccess } from '../jobChallan/useJcAccess';
+import { DEFAULT_LOGO_URL, resolveApiAssetUrl } from '../../services/apiConfig';
 import {
   FolderClosed, CreditCard, FileText, Layers, FileSpreadsheet,
   ShoppingBag, ClipboardCheck, Truck, RefreshCw, Factory,
@@ -22,18 +23,14 @@ export const DashboardTopbar: React.FC = () => {
   const { can: canJc } = useJcAccess();
   const [profileOpen, setProfileOpen] = useState(false);
   const [jobWorkOpen, setJobWorkOpen] = useState(false);
-  const [logoUrl, setLogoUrl] = useState<string>('https://staging.operify.in/image/logo.png');
+  const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
 
   useEffect(() => {
     import('../../services/apiClient').then(({ default: apiClient }) => {
       apiClient.get('/settings/logo')
         .then(res => {
           if (res.data.success && res.data.logoUrl) {
-            if (res.data.logoUrl.startsWith('http')) {
-              setLogoUrl(res.data.logoUrl);
-            } else {
-              setLogoUrl(`http://localhost:5000${res.data.logoUrl}`);
-            }
+            setLogoUrl(resolveApiAssetUrl(res.data.logoUrl));
           }
         })
         .catch(() => {});

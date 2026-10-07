@@ -4,7 +4,8 @@ import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import purchaseOrderService from '../../services/purchaseOrder.service';
 import { Loader, X } from 'lucide-react';
-import { API_URL } from '../../services/apiClient';
+import { openPurchaseOrderPdf } from '../../services/purchaseOrderPdf.service';
+import toast from 'react-hot-toast';
 
 interface PurchaseOrderDetailsModalProps {
   poId: number;
@@ -58,12 +59,12 @@ export function PurchaseOrderDetailsModal({ poId, onClose }: PurchaseOrderDetail
 
         <div className="tableContainer" style={{ border: '1px solid #ccc', padding: '15px' }}>
           
-          <a target="_blank"
-             href={`${API_URL}/purchase-orders/${po.id}/pdf?token=${localStorage.getItem('accessToken')}`}
+          <button type="button"
+             onClick={() => { void openPurchaseOrderPdf(po.id).catch(() => toast.error('Unable to open purchase order PDF. Please retry and allow popups.')); }}
              className="float-right bg-[#00a65a] hover:bg-[#008d4c] text-white px-[20px] py-[6px] rounded text-[14px] flex items-center gap-1 mt-2"
              style={{ textDecoration: 'none' }}>
             <i className="fa fa-file-pdf-o"></i> Print
-          </a>
+          </button>
 
           <div className="tableHeader">
             <p style={{ textAlign: 'center', fontSize: '15px', marginBottom: '5px' }}><b>Purchase Order Details</b></p>

@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_URL } from './apiConfig';
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+export { API_URL } from './apiConfig';
 
 const apiClient = axios.create({
   baseURL: API_URL,

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { UploadCloud, CheckCircle2, AlertCircle, Save } from 'lucide-react';
 import apiClient from '../../../../services/apiClient';
+import { resolveApiAssetUrl } from '../../../../services/apiConfig';
 import { DatePicker } from '../../../../components/ui/DatePicker';
 
 export default function AdminProfilePage() {
@@ -38,11 +39,7 @@ export default function AdminProfilePage() {
     apiClient.get('/settings/logo')
       .then(res => {
         if (res.data.success && res.data.logoUrl) {
-          if (res.data.logoUrl.startsWith('http')) {
-            setPreview(res.data.logoUrl);
-          } else {
-            setPreview(`http://localhost:5000${res.data.logoUrl}`);
-          }
+          setPreview(resolveApiAssetUrl(res.data.logoUrl));
         }
       })
       .catch(err => console.error('Failed to load logo:', err));

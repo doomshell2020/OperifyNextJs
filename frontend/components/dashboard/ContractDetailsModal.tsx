@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {ContractReverseCost} from './ContractReverseCost';
 import { useQuery } from '@tanstack/react-query';
 import contractService from '../../services/contract.service';
+import { API_URL } from '../../services/apiConfig';
 import { Loader, AlertCircle, X, Printer } from 'lucide-react';
 import { formatQty, formatAmt } from '@/utils/formatters';
 import { formatContractDate } from '../../utils/dateFormatter';
@@ -32,7 +33,6 @@ export function ContractDetailsModal({ contractId, onClose }: ContractDetailsMod
           {details && (
             <button
               onClick={() => {
-                const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
                 window.open(`${API_URL}/contracts/${contractId}/pdf?token=${localStorage.getItem('accessToken')}`, '_blank');
               }}
               className="flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded font-bold shadow-sm transition cursor-pointer print:hidden text-sm"
