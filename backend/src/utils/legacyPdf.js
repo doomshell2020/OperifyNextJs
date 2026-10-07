@@ -1,4 +1,4 @@
-const puppeteer = require('puppeteer');
+const { launchPdfBrowser } = require('./pdfBrowser');
 const fs = require('fs');
 const path = require('path');
 const escapeHtml = value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
@@ -59,7 +59,7 @@ const css = `
   .signatures td:last-child {padding-right:7pt}
 `;
 async function render(html, options = {}) {
-  const browser = await puppeteer.launch({ headless:true, args:['--no-sandbox','--disable-setuid-sandbox'] });
+  const browser = await launchPdfBrowser();
   try {
     const page = await browser.newPage();
     await page.setContent(html, {waitUntil:'networkidle0'});

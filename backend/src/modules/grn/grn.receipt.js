@@ -18,7 +18,7 @@ module.exports = async function receive(db, payload = {}) {
     // Never recalculate an inspection's included tax or accept client stock rows.
     const items = await V.select(db, "SELECT * FROM grn_inspection_details WHERE inspection_id=:inspectionId AND status!='N' ORDER BY id ASC FOR UPDATE", { inspectionId: inspection.inspection_id }, transaction);
     if (!items.length) throw V.invalid('No items received in this inspection.');
-    const ordered = await V.select(db, 'SELECT item_id,SUM(item_qty) AS quantity FROM st_purchaseorderdetails WHERE poprimary_id=:id GROUP BY item_id', { id: po.id }, transaction);
+    const ordered = await V.select(db, 'SELECT item_id,SUM(item_qty) AS quantity FROM st_purchaseorderDetails WHERE poprimary_id=:id GROUP BY item_id', { id: po.id }, transaction);
     const received = await V.select(db, "SELECT item_id,SUM(quantity) AS quantity FROM st_stock_register WHERE po_id=:poNumber AND store_type='1' AND status!='N' GROUP BY item_id", { poNumber: inspection.po_id }, transaction);
     const budgets = new Map(ordered.map(row => [String(row.item_id), Number(row.quantity)]));
     for (const row of received) budgets.set(String(row.item_id), (budgets.get(String(row.item_id)) || 0) - Number(row.quantity));

@@ -3,9 +3,14 @@
   "version": "1.0.0",
   "description": "Operify ERP Backend Service",
   "main": "src/server.js",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node src/server.js"
+    "dev": "node src/server.js",
+    "pdf:install": "puppeteer browsers install chrome",
+    "pdf:check": "node scripts/check-pdf.cjs"
   },
   "keywords": [
     "erp",

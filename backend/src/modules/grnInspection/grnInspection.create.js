@@ -18,7 +18,7 @@ module.exports = async function create(db, inspection = {}, inputItems = []) {
       if (!Number.isFinite(Number(inspectionId))) throw V.invalid('The last inspection number is invalid.', 409);
       const duplicates = await V.select(db, 'SELECT id FROM grn_inspection WHERE inspection_id=:inspectionId', { inspectionId }, transaction);
       if (duplicates.length) throw V.invalid('Inspection number already exists.', 409);
-      const orders = await V.select(db, 'SELECT * FROM st_purchaseorderdetails WHERE poprimary_id=:id ORDER BY id ASC', { id: po.id }, transaction);
+      const orders = await V.select(db, 'SELECT * FROM st_purchaseorderDetails WHERE poprimary_id=:id ORDER BY id ASC', { id: po.id }, transaction);
       const prior = await V.select(db, "SELECT item_id,SUM(quantity) AS quantity FROM grn_inspection_details WHERE purchaseorder_id=:poNumber AND status!='N' GROUP BY item_id", { poNumber: po.purchaseorder_id }, transaction);
       const budgets = new Map();
       for (const order of orders) budgets.set(String(order.item_id), (budgets.get(String(order.item_id)) || 0) + Number(order.item_qty));

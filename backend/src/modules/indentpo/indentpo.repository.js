@@ -79,7 +79,8 @@ class IndentpoRepository {
    */
   async getDesignSheetDetails(dbPool, contractId, itemId, transaction, enforceCategoryRules=true) {
     const query=(sql,options)=>dbPool.query(sql,{...options,transaction});
-    const [settings]=await query('SELECT stock_update FROM sitesettings_details WHERE sitesettings_id=1 LIMIT 1',{type:QueryTypes.SELECT});
+    // Older tenant schemas do not have the optional stock_update column.
+    const [settings]=await query('SELECT * FROM sitesettings_details WHERE sitesettings_id=1 LIMIT 1',{type:QueryTypes.SELECT});
     const designSheet = await query(
       `SELECT designsheetno FROM designsheet WHERE contract_id = :contractId AND item_id = :itemId LIMIT 1`,
       { replacements: { contractId, itemId }, type: QueryTypes.SELECT }

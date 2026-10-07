@@ -217,7 +217,8 @@ function IndentDetailsModal({ id, onClose }: { id: number, onClose: () => void }
   }, [id]);
 
   const handlePrint = () => {
-    void openModulePdf(`/indentpo/${encodeURIComponent(String(id))}/pdf`);
+    if (!details?.header?.indent_id) return;
+    void openModulePdf(`/indentpo/${encodeURIComponent(String(details.header.indent_id))}/pdf`);
   };
 
   return (

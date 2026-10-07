@@ -243,7 +243,7 @@ class PurchaseOrderRepository {
     // Cake's AJAX search includes PO numbers from its detail query (not a join).
     const searching=filters.search === '1' || Boolean(poNumber || filters.vendor_id || filters.vendor_name || filters.datefrom || filters.dateto || filters.status || filters.item_id);
     if (searching) {
-      clauses.push(`EXISTS (SELECT 1 FROM st_purchaseorderdetails pd WHERE pd.purchaseorder_id=po.purchaseorder_id${filters.item_id ? ' AND pd.item_id=:item_id' : ''})`);
+      clauses.push(`EXISTS (SELECT 1 FROM st_purchaseorderDetails pd WHERE pd.purchaseorder_id=po.purchaseorder_id${filters.item_id ? ' AND pd.item_id=:item_id' : ''})`);
       if (filters.item_id) params.item_id=filters.item_id;
     } else clauses.push("po.status IN ('Y', 'R')");
     return {whereString:'WHERE '+clauses.join(' AND '),queryParams:params};

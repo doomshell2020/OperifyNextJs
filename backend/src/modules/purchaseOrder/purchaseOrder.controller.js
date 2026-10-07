@@ -1,5 +1,5 @@
 const purchaseOrderService = require('./purchaseOrder.service');
-const puppeteer = require('puppeteer');
+const { launchPdfBrowser } = require('../../utils/pdfBrowser');
 
 class PurchaseOrderController {
   async getHoverDetails(req, res, next) {
@@ -98,15 +98,19 @@ class PurchaseOrderController {
   }
 
   async generatePdf(req, res, next) {
+    let browser;
     try {
       const { id } = req.params;
       const token = req.query.token || (req.headers.authorization ? req.headers.authorization.split(' ')[1] : '');
       
-      const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+      browser = await launchPdfBrowser();
       const page = await browser.newPage();
       
-      const url = `http://localhost:3000/purchase-orders/${id}/pdf?token=${token}`;
-      await page.goto(url, { waitUntil: 'networkidle0' });
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+      const url = new URL(`/purchase-orders/${encodeURIComponent(id)}/pdf`, frontendUrl);
+      url.searchParams.set('token', token);
+      const response = await page.goto(url.href, { waitUntil: 'networkidle0' });
+      if (response && !response.ok()) throw new Error(`Purchase order print page returned HTTP ${response.status()}`);
       
       // Hide any potential print buttons or overlays that might show in the PDF
       await page.addStyleTag({ content: '.print\\\\:hidden { display: none !important; }' });
@@ -118,14 +122,14 @@ class PurchaseOrderController {
       });
       const pdfBuffer = Buffer.from(pdfUint8Array);
       
-      await browser.close();
-      
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `inline; filename="PO-${id}.pdf"`);
       res.send(pdfBuffer);
     } catch (error) {
       console.error('Error generating PDF:', error);
-      res.status(500).json({ success: false, message: 'Failed to generate PDF' });
+      next(error);
+    } finally {
+      if (browser) await browser.close();
     }
   }
 }

@@ -79,7 +79,7 @@ module.exports = function(sequelize, DataTypes) {
     }
   }, {
     sequelize,
-    tableName: 'st_purchaseorderdetails',
+    tableName: 'st_purchaseorderDetails',
     timestamps: false,
     freezeTableName: true,
     indexes: [

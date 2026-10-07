@@ -1,0 +1,30 @@
+PDF deployment requirements
+
+Use Node.js 22.12 or later, as required by the installed Puppeteer package.
+
+In the backend deployment directory, run:
+  npm ci
+  npm run pdf:check
+
+If pdf:check reports that Chrome is missing, run npm run pdf:install, then retry
+pdf:check. An existing working Chrome installation does not need reinstalling.
+The install and runtime must use the same Puppeteer cache directory and user.
+Keep PUPPETEER_CACHE_DIR consistent if your host sets it.
+
+For purchase order PDFs, set this backend environment variable:
+  FRONTEND_URL=https://new.operify.in
+The backend must be able to reach that frontend URL.
+
+If the host already provides compatible Chrome, set PUPPETEER_EXECUTABLE_PATH
+to its absolute executable path instead of downloading Chrome.
+
+If pdf:check reports missing Linux shared libraries, the host must install
+Chrome's system dependencies. If the hosting plan cannot run Chrome processes,
+PDF generation requires a server or hosting plan that supports them.
+
+Restart or redeploy the backend after configuration changes.
+Verify pdf:check on the running server before testing manager PDFs.
+
+Official browser configuration and Linux dependency guidance:
+  https://pptr.dev/guides/configuration
+  https://pptr.dev/troubleshooting

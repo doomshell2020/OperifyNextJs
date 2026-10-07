@@ -1,5 +1,4 @@
 const grnInspectionService = require('./grnInspection.service');
-const puppeteer = require('puppeteer');
 
 class GrnInspectionController {
   async exportInspections(req, res, next) {

@@ -143,7 +143,7 @@ class SettingsRepository {
       const products = await dbPool.query('SELECT id FROM st_additem WHERE id=:id FOR UPDATE', { replacements: { id }, type: QueryTypes.SELECT, transaction });
       if (!products.length) throw invalid('Product not found.', 404);
       const [used] = await dbPool.query(`SELECT
-        (SELECT COUNT(*) FROM st_purchaseorderdetails WHERE item_id=:id) +
+        (SELECT COUNT(*) FROM st_purchaseorderDetails WHERE item_id=:id) +
         (SELECT COUNT(*) FROM bom_finisedproduct WHERE product_id=:id) +
         (SELECT COUNT(*) FROM designsheetdetails WHERE item_id=:id) AS total`, { replacements: { id }, type: QueryTypes.SELECT, transaction });
       if (Number(used.total)>0) throw invalid('This item cannot be deleted because it is already used in the system.',409);

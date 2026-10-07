@@ -107,7 +107,7 @@ class GrnRepository {
         sr.*,
         i.item_name,
         u.unit_name as uom,
-        (SELECT pod.item_qty FROM st_purchaseorderdetails pod
+        (SELECT pod.item_qty FROM st_purchaseorderDetails pod
          WHERE pod.purchaseorder_id = sr.po_id AND pod.item_id = sr.item_id
          ORDER BY pod.id DESC LIMIT 1) as order_qty
       FROM st_stock_register sr
