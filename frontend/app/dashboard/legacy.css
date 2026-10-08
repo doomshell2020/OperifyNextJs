@@ -126,3 +126,6 @@
 .legacy-form .legacy-box-heading { flex-basis:100%; }
 
 .legacy-form [class~="overflow-x-auto"] { position:relative; max-width:100%; }
+
+.legacy-po-filter-actions { display:flex; flex:1 0 100%; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.legacy-po-create-actions { margin-left:auto; }

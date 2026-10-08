@@ -113,7 +113,6 @@ export default function PurchaseOrdersPage() {
   return (
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
       <LegacyPageHeader title="Purchase Order"/>
-      {canAdd && <button className="legacy-button" onClick={()=>router.push('/dashboard/purchase/orders/add')}>+ Add</button>}
 
       <form className="legacy-filter-row" onSubmit={e=>{e.preventDefault();applyFilters();}}>
         <label>Type<select name="type" value={filters.type} onChange={e=>setFilters({...filters,type:e.target.value,po_number:'',item_id:'',item_name:'',status:''})}><option value="po">PO</option><option value="deli">Delivery Schedule</option><option value="comp">PO Comparison</option></select></label>
@@ -123,8 +122,11 @@ export default function PurchaseOrdersPage() {
         <label>Date From<DatePicker name="datefrom" value={filters.datefrom} onChange={handleFilterChange} placeholder="Date From"/></label>
         <label>Date To<DatePicker name="dateto" value={filters.dateto} onChange={handleFilterChange} placeholder="Date To"/></label>
         {filters.type==='po' && <label>Status<select name="status" value={filters.status} onChange={handleFilterChange}><option value="">All</option><option value="O">Open</option><option value="C">Close</option></select></label>}
-        <div className="legacy-filter-actions"><button className="legacy-button" type="submit">Search</button><button className="legacy-button" type="button" onClick={resetFilters}>Reset</button></div>
+        <div className="legacy-po-filter-actions"><div className="legacy-filter-actions"><button className="legacy-button" type="submit">Search</button><button className="legacy-button" type="button" onClick={resetFilters}>Reset</button></div>
+        <div className="legacy-filter-actions legacy-po-create-actions">
         {canAction('purchaseorder',activeFilters.type==='deli'?'deliveryreport':activeFilters.type==='comp'?'productcomparisonreport':'posummaryreport') && <button type="button" className="legacy-button" disabled={exporting} onClick={exportReport}>{exporting?'Exporting...':activeFilters.type==='deli'?'Delivery Schedule Report':activeFilters.type==='comp'?'PO Comparison Report':'PO GRN Report'}</button>}
+        {canAdd && <button type="button" className="legacy-button" onClick={()=>router.push('/dashboard/purchase/orders/add')}>+ Add</button>}
+        </div></div>
       </form>
 
       {/* Table */}
