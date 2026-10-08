@@ -1,4 +1,5 @@
 'use client';
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import {useEffect,useState} from 'react';
 import {useParams,useRouter} from 'next/navigation';
 import Link from 'next/link';
@@ -13,7 +14,7 @@ export default function EditIndentPage(){
   setSaving(true);setError('');try{await indentpoService.update(id,{...data,machine_id:machine.id});router.push('/dashboard/purchase/indentpo');}catch(e:any){setError(e.response?.data?.error?.message || e.response?.data?.message || 'Unable to update indent');}finally{setSaving(false);}
  }
  if(!data)return <p role="status">{error || 'Loading indent…'}</p>;
- return <div className="space-y-5"><h1 className="text-2xl font-bold">Edit Indent {id}</h1><p>{data.contract_name} ({data.workorder}) · {data.product_name}</p>
+ return <div className="space-y-5"><LegacyPageHeader title="Indent Manager"/><p>{data.contract_name} ({data.workorder}) · {data.product_name}</p>
   {error && <p role="alert" className="text-red-600">{error}</p>}
   <form onSubmit={save} className="bg-white border rounded-xl p-5 space-y-5">
    <div className="grid grid-cols-3 gap-4">

@@ -1,5 +1,6 @@
 'use client';
 
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -10,7 +11,7 @@ import { DatePicker } from '../../../../components/ui/DatePicker';
 
 export default function AddContractPage() {
   const router = useRouter();
-  
+
   // Fetch form data (Vendors and Items)
   const { data: formData, isLoading } = useQuery({
     queryKey: ['contract-form-data'],
@@ -78,10 +79,10 @@ export default function AddContractPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Find supplier ID
     const matchedSupplier = formData?.vendors.find(v => v.name === supplierName);
-    
+
     if (!matchedSupplier) {
       toast.error('Please select a valid Supplier from the list');
       return;
@@ -145,9 +146,7 @@ export default function AddContractPage() {
   return (
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
 <div>
-        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-          Add Contract
-        </h1>
+        <LegacyPageHeader title="Add Contract"/>
       </div>
 
       <div className="bg-white border-t-[3px] border-t-[#00bcd4] border-x border-b border-slate-200 shadow-sm p-0 overflow-hidden">
@@ -155,7 +154,7 @@ export default function AddContractPage() {
           <Plus className="w-4 h-4 bg-slate-800 text-white p-0.5 rounded-sm" />
           Create New Contract
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-6 space-y-6 bg-white">
           {/* Main 8 Fields Grid */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -211,7 +210,7 @@ export default function AddContractPage() {
               <label className="text-[11px] font-bold text-slate-600 block mb-1">
                 Issue Date <span className="text-red-500">*</span>
               </label>
-              <DatePicker  
+              <DatePicker
                 dateFormat="dd-MM-yyyy"
                 value={issuedate}
                 onChange={e => setIssuedate(e.target.value)}
@@ -266,7 +265,7 @@ export default function AddContractPage() {
               <label className="text-[11px] font-bold text-slate-600 block mb-1">
                 Start Date <span className="text-red-500">*</span>
               </label>
-              <DatePicker  
+              <DatePicker
                 dateFormat="dd-MM-yyyy"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
@@ -279,7 +278,7 @@ export default function AddContractPage() {
               <label className="text-[11px] font-bold text-slate-600 block mb-1">
                 End Date
               </label>
-              <DatePicker  
+              <DatePicker
                 dateFormat="dd-MM-yyyy"
                 value={endDate}
                 onChange={e => setEndDate(e.target.value)}
@@ -350,7 +349,7 @@ export default function AddContractPage() {
                 <option key={item.id} value={item.name} />
               ))}
             </datalist>
-            
+
             <div className="px-4 py-2 bg-slate-50 border-t border-slate-300">
               <button
                 type="button"

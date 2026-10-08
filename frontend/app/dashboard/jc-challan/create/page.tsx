@@ -1,5 +1,6 @@
 'use client';
 
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import apiClient from '../../../../services/apiClient';
 import { useRouter } from 'next/navigation';
@@ -301,9 +302,7 @@ export default function AddJobChallan() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-            <Box className="text-cyan-600" /> Add Job Challan
-          </h1>
+          <LegacyPageHeader title="Job Challan"/>
           <p className="text-sm text-slate-500 font-medium mt-1">Issue raw materials or goods to sub-contractors</p>
         </div>
         <button onClick={() => router.back()} className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-sm font-medium transition">

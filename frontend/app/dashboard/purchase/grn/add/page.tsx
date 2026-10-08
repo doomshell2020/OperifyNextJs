@@ -1,5 +1,6 @@
 'use client';
 
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
@@ -98,7 +99,7 @@ export default function AddGrnPage() {
           if (details.inspection.inwarddate) {
             setValue('inwarddate', String(details.inspection.inwarddate).split('T')[0]);
           }
-          
+
           const newItems = details.items.map((i: any) => ({
             item_id: i.item_id,
             item_name: i.item_name,
@@ -157,7 +158,7 @@ export default function AddGrnPage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Create GRN</h1>
+            <LegacyPageHeader title="Goods Received Note"/>
             <p className="text-sm text-slate-500 font-medium">Generate a new Goods Received Note from Inspection</p>
           </div>
         </div>
@@ -165,8 +166,8 @@ export default function AddGrnPage() {
           <button type="button" onClick={() => router.back()} className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-md text-sm font-medium transition cursor-pointer shadow-sm">
             Cancel
           </button>
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={mutation.isPending}
             className="flex items-center gap-2 px-6 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition cursor-pointer shadow-md disabled:opacity-70"
           >
@@ -210,7 +211,7 @@ export default function AddGrnPage() {
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-1.5 relative">
                 <label className="block text-sm font-medium text-slate-700">Inspection ID <span className="text-red-500">*</span></label>
-                <AsyncInspectionSearchSelect 
+                <AsyncInspectionSearchSelect
                   value={inspection_id}
                   onChange={(v) => setValue('inspection_id', v, { shouldValidate: true })}
                   error={errors.inspection_id?.message}
@@ -232,7 +233,7 @@ export default function AddGrnPage() {
                 <label className="block text-sm font-medium text-slate-700">Bill Number <span className="text-red-500">*</span></label>
                 <input type="text" readOnly {...register('bill_no')} className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white shadow-sm ${errors.bill_no ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'}`} />
               </div>
-              
+
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-slate-700">Bill Date <span className="text-red-500">*</span></label>
                 <input type="date" readOnly {...register('bill_date')} className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white shadow-sm ${errors.bill_date ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'}`} />
@@ -245,7 +246,7 @@ export default function AddGrnPage() {
               <h3 className="font-semibold text-slate-800">Received Items <span className="text-red-500">*</span></h3>
               {isInspectionLoading && <Loader2 className="w-4 h-4 animate-spin text-cyan-600" />}
             </div>
-            
+
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
@@ -262,9 +263,9 @@ export default function AddGrnPage() {
                   {fields.length > 0 ? fields.map((field, index) => {
                     const rate = Number(items[index]?.rate) || 0;
                     const taxRate = Number(items[index]?.tax_rate) || 0;
-                    
+
                     const total = Number(items[index]?.amount || 0);
-                    
+
                     return (
                       <tr key={field.id} className="border-b border-slate-100 hover:bg-slate-50/50">
                         <td className="p-3">
@@ -298,14 +299,14 @@ export default function AddGrnPage() {
               </table>
             </div>
           </div>
-          
+
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="p-4 border-b border-slate-200 bg-slate-50/50">
               <h3 className="font-semibold text-slate-800">Remarks <span className="text-red-500">*</span></h3>
             </div>
             <div className="p-4">
-              <textarea 
-                {...register('remark')} 
+              <textarea
+                {...register('remark')}
                 rows={4}
                 className={`w-full border rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white shadow-sm resize-none ${errors.remark ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'}`}
                 placeholder="Enter any additional notes or remarks..."
@@ -313,13 +314,13 @@ export default function AddGrnPage() {
             </div>
           </div>
         </div>
-        
+
         <div className="lg:col-span-1">
           <div className="bg-slate-50 rounded-xl border border-slate-200 shadow-sm overflow-hidden sticky top-6">
             <div className="p-4 border-b border-slate-200 bg-white">
               <h3 className="font-semibold text-slate-800">GRN Summary</h3>
             </div>
-            
+
             <div className="p-5 space-y-4">
               <div className="flex justify-between items-center py-2 border-b border-slate-200/50">
                 <span className="text-sm text-slate-500">Vendor</span>

@@ -6,8 +6,8 @@ const { centralModels, getTenantModels } = require('../../config/sequelize');
 class AuthRepository {
   /**
    * Finds a user record in the central database by mobile number.
-   * 
-   * @param {string} mobile 
+   *
+   * @param {string} mobile
    * @returns {Promise<Object|null>} User record or null
    */
   async findCentralUserByMobile(mobile) {
@@ -20,9 +20,9 @@ class AuthRepository {
 
   /**
    * Finds a user record in a tenant database by mobile number.
-   * 
-   * @param {string} mobile 
-   * @param {string} dbName 
+   *
+   * @param {string} mobile
+   * @param {string} dbName
    * @returns {Promise<Object|null>} User record or null
    */
   async findTenantUserByMobile(mobile, dbName) {
@@ -37,10 +37,10 @@ class AuthRepository {
   /**
    * Updates the password hash in the tenant database for a user.
    * Helps migrate plaintext accounts to hashed accounts automatically.
-   * 
-   * @param {number} userId 
-   * @param {string} passwordHash 
-   * @param {string} dbName 
+   *
+   * @param {number} userId
+   * @param {string} passwordHash
+   * @param {string} dbName
    */
   async updateTenantUserPasswordHash(userId, passwordHash, dbName) {
     const tenantModels = await getTenantModels(dbName);
@@ -68,7 +68,7 @@ class AuthRepository {
     } else if (role === 105) {
       // ErpHead: parent and all franchises
       return await centralModels.schools.findAll({
-        where: { 
+        where: {
           status: 'Y',
           [Op.or]: [
             { id: cid },
@@ -81,9 +81,9 @@ class AuthRepository {
     } else {
       // Normal user: just their own company
       return await centralModels.schools.findAll({
-        where: { 
-          status: 'Y', 
-          school_database: user.db 
+        where: {
+          status: 'Y',
+          school_database: user.db
         },
         attributes: ['id', 'school_name', 'school_database'],
         raw: true
@@ -101,9 +101,9 @@ class AuthRepository {
     try {
       // Find all permission_access entries for this role_id where is_permission = 1
       const accesses = await centralModels.permission_access.findAll({
-        where: { 
-          role_id: String(roleId), 
-          is_permission: '1' 
+        where: {
+          role_id: String(roleId),
+          is_permission: '1'
         },
         raw: true
       });
@@ -123,7 +123,7 @@ class AuthRepository {
 
       // Map CakePHP URLs to our standard permission keys
       const permissions = [];
-      
+
       labels.forEach(label => {
         const url = label.url ? label.url.toLowerCase().trim() : '';
         if (!url) return;
@@ -133,22 +133,22 @@ class AuthRepository {
         if (url.includes('contracts/edit')) permissions.push('contracts:edit');
         if (url.includes('contracts/delete')) permissions.push('contracts:delete');
         if (url.includes('contracts/add')) permissions.push('contracts:add');
-        
+
         if (url.includes('purchaseorder/index')) permissions.push('purchaseorder:view');
         if (url.includes('purchaseorder/add')) permissions.push('purchaseorder:add');
         if (url.includes('purchaseorder/viewpodetailspdf')) permissions.push('purchaseorder:pdf');
-        if (url.includes('purchaseorder/view')) permissions.push('purchaseorder:pdf');
+        if (url === 'admin/purchaseorder/view') permissions.push('purchaseorder:pdf');
         if (url.includes('purchaseorder/printallpo')) permissions.push('purchaseorder:pdf');
         if (url.includes('purchaseorder/revised')) permissions.push('purchaseorder:revise');
         if (url.includes('purchaseorder/delete')) permissions.push('purchaseorder:delete');
         if (url.includes('purchaseorder/deliverynote')) permissions.push('purchaseorder:deliverynote');
-        
+
         if (url.includes('designsheet/index')) permissions.push('designsheet:view');
         if (url.includes('designsheet/add')) permissions.push('designsheet:add');
         if (url.includes('designsheet/edit')) permissions.push('designsheet:edit');
         if (url.includes('designsheet/delete')) permissions.push('designsheet:delete');
         if (url.includes('designsheet/viewdesignsheet')) permissions.push('designsheet:viewdetails');
-        
+
         if (url.includes('production/index')) permissions.push('production:view');
         if (url.includes('stockregister/index')) permissions.push('stock:view');
         if (url.includes('jobchallan/index')) permissions.push('jobchallan:view');

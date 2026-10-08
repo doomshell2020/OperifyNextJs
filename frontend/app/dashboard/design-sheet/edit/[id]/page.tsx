@@ -2,6 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { designsheetService } from '../../../../../services/designsheet.service';
@@ -124,10 +125,10 @@ export default function EditDesignSheetPage() {
   const [revisions, setRevisions] = useState<Array<File | null>>(Array(5).fill(null));
   const [existingFiles, setExistingFiles] = useState<{main: string, r: string[]}>({ main: '', r: []});
   const [indentPoCount, setIndentPoCount] = useState(0);
-  
+
   const [existingDetails, setExistingDetails] = useState<any[]>([]);
   const [newDetails, setNewDetails] = useState<any[]>([]);
-  
+
   const fetchSheet = async () => {
       try {
           const res = await designsheetService.getDesignSheetById(id);
@@ -157,7 +158,7 @@ export default function EditDesignSheetPage() {
      // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  
+
 
   const deleteExistingDetail = async (idx: number, detailId: string) => {
       if (confirm('Delete this item?')) {
@@ -181,7 +182,7 @@ export default function EditDesignSheetPage() {
       }
       setExistingDetails(updated);
   };
-  
+
   const addNewDetailRow = () => {
      setNewDetails([...newDetails, { pitemname: '', item_name: '', km_item_qty: '', pitemquantity: '', unit_name: '', is_group: '0' }]);
   };
@@ -206,7 +207,7 @@ export default function EditDesignSheetPage() {
              if (res.itemname) nd[index].unit_name = res.itemname.unit_name || '';
          } catch {}
      }
-     
+
      if ((field === 'km_item_qty' || field === 'item_name') && nd[index].km_item_qty && formData.quantity) {
          nd[index].pitemquantity = formatQty(parseFloat(nd[index].km_item_qty) * parseFloat(formData.quantity));
      }
@@ -233,12 +234,12 @@ export default function EditDesignSheetPage() {
           Object.entries(formData).forEach(([k, v]) => form.append(k, v));
           if (file) form.append('design_sheet', file);
           revisions.forEach((r, i) => { if (r) form.append(`r${i+1}`, r); });
-          
+
           existingDetails.forEach((d) => {
               form.append('pitemname11', d.item_id);
               form.append('is_group11', d.is_group);
           });
-          
+
           newDetails.forEach((d) => {
               form.append('pitemname', d.pitemname);
               form.append('km_item_qty', d.km_item_qty);
@@ -246,7 +247,7 @@ export default function EditDesignSheetPage() {
               form.append('unit_name', d.unit_name);
               form.append('is_group', d.is_group);
           });
-          
+
           await designsheetService.updateDesignSheet(id, form);
           toast.success('Design Sheet updated successfully!');
           router.push('/dashboard/design-sheet');
@@ -261,9 +262,9 @@ export default function EditDesignSheetPage() {
         <Link href="/dashboard/design-sheet" className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600 transition">
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <h1 className="text-xl font-extrabold text-slate-900">Edit Production Sheet</h1>
+        <LegacyPageHeader title="Edit Design Sheet"/>
       </div>
-      
+
       <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-xl p-6 space-y-6 shadow-sm">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             <div>
@@ -292,7 +293,7 @@ export default function EditDesignSheetPage() {
               <p className="text-[10px] text-rose-500 font-bold mt-1">PDF, JPG, JPEG or PNG files only</p>
               {existingFiles.main && <a href={`/designsheet/${existingFiles.main}`} target="_blank" rel="noreferrer" className="text-xs text-blue-500 underline flex items-center gap-1 mt-1"><Download className="w-3 h-3"/> View existing</a>}
             </div>
-            
+
             {Array(5).fill(0).map((_, i) => (
                 <div key={i}>
                   <label className="text-xs font-bold text-slate-500 block mb-2">R{i+1}</label>
@@ -306,12 +307,12 @@ export default function EditDesignSheetPage() {
                 </div>
             ))}
         </div>
-        
+
         <div className="pt-4 border-t border-slate-100">
            <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-bold text-slate-800">Items</h3>
            </div>
-           
+
            <table className="w-full text-left text-sm border border-slate-200 mb-4 bg-slate-50">
                <thead className="bg-[#c8c8c8] text-slate-800 font-bold text-[13px]">
                    <tr>
@@ -351,10 +352,10 @@ export default function EditDesignSheetPage() {
                    {newDetails.map((row, idx) => (
                        <tr key={idx} className="bg-emerald-50/20 hover:bg-emerald-50 transition">
                            <td className="p-2 border-r border-slate-200">
-                               <ItemAutocomplete 
-                                 value={row.item_name} 
-                                 onChange={v => handleNewDetailChange(idx, 'item_name', v)} 
-                                 onSelect={item => handleNewDetailChange(idx, 'item_name', item.item_name, item)} 
+                               <ItemAutocomplete
+                                 value={row.item_name}
+                                 onChange={v => handleNewDetailChange(idx, 'item_name', v)}
+                                 onSelect={item => handleNewDetailChange(idx, 'item_name', item.item_name, item)}
                                />
                            </td>
                            <td className="p-2 border-r border-slate-200 text-center">
@@ -376,12 +377,12 @@ export default function EditDesignSheetPage() {
                    ))}
                </tbody>
            </table>
-           
+
            <button type="button" onClick={addNewDetailRow} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-xs font-semibold mt-2">
               <Plus className="w-3.5 h-3.5" /> Add New Row
            </button>
         </div>
-        
+
         <div className="flex justify-end pt-4 border-t border-slate-100">
            <button type="submit" className="flex items-center gap-2 px-6 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-semibold shadow-sm transition">
               <Save className="w-4 h-4" /> Save Changes

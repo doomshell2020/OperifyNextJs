@@ -14,6 +14,10 @@ class GrnInspectionRepository {
       baseQuery += ` AND g.vendor_id = :vendor_id`;
       params.vendor_id = filters.vendor_id;
     }
+    if (filters.vendor_name && !filters.vendor_id) {
+      baseQuery += ' AND v.name LIKE :vendor_name';
+      params.vendor_name = `%${filters.vendor_name.trim()}%`;
+    }
     if (filters.bill_no) {
       baseQuery += ` AND g.bill_no LIKE :bill_no`;
       params.bill_no = `%${filters.bill_no}%`;
@@ -33,7 +37,7 @@ class GrnInspectionRepository {
 
     const sort = listOrder(filters.sort,filters.direction,{id:'g.id',inspection_id:'g.inspection_id',po_id:'g.po_id',inwarddate:'g.inwarddate',bill_no:'g.bill_no',bill_date:'g.bill_date',total_qty:'g.total_qty',total_amt:'g.total_amt'},'g.id');
     const query = `
-      SELECT 
+      SELECT
         g.id,
         g.inspection_id,
         g.po_id,
@@ -57,7 +61,7 @@ class GrnInspectionRepository {
 
   async findById(dbPool, id) {
     const query = `
-      SELECT 
+      SELECT
         g.*,
         v.name as vendor_name,
         v.address as vendor_address,
@@ -72,7 +76,7 @@ class GrnInspectionRepository {
 
   async getItemsByInspectionId(dbPool, inspectionId) {
     const query = `
-      SELECT 
+      SELECT
         d.*,
         i.item_name,
         COALESCE(u.unit_name, 'KG') as unit_name
@@ -106,8 +110,8 @@ class GrnInspectionRepository {
 
     // Fetch PO items
     const itemsQuery = `
-      SELECT 
-        pod.item_id, 
+      SELECT
+        pod.item_id,
         i.item_name,
         pod.item_qty as order_qty,
         pod.item_amt as rate,

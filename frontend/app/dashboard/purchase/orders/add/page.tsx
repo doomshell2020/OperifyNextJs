@@ -1,5 +1,6 @@
 'use client';
 
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray, useWatch, Controller } from 'react-hook-form';
@@ -43,7 +44,7 @@ type POFormValues = z.output<typeof poSchema>;
 
 export default function AddPurchaseOrderPage() {
   const router = useRouter();
-  
+
   const [poNumber, setPoNumber] = useState('');
   const [vendors, setVendors] = useState<Supplier[]>([]);
   const [taxes, setTaxes] = useState<{id: number, tax: number}[]>([]);
@@ -65,7 +66,7 @@ export default function AddPurchaseOrderPage() {
   const [lprModalOpen, setLprModalOpen] = useState(false);
   const [lprHistory, setLprHistory] = useState<any[]>([]);
   const [lprItemName, setLprItemName] = useState('');
-  
+
   const openLprModal = async (itemId: string, itemName: string) => {
     try {
       setLprItemName(itemName);
@@ -189,7 +190,7 @@ export default function AddPurchaseOrderPage() {
       update(index, { ...getValues(`items.${index}`), item_id: '', item_name: '', uom: '', unit_price: 0, tax_id: '', tax_percentage: 0 });
       return;
     }
-    
+
     let lprPrice = product.cost_price || 0;
     try {
       const history = await purchaseOrderService.getItemHistory(product.id.toString());
@@ -219,13 +220,13 @@ export default function AddPurchaseOrderPage() {
       await settingsService.createSupplier(newVendorForm);
       const suppliersRes = await settingsService.getSuppliers({});
       setVendors(suppliersRes);
-      
+
       const newestVendor = suppliersRes.find(v => v.name === newVendorForm.name);
       if (newestVendor) {
         setValue('vendorId', newestVendor.id.toString(), { shouldValidate: true });
         setVendorSearchTerm(newestVendor.name);
       }
-      
+
       setIsAddVendorOpen(false);
       setNewVendorForm({ name: '', address: '', contact_no: '', email: '', gst_number: '', pancard_number: '', tin_no: '', tds: '0', contact_person: '', type: 'Vendor', description: '' });
       toast.success('Supplier added successfully');
@@ -239,7 +240,7 @@ export default function AddPurchaseOrderPage() {
   const onSubmit = async (data: POFormValues) => {
     try {
       const validItems = data.items.filter(i => i.item_id && i.qty > 0);
-      
+
       const payload = {
         po: {
           purchaseorder_id: poNumber,
@@ -257,7 +258,7 @@ export default function AddPurchaseOrderPage() {
           const price = Number(i.unit_price) || 0;
           const taxPerc = Number(i.tax_percentage) || 0;
           const baseAmt = qty * price;
-          
+
           let taxAmt = 0;
           let totalAmt = 0;
           if (i.tax_cal === '1') {
@@ -306,12 +307,12 @@ export default function AddPurchaseOrderPage() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-[1600px] mx-auto p-4 md:p-6 lg:p-8 font-sans space-y-6 bg-gray-50 min-h-screen">
-      
+
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-xl shadow-sm border border-gray-200">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-bold text-gray-800 tracking-tight">Create Purchase Order</h1>
+            <LegacyPageHeader title="Purchase Order Manager"/>
             <span className="px-2.5 py-1 text-xs font-semibold bg-gray-100 text-gray-600 rounded-md border border-gray-200">DRAFT</span>
           </div>
           <p className="text-sm text-gray-500 flex items-center gap-2">
@@ -324,21 +325,21 @@ export default function AddPurchaseOrderPage() {
           </button>
           <button type="submit" disabled={isSubmitting} className="px-5 py-2 h-[42px] bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed focus:ring-2 focus:ring-offset-1 focus:ring-blue-600">
             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save & Finalize
+            Submit
           </button>
         </div>
       </div>
 
       {/* Form Content */}
       <div className="space-y-6">
-        
+
         {/* Purchase Information Card */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center gap-2 mb-5 pb-3 border-b border-gray-100">
               <FileText className="w-5 h-5 text-blue-600" />
               <h2 className="text-lg font-semibold text-gray-800">Purchase Information</h2>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-start">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">PO Number</label>
@@ -374,7 +375,7 @@ export default function AddPurchaseOrderPage() {
                 </label>
                 <div className="relative mb-2" ref={vendorRef}>
                   <div className="relative">
-                    <input 
+                    <input
                       type="text"
                       className={`w-full h-[42px] border rounded-lg pl-3 pr-10 py-2 shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-shadow bg-white ${errors.vendorId ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`}
                       placeholder="Search & Select Supplier..."
@@ -392,14 +393,14 @@ export default function AddPurchaseOrderPage() {
                       <Search className="h-4 w-4" />
                     </div>
                   </div>
-                  
+
                   {vendorSearchOpen && (
                     <div className="absolute top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 flex flex-col overflow-hidden">
                       <div className="overflow-y-auto max-h-60 py-1">
                         {vendors.filter(v => v.name.toLowerCase().includes(vendorSearchTerm.toLowerCase())).length > 0 ? (
                           vendors.filter(v => v.name.toLowerCase().includes(vendorSearchTerm.toLowerCase())).map(v => (
-                            <div 
-                              key={v.id} 
+                            <div
+                              key={v.id}
                               className={`px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm transition-colors ${watchVendorId === v.id.toString() ? 'bg-blue-50/50 font-semibold text-blue-700' : 'text-gray-700'}`}
                               onClick={() => {
                                 setValue('vendorId', v.id.toString(), { shouldValidate: true });
@@ -418,7 +419,7 @@ export default function AddPurchaseOrderPage() {
                   )}
                 </div>
                 {errors.vendorId && <p className="text-red-500 text-xs mb-2">{errors.vendorId.message}</p>}
-                
+
                 {selectedVendorDetails && (
                   <div className="p-3.5 bg-blue-50/50 rounded-lg border border-blue-100 text-sm">
                     <div className="grid grid-cols-2 gap-y-3 gap-x-4">
@@ -429,7 +430,7 @@ export default function AddPurchaseOrderPage() {
                   </div>
                 )}
               </div>
-              
+
               <div className="space-y-5">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Contract Reference</label>
@@ -450,15 +451,15 @@ export default function AddPurchaseOrderPage() {
                 <ShoppingCart className="w-5 h-5 text-blue-600" />
                 <h2 className="text-lg font-semibold text-gray-800">Purchase Items</h2>
               </div>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => append({ item_id: '', item_name: '', qty: 0, uom: '', weight: 0, volume: 0, unit_price: 0, tax_id: '', tax_percentage: 0, tax_cal: '1' })}
                 className="px-4 py-2 h-[42px] bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium shadow-sm transition-colors flex items-center justify-center gap-2 focus:ring-2 focus:ring-offset-1 focus:ring-gray-200"
               >
                 <Plus className="w-4 h-4" /> Add Row
               </button>
             </div>
-            
+
             <div className="overflow-x-auto w-full pb-4">
               <table className="w-full text-sm text-left min-w-[1300px]">
                 <thead className="bg-gray-100/70 border-b border-gray-200 text-gray-600 uppercase text-xs font-semibold tracking-wider">
@@ -480,7 +481,7 @@ export default function AddPurchaseOrderPage() {
                     const price = Number(watchItems[index]?.unit_price) || 0;
                     const taxPerc = Number(watchItems[index]?.tax_percentage) || 0;
                     const taxCal = watchItems[index]?.tax_cal || '1';
-                    
+
                     const baseAmt = qty * price;
                     let rowTotal = 0;
                     if (taxCal === '1') rowTotal = baseAmt + ((baseAmt * taxPerc) / 100);
@@ -489,7 +490,7 @@ export default function AddPurchaseOrderPage() {
                     return (
                       <tr key={field.id} className="bg-white hover:bg-gray-50/50 transition-colors group align-top">
                         <td className="p-3 sticky left-0 bg-white group-hover:bg-gray-50/50 z-10 shadow-[1px_0_0_0_#f3f4f6]">
-                          <ProductSearchSelect 
+                          <ProductSearchSelect
                             products={availableProducts}
                             value={watchItems[index]?.item_id || ''}
                             onChange={(val) => handleProductSelect(index, val)}
@@ -518,8 +519,8 @@ export default function AddPurchaseOrderPage() {
                           {watchItems[index]?.item_id && (
                              <div className="flex items-center justify-start gap-1 mt-1.5">
                                <div className="text-[10px] text-gray-700 font-semibold uppercase tracking-wide">LPR: ₹{watchItems[index]?.unit_price}</div>
-                               <button 
-                                 type="button" 
+                               <button
+                                 type="button"
                                  onClick={() => openLprModal(watchItems[index].item_id, watchItems[index].item_name)}
                                  className="text-red-500 hover:text-red-700 p-0.5 rounded-full hover:bg-red-50 transition-colors"
                                  title="View Last Purchase History"
@@ -582,8 +583,8 @@ export default function AddPurchaseOrderPage() {
                   <CreditCard className="w-5 h-5 text-blue-600" />
                   <h2 className="text-lg font-semibold text-gray-800">Payment Terms</h2>
                 </div>
-                <textarea 
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow h-28 resize-none shadow-sm" 
+                <textarea
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow h-28 resize-none shadow-sm"
                   placeholder="Specify payment milestones or conditions..."
                   {...register('paymentTerms')}
                 />
@@ -593,8 +594,8 @@ export default function AddPurchaseOrderPage() {
                   <Info className="w-5 h-5 text-blue-600" />
                   <h2 className="text-lg font-semibold text-gray-800">Internal Remarks</h2>
                 </div>
-                <textarea 
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow h-28 resize-none shadow-sm" 
+                <textarea
+                  className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow h-28 resize-none shadow-sm"
                   placeholder="Additional notes (internal use only)..."
                   {...register('remark')}
                 />
@@ -610,7 +611,7 @@ export default function AddPurchaseOrderPage() {
               </h2>
               <p className="text-gray-400 text-xs mt-1.5 font-medium uppercase tracking-wider">Live Calculation</p>
             </div>
-            
+
             <div className="p-6 space-y-4">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500 font-medium">Subtotal</span>
@@ -628,7 +629,7 @@ export default function AddPurchaseOrderPage() {
                 <span className="text-gray-500 font-medium">Round Off</span>
                 <span className="font-semibold text-gray-400 tabular-nums">₹0.00</span>
               </div>
-              
+
               <div className="border-t border-gray-200 pt-5 mt-3 border-dashed">
                 <div className="flex justify-between items-end">
                   <span className="text-gray-800 font-bold uppercase tracking-wider text-sm">Grand Total</span>
@@ -638,8 +639,8 @@ export default function AddPurchaseOrderPage() {
             </div>
 
             <div className="p-6 bg-gray-50 border-t border-gray-200">
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={isSubmitting}
                 className="w-full py-3.5 h-[52px] bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 focus:ring-2 focus:ring-offset-2 focus:ring-blue-600"
               >
@@ -764,7 +765,7 @@ export default function AddPurchaseOrderPage() {
               </div>
             </div>
             <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-end">
-              <button 
+              <button
                 type="button"
                 onClick={() => setLprModalOpen(false)}
                 className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm"

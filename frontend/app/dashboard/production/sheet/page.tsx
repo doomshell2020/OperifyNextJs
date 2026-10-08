@@ -1,5 +1,6 @@
 'use client';
 
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React from 'react';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { AlertCircle, RefreshCw, Layers } from 'lucide-react';
@@ -18,9 +19,7 @@ export default function PlaceHolderPage() {
             <Layers className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-lg font-extrabold text-slate-900 tracking-tight">
-              Daily Production Sheet Logs
-            </h1>
+            <LegacyPageHeader title="Daily Sheet"/>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
               Legacy CakePHP ERP module modernized Next.js layout shell
             </p>

@@ -1,4 +1,5 @@
 "use client";
+import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import { openModulePdf } from '@/services/pdf.service';
 import { useCallback, useState, useEffect } from "react";
 import { indentpoService, Indentpo } from "../../../../services/indentpo.service";
@@ -17,6 +18,7 @@ const emptyFilters = { contract_name: '', product_name: '', machine_name: '', da
 const filterKeys = Object.keys(emptyFilters);
 
 export default function IndentPoListPage() {
+  const canAction=useLegacyActionAccess();
   const { hasPermission } = usePermission();
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -96,11 +98,11 @@ export default function IndentPoListPage() {
           </label>
           <label className="flex min-w-0 flex-1 basis-[130px] flex-col gap-1">
             Start Date
-            <DatePicker aria-label="Start Date" name="date_from" dateFormat="dd-MM-yyyy" className="h-8 w-full" value={draftFilters.date_from} onChange={event => updateDraft('date_from', event.target.value)} />
+            <DatePicker aria-label="Start Date" placeholder="Start Date" name="date_from" dateFormat="dd-MM-yyyy" className="h-8 w-full" value={draftFilters.date_from} onChange={event => updateDraft('date_from', event.target.value)} />
           </label>
           <label className="flex min-w-0 flex-1 basis-[130px] flex-col gap-1">
             End Date
-            <DatePicker aria-label="End Date" name="date_to" dateFormat="dd-MM-yyyy" className="h-8 w-full" value={draftFilters.date_to} onChange={event => updateDraft('date_to', event.target.value)} />
+            <DatePicker aria-label="End Date" placeholder="End Date" name="date_to" dateFormat="dd-MM-yyyy" className="h-8 w-full" value={draftFilters.date_to} onChange={event => updateDraft('date_to', event.target.value)} />
           </label>
           <div className="mb-1 flex gap-1">
             <button type="submit" className={styles.primaryButton} disabled={!ready}>Search</button>
@@ -112,9 +114,9 @@ export default function IndentPoListPage() {
             }}>Reset</button>
           </div>
           <div className="mb-1 ml-auto flex items-center gap-3">
-            <button type="button" title="Export Excel" aria-label="Export Excel" className="p-1 text-slate-800 hover:text-blue-600" disabled={!ready} onClick={async () => {
+            {canAction('indentpo','indentpoexcel') && <button type="button" title="Export Excel" aria-label="Export Excel" className="p-1 text-slate-800 hover:text-blue-600" disabled={!ready} onClick={async () => {
               try { await indentpoService.exportExcel(filters); } catch { alert('Unable to export indents'); }
-            }}><FileSpreadsheet className="h-7 w-7" /></button>
+            }}><FileSpreadsheet className="h-7 w-7" /></button>}
             {hasPermission('legacy:admin/indentpo/add') && <Link href="/dashboard/purchase/indentpo/new" className={styles.primaryButton}><Plus className="h-3 w-3" />Add</Link>}
           </div>
         </form>
@@ -138,8 +140,8 @@ export default function IndentPoListPage() {
                 : indents.length === 0 ? <tr><td colSpan={8} className="text-center"><div className="flex items-center justify-center gap-2 py-6"><Search className="h-4 w-4" />No indents found matching your criteria</div></td></tr>
                 : indents.map((indent, index) => <tr key={indent.id}>
                   <td>{(page - 1) * 50 + index + 1}</td>
-                  <td><button type="button" className="font-semibold text-blue-500 hover:underline" onClick={() => setSelectedIndentId(indent.id)}>{indent.indent_id}</button></td>
-                  <td><button type="button" className="text-left font-semibold text-blue-500 hover:underline" disabled={!indent.contract_id} onClick={() => setSelectedContractId(indent.contract_id || null)}>{indent.contract_name}{indent.workorder ? `(${indent.workorder})` : ''}</button></td>
+                  <td><button type="button" className="font-semibold text-blue-500 hover:underline" disabled={!canAction('indentpo','viewindentpodetail')} onClick={() => setSelectedIndentId(indent.id)}>{indent.indent_id}</button></td>
+                  <td><button type="button" className="text-left font-semibold text-blue-500 hover:underline" disabled={!indent.contract_id || !canAction('production','viewcontractdetail')} onClick={() => setSelectedContractId(indent.contract_id || null)}>{indent.contract_name}{indent.workorder ? `(${indent.workorder})` : ''}</button></td>
                   <td>{indent.product_name}</td>
                   <td>{indent.machine_name}</td>
                   <td>{indent.issued_name}</td>
@@ -150,7 +152,8 @@ export default function IndentPoListPage() {
                       if (!window.confirm(`Delete indent ${indent.indent_id}?`)) return;
                       try { await indentpoService.remove(String(indent.indent_id)); fetchIndents(); } catch { alert('Unable to delete indent'); }
                     }}>Delete</button>}
-                    <Link href={`/dashboard/purchase/indentpo/${indent.indent_id}`} aria-label={`View or print indent ${indent.indent_id}`} title="View / Print" className="text-slate-400 hover:text-blue-600"><Printer className="h-4 w-4" /></Link>
+                    {canAction('indentpo','viewindentpopdf') && <button type="button" onClick={()=>openModulePdf(`/indentpo/${encodeURIComponent(indent.indent_id)}/pdf`)} aria-label={`Print indent ${indent.indent_id}`} title="Print" className="text-blue-500"><Printer className="h-4 w-4"/></button>}
+
                   </div></td>
                 </tr>)}
             </tbody>
@@ -172,9 +175,9 @@ function Button({ children, onClick, variant = 'primary', disabled, className = 
     outline: "border border-slate-300 bg-transparent hover:bg-slate-50 text-slate-700 focus:ring-slate-500",
     ghost: "bg-transparent hover:bg-slate-100 text-slate-700",
   };
-  
+
   return (
-    <button 
+    <button
       onClick={onClick}
       disabled={disabled}
       className={`${baseStyles} ${variants[variant as keyof typeof variants]} ${className}`}
@@ -220,7 +223,7 @@ function IndentDetailsModal({ id, onClose }: { id: number, onClose: () => void }
                 <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full">✕</button>
               </div>
             </div>
-            
+
             <div className="p-6 overflow-y-auto" id="printable-indent-modal">
               <div className="grid grid-cols-2 gap-4 mb-8 text-sm">
                 <div>
@@ -235,7 +238,7 @@ function IndentDetailsModal({ id, onClose }: { id: number, onClose: () => void }
                   <div className="font-semibold text-slate-500 mt-2">Issue By :- <span className="font-normal text-slate-900">{details.header.issued_name}</span></div>
                 </div>
               </div>
-              
+
               <h3 className="text-center font-bold text-lg mb-4">Raw Material</h3>
               <table className="w-full text-sm text-left border">
                 <thead className="bg-slate-50 border-b">

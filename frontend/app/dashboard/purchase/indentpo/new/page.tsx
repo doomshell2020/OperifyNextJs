@@ -1,5 +1,6 @@
 "use client";
 
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { indentpoService, IndentpoItem } from "../../../../../services/indentpo.service";
@@ -211,8 +212,8 @@ export default function CreateIndentPoPage() {
             </button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Create Indent PO</h1>
-            <p className="text-sm text-slate-500 mt-1">Issue stock against a contract design sheet.</p>
+            <LegacyPageHeader title="Indent Manager"/>
+
           </div>
         </div>
         <button
@@ -225,7 +226,7 @@ export default function CreateIndentPoPage() {
           ) : (
             <Save className="w-4 h-4 mr-2" />
           )}
-          Save & Finalize
+          Submit
         </button>
       </div>
 
@@ -235,13 +236,13 @@ export default function CreateIndentPoPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="legacy-indent-form">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-5">
           <h2 className="text-lg font-semibold text-slate-800 border-b pb-3">Indent Details</h2>
 
           <div className="grid grid-cols-2 gap-5">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700">Indent No</label>
+              <label className="text-sm font-medium text-slate-700">Indent Id No. *</label>
               <input
                 type="text"
                 readOnly
@@ -261,7 +262,7 @@ export default function CreateIndentPoPage() {
           </div>
 
           <div className="space-y-1.5" ref={contractRef}>
-            <label className="text-sm font-medium text-slate-700">Contract *</label>
+            <label className="text-sm font-medium text-slate-700">Contract Name *</label>
             <div className="relative">
               <input
                 type="text"
@@ -297,7 +298,7 @@ export default function CreateIndentPoPage() {
           <h2 className="text-lg font-semibold text-slate-800 border-b pb-3">Issue Information</h2>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700">Finished Product *</label>
+            <label className="text-sm font-medium text-slate-700">Product *</label>
             <select
               value={selectedProduct}
               onChange={(e) => setSelectedProduct(e.target.value)}
@@ -345,7 +346,7 @@ export default function CreateIndentPoPage() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700">Issued By / To *</label>
+            <label className="text-sm font-medium text-slate-700">Issued By *</label>
             <input
               type="text"
               placeholder="Enter name"
@@ -359,7 +360,7 @@ export default function CreateIndentPoPage() {
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
-          <h2 className="text-lg font-semibold text-slate-800">Raw Materials (Design Sheet)</h2>
+          <h2 className="text-lg font-semibold text-slate-800">Items</h2>
           {selectedProduct && gridItems.length > 0 && (
             <div className="flex items-center text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-200">
               <CheckCircle2 className="w-4 h-4 mr-1.5" />
@@ -382,7 +383,7 @@ export default function CreateIndentPoPage() {
             <tbody className="divide-y divide-slate-200">
               {gridItems.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-slate-500">
+                  <td colSpan={5} className="text-center py-12 text-slate-500">
                     {!selectedContract || !selectedProduct ? (
                       <p>Select a Contract and Product to load the design sheet.</p>
                     ) : (

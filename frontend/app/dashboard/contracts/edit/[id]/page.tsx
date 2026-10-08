@@ -1,5 +1,6 @@
 'use client';
 
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -159,10 +160,7 @@ export default function EditContractPage() {
   return (
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
       <div>
-        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-          <Briefcase className="w-5 h-5 text-cyan-600" />
-          Edit Contract
-        </h1>
+        <LegacyPageHeader title="Edit Contract"/>
       </div>
 
       <div className="bg-white border-t-[3px] border-t-[#00bcd4] border-x border-b border-slate-200 shadow-sm overflow-hidden">

@@ -8,6 +8,17 @@ const router = express.Router();
 router.use(authenticate);
 router.use(tenantMiddleware);
 
+// Read-only action catalog lets buttons follow the same configured-label policy
+// as legacyPermission, including PHP actions without an explicit label.
+router.get('/action-labels', async (req, res, next) => {
+  try {
+    const { centralSequelize } = require('../../config/sequelize');
+    const { QueryTypes } = require('sequelize');
+    const rows = await centralSequelize.query('SELECT LOWER(TRIM(url)) AS url FROM permission_label', { type: QueryTypes.SELECT });
+    res.json({ success: true, data: { configured: rows.filter(row => row.url).map(row => `legacy:${row.url}`) } });
+  } catch (error) { next(error); }
+});
+
 // Only allow superadmin (role 101)? Well, let's add a check in controller.
 
 router.get('/managers', permissionController.getManagers);

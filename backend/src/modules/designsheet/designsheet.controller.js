@@ -7,7 +7,7 @@ const getUploadDir = () => path.join(__dirname, '../../../../frontend/public/des
 
 exports.index = async (req, res, next) => {
   try {
-    const { contract_id, datestart, dateto } = req.query;
+    const { contract_id, contract_name, datestart, dateto } = req.query;
     const {page,limit,offset} = paginationInput(req.query,'designsheet');
 
     let query = `
@@ -22,6 +22,10 @@ exports.index = async (req, res, next) => {
     if (contract_id) {
       query += ' AND d.contract_id = :contract_id';
       params.contract_id = contract_id;
+    }
+    if (contract_name && !contract_id) {
+      query += " AND (c.title LIKE :contract_name OR c.workorder LIKE :contract_name OR CONCAT(c.title, '(', c.workorder, ')') LIKE :contract_name)";
+      params.contract_name = `%${contract_name.trim()}%`;
     }
 
     if (datestart && datestart !== '1970-01-01') {

@@ -1,5 +1,8 @@
 'use client';
 
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
+import {useListLocation} from '@/components/ui/useListLocation';
+import {formatContractDate} from '@/utils/dateFormatter';
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../../../services/apiClient';
@@ -22,9 +25,10 @@ export default function JobChallanList() {
   });
   const [applied, setApplied] = useState({ ...filters });
 
+  const locationReady=useListLocation(applied,page,['fromDate','toDate','vendorId','status','challanNo'],(next,nextPage)=>{setFilters(next);setApplied(next);setPage(nextPage);});
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['jobChallans', user?.db, page, applied],
-    enabled: can('jobchallan','index'),
+    enabled: locationReady && can('jobchallan','index'),
     queryFn: async () => {
       const res = await apiClient.get('/job-challan', {
         params: { page, limit: 50, ...applied }
@@ -77,39 +81,17 @@ export default function JobChallanList() {
     }
   };
 
-  const statusBadge = (status: string) => {
-    const cls = status === 'Completed' || status === 'Received'
-      ? 'bg-green-100 text-green-700'
-      : status === 'Cancelled'
-      ? 'bg-red-100 text-red-700'
-      : 'bg-yellow-100 text-yellow-700';
-    return <span className={`px-2 py-0.5 rounded text-xs font-semibold ${cls}`}>{status || 'Pending'}</span>;
-  };
+  const statusBadge=(status:string)=><span className="legacy-status">{status || 'Pending'}</span>;
 
   if (permissionsLoading) return <p className="p-6">Loading permissions...</p>;
   if (!can('jobchallan','index')) return <p className="p-6" role="alert">You do not have permission to view JCs.</p>;
   return (
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-            <Box className="text-cyan-600" /> Job Challan Report
-          </h1>
-          <p className="text-sm text-slate-500 font-medium mt-1">Manage dispatch and job worker challans</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => refetch()} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-sm font-medium transition">
-            <RefreshCw className="w-4 h-4" /> Refresh
-          </button>
-          {can('jobchallan','add') && <button onClick={() => router.push('/dashboard/jc-challan/create')} className="flex items-center gap-1.5 px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition shadow-sm">
-            <Plus className="w-4 h-4" /> Add Job Challan
-          </button>}
-        </div>
-      </div>
+      <LegacyPageHeader title="Job Challan Report"/>
+      {can('jobchallan','add') && <Link className="legacy-button" href="/dashboard/jc-challan/create">+ Add Job Challan</Link>}
 
       {/* Filters */}
-      <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
+      <div className="legacy-filter-row">
         <div>
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">From Date</label>
           <input type="date" name="fromDate" value={filters.fromDate} onChange={handleFilterChange}
@@ -148,7 +130,7 @@ export default function JobChallanList() {
             Search
           </button>
           <button onClick={resetFilters} className="bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-md p-2 flex items-center justify-center transition" title="Reset Filters">
-            <X className="w-5 h-5" />
+            Reset
           </button>
         </div>
       </div>
@@ -188,13 +170,10 @@ export default function JobChallanList() {
                   <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
                     <td className="p-4 text-slate-500">{((page - 1) * 50) + idx + 1}</td>
                     <td className="p-4 font-medium text-cyan-700">{item.challan_no}</td>
-                    <td className="p-4 text-slate-600">{item.jc_date}</td>
+                    <td className="p-4 text-slate-600">{formatContractDate(item.jc_date)}</td>
                     <td className="p-4 font-medium text-blue-600 truncate max-w-[200px]">{item.vendor?.name || 'N/A'}</td>
                     <td className="p-4 text-slate-500">{item.vehicle_no || '—'}</td>
                     <td className="p-4">{statusBadge(item.status)}</td>
-                    <td className="p-4 text-right text-slate-800 font-bold">
-                      {(item.final_amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                    </td>
                     <td className="p-4 text-center">
                       <div className="flex justify-center gap-1">
                         {can('jobchallan','view') && <button onClick={() => router.push(`/dashboard/jc-challan/${item.id}`)}
@@ -215,7 +194,7 @@ export default function JobChallanList() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8} className="p-10 text-center text-slate-400 italic">
+                  <td colSpan={7} className="p-10 text-center text-slate-400 italic">
                     No job challans found matching your filters.
                   </td>
                 </tr>

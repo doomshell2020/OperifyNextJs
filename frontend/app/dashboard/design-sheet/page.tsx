@@ -2,6 +2,8 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { LegacyPageHeader } from '@/components/ui/LegacyPageHeader';
+import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import { useListLocation } from '@/components/ui/useListLocation';
 import { ListPagination, LEGACY_LIST_LIMIT } from '@/components/ui/ListPagination';
 import React, { useState } from 'react';
@@ -9,7 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { usePermission } from '@/contexts/PermissionContext';
 import { designsheetService, DesignSheetFilter } from '../../../services/designsheet.service';
-import { 
+import {
   FileText, Search, RefreshCw, Loader, AlertCircle, Briefcase, Plus, Edit, Trash2, Printer
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -19,8 +21,9 @@ import { formatContractDate } from '../../../utils/dateFormatter';
 
 export default function DesignSheetsPage() {
   const { hasPermission } = usePermission();
+  const canAction = useLegacyActionAccess();
   const [filters, setFilters] = useState<DesignSheetFilter>({
-    contract_id: '',
+    contract_id: '', contract_name: '',
     datestart: '',
     dateto: ''
   });
@@ -29,14 +32,14 @@ export default function DesignSheetsPage() {
   const [selectedSheetNo, setSelectedSheetNo] = useState<string | null>(null);
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
 
-  const locationReady = useListLocation(activeFilters, activeFilters.page || 1, ['contract_id', 'datestart', 'dateto', 'sort', 'direction'], (next, nextPage) => { setActiveFilters({ ...next, page: nextPage, limit: LEGACY_LIST_LIMIT }); setFilters(next); });
+  const locationReady = useListLocation(activeFilters, activeFilters.page || 1, ['contract_id', 'contract_name', 'datestart', 'dateto', 'sort', 'direction'], (next, nextPage) => { setActiveFilters({ ...next, page: nextPage, limit: LEGACY_LIST_LIMIT }); setFilters(next); });
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['designsheets', activeFilters],
     enabled: locationReady,
     queryFn: () => designsheetService.getDesignSheets(activeFilters),
     staleTime: 5 * 60 * 1000
   });
-  
+
   const designs = data?.data || [];
   const canAdd = hasPermission("designsheet:add") || hasPermission("legacy:admin/designsheet/add");
   const canEdit = hasPermission("designsheet:edit") || hasPermission("legacy:admin/designsheet/edit");
@@ -56,17 +59,24 @@ export default function DesignSheetsPage() {
     staleTime: 5 * 60 * 1000
   });
 
+  const { data: contractOptions = [] } = useQuery<{ id: number; title: string; workorder: string }[]>({
+    queryKey: ['designsheet-filter-contracts', filters.contract_name],
+    queryFn: async () => (await designsheetService.searchContracts(filters.contract_name || '')).contracts,
+    enabled: (filters.contract_name || '').trim().length >= 2,
+  });
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setActiveFilters({ ...filters, page: 1, limit: LEGACY_LIST_LIMIT });
+    const selected = contractOptions.find(row => `${row.title}(${row.workorder})` === filters.contract_name);
+    setActiveFilters({ ...filters, contract_id: selected ? String(selected.id) : filters.contract_id, page: 1, limit: LEGACY_LIST_LIMIT });
   };
 
   const handleReset = () => {
-    const empty = { contract_id: '', datestart: '', dateto: '' };
+    const empty = { contract_id: '', contract_name: '', datestart: '', dateto: '' };
     setFilters(empty);
     setActiveFilters({ page: 1, limit: LEGACY_LIST_LIMIT });
   };
-  
+
   const handlePageChange = (newPage: number) => {
     setActiveFilters(prev => ({ ...prev, page: newPage }));
   };
@@ -84,50 +94,19 @@ export default function DesignSheetsPage() {
     }
   };
 
-  
+
   return (
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
-<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-            <FileText className="w-5 h-5 text-cyan-600" />
-            Design Sheets Management
-          </h1>
-        </div>
-        <div className="flex gap-2">
-          {canAdd && (
-            <Link href="/dashboard/design-sheet/add" className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 border border-cyan-600 rounded-lg text-xs font-semibold text-white transition cursor-pointer self-start md:self-auto">
-            <Plus className="w-3.5 h-3.5" /> Add Design Sheet
-          </Link>
-          )}
-          <button onClick={() => refetch()} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 transition cursor-pointer self-start md:self-auto">
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh
-          </button>
-        </div>
-      </div>
-
-      <form onSubmit={handleSearch} className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-sm space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Contract ID</label>
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input type="text" placeholder="Enter Contract ID" value={filters.contract_id || ''} onChange={(e) => setFilters({ ...filters, contract_id: e.target.value })} className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-cyan-500 transition" />
-            </div>
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Date From</label>
-            <DatePicker dateFormat="dd-MM-yyyy" value={filters.datestart || ''} onChange={(e) => setFilters({ ...filters, datestart: e.target.value })} className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-cyan-500 transition" />
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Date To</label>
-            <DatePicker dateFormat="dd-MM-yyyy" value={filters.dateto || ''} onChange={(e) => setFilters({ ...filters, dateto: e.target.value })} className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-cyan-500 transition" />
-          </div>
-        </div>
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <button type="button" onClick={handleReset} className="px-4 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 transition cursor-pointer">Reset</button>
-          <button type="submit" className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold shadow-sm transition cursor-pointer">Search</button>
-        </div>
+      <LegacyPageHeader title="Design Sheet" />
+      <form onSubmit={handleSearch} className="legacy-filter-row">
+        <label>Contract Name
+          <input aria-label="Contract Name" list="designsheet-contract-options" placeholder="Enter Contract Name" value={filters.contract_name || ''} onChange={e => setFilters({ ...filters, contract_name: e.target.value, contract_id: '' })} />
+          <datalist id="designsheet-contract-options">{contractOptions.map(row => <option key={row.id} value={`${row.title}(${row.workorder})`} />)}</datalist>
+        </label>
+        <label>Start Date<DatePicker aria-label="Start Date" placeholder="Start Date" value={filters.datestart || ''} onChange={e => setFilters({ ...filters, datestart: e.target.value })} /></label>
+        <label>End Date<DatePicker aria-label="End Date" placeholder="End Date" value={filters.dateto || ''} onChange={e => setFilters({ ...filters, dateto: e.target.value })} /></label>
+        <div className="legacy-filter-actions"><button type="submit" className="legacy-button">Search</button><button type="button" onClick={handleReset} className="legacy-button">Reset</button></div>
+        {canAdd && <Link href="/dashboard/design-sheet/add" className="legacy-button mb-1 ml-auto"><Plus size={12} />Add</Link>}
       </form>
 
       {isLoading ? (
@@ -150,14 +129,14 @@ export default function DesignSheetsPage() {
           <table className="w-full text-left border-collapse text-xs font-medium text-slate-600">
             <thead>
               <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200">
-                <th className="px-6 py-3">S.No.</th>
-                <th className="px-6 py-3">Design Sheet No.</th>
-                <th className="px-6 py-3">Contract Name</th>
-                <th className="px-6 py-3">Type Of Cable</th>
-                <th className="px-6 py-3">Quantity(in KM)</th>
-                <th className="px-6 py-3 text-center">Issue Date</th>
-                <th className="px-6 py-3 text-center">Design Sheet</th>
-                <th className="px-6 py-3 text-center">Action</th>
+                <th style={{width:'3%'}} className="px-6 py-3">S.No.</th>
+                <th style={{width:'9%'}} className="px-6 py-3">Design Sheet No.</th>
+                <th style={{width:'25%'}} className="px-6 py-3">Contract Name</th>
+                <th style={{width:'35%'}} className="px-6 py-3">Type Of Cable</th>
+                <th style={{width:'8%'}} className="px-6 py-3">Quantity(in KM)</th>
+                <th style={{width:'7%'}} className="px-6 py-3 text-center">Issue Date</th>
+                <th style={{width:'7%'}} className="px-6 py-3 text-center">Design Sheet</th>
+                <th style={{width:'6%'}} className="px-6 py-3 text-center">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -166,12 +145,12 @@ export default function DesignSheetsPage() {
                 <tr key={d.id} className="hover:bg-slate-50/50 transition">
                   <td className="px-6 py-4 font-bold text-slate-900">{((activeFilters.page || 1) - 1) * (activeFilters.limit || 50) + idx + 1}</td>
                   <td className="px-6 py-4 font-bold text-slate-900">
-                     <span className="text-cyan-600 cursor-pointer" onClick={() => setSelectedSheetNo(d.designsheetno)}>
+                     <span className="text-cyan-600 cursor-pointer" onClick={() => {if(canAction('designsheet','viewdesignsheet'))setSelectedSheetNo(d.designsheetno);}}>
                          {d.designsheetno}
                      </span>
                   </td>
                   <td className="px-4 py-3">
-                        <button 
+                        <button
                             onClick={() => setSelectedContractId(d.contract_id)}
                             className="text-cyan-600 hover:text-cyan-800 font-semibold hover:underline"
                         >
@@ -232,7 +211,7 @@ export default function DesignSheetsPage() {
                 <div className="relative mb-6">
                     <h3 className="text-base font-extrabold text-slate-900 text-center">Design Sheet Details</h3>
                     <div className="absolute right-0 top-0">
-                        {(hasPermission("designsheet:viewdetails") || hasPermission("legacy:admin/designsheet/viewdesignsheet") || hasPermission("designsheet:view") || hasPermission("legacy:admin/designsheet/index")) && (
+                        {canAction("designsheet", "viewdesignsheet") && (
                           <Link href={`/dashboard/design-sheet/print/${detailsData.designsheet.designsheetno}`} target="_blank" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-semibold shadow-sm transition">
                             <Printer className="w-3.5 h-3.5" /> Print
                         </Link>

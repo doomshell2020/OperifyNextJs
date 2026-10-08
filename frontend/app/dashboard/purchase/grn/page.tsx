@@ -1,5 +1,7 @@
 'use client';
 
+import { LegacyPageHeader } from '@/components/ui/LegacyPageHeader';
+import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import { useListLocation } from '@/components/ui/useListLocation';
 import { ListPagination, LEGACY_LIST_LIMIT } from '@/components/ui/ListPagination';
 import React, { useState, useEffect } from 'react';
@@ -17,21 +19,22 @@ import {usePermission} from '@/contexts/PermissionContext';
 
 export default function GrnIndexPage() {
   const {hasPermission}=usePermission();
+  const canAction=useLegacyActionAccess();
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
     po_id: '',
-    vendor_id: '',
+    vendor_id: '', vendor_name:'',
     from_date: '',
     to_date: ''
   });
-  
+
   const [vendorSearchText, setVendorSearchText] = useState('');
   const [vendorSuggestions, setVendorSuggestions] = useState<any[]>([]);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
 
   const [activeFilters, setActiveFilters] = useState(filters);
-  const applyFilters = () => { setActiveFilters({ ...filters }); setPage(1); };
+  const applyFilters = () => { setActiveFilters({ ...filters,vendor_name:vendorSearchText }); setPage(1); };
   const [selectedPoId, setSelectedPoId] = useState<string | null>(null);
   const [isPoModalOpen, setIsPoModalOpen] = useState(false);
   const [selectedGrnId, setSelectedGrnId] = useState<string | null>(null);
@@ -43,7 +46,7 @@ export default function GrnIndexPage() {
     const timeoutId = setTimeout(async () => {
       if (vendorSearchText.trim().length >= 2) {
         try {
-          const response = await apiClient.get(`/vendors/search?q=${vendorSearchText}`);
+          const response = await apiClient.get('/vendors/search', {params:{q:vendorSearchText}});
           if (response.data?.success) {
             setVendorSuggestions(response.data.data);
             setShowVendorDropdown(true);
@@ -60,7 +63,7 @@ export default function GrnIndexPage() {
   }, [vendorSearchText]);
 
   const handleVendorSelect = (vendor: any) => {
-    setFilters(prev => ({ ...prev, vendor_id: vendor.id.toString() }));
+    setFilters(prev => ({ ...prev, vendor_id: vendor.id.toString(),vendor_name:vendor.name }));
     setVendorSearchText(vendor.name);
     setShowVendorDropdown(false);
     setPage(1);
@@ -78,7 +81,7 @@ export default function GrnIndexPage() {
     }
   };
 
-  const locationReady = useListLocation(activeFilters, page, ['po_id', 'vendor_id', 'from_date', 'to_date', 'sort', 'direction'], (next, nextPage) => { setActiveFilters(next); setFilters(next); setPage(nextPage); });
+  const locationReady = useListLocation(activeFilters, page, ['po_id', 'vendor_id', 'vendor_name', 'from_date', 'to_date', 'sort', 'direction'], (next, nextPage) => { setActiveFilters(next); setFilters(next);setVendorSearchText(next.vendor_name || ''); setPage(nextPage); });
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['grn', { page, ...activeFilters }],
     enabled: locationReady,
@@ -90,8 +93,8 @@ export default function GrnIndexPage() {
   };
 
   const resetFilters = () => {
-    setFilters({ po_id: '', vendor_id: '', from_date: '', to_date: '' });
-    setActiveFilters({ po_id: '', vendor_id: '', from_date: '', to_date: '' });
+    setFilters({ po_id: '', vendor_id: '', vendor_name:'', from_date: '', to_date: '' });
+    setActiveFilters({ po_id: '', vendor_id: '', vendor_name:'', from_date: '', to_date: '' });
     setVendorSearchText('');
     setPage(1);
   };
@@ -103,10 +106,10 @@ export default function GrnIndexPage() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      
+
       const dateStr = new Date().toLocaleDateString('en-GB').replace(/\//g, '-');
       link.setAttribute('download', `GRN_Summary-${dateStr}.xlsx`);
-      
+
       document.body.appendChild(link);
       link.click();
       link.parentNode?.removeChild(link);
@@ -120,53 +123,34 @@ export default function GrnIndexPage() {
 
   return (
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-            Goods Received Note (GRN)
-          </h1>
-          <p className="text-sm text-slate-500 font-medium mt-1">Manage Goods Received Notes and Stock In</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => refetch()} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-sm font-medium transition">
-            <RefreshCw className="w-4 h-4" /> Refresh
-          </button>
-          <button onClick={handleExport} disabled={isExporting} className={`flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-md text-sm font-medium transition border border-emerald-200 ${isExporting ? 'opacity-70 cursor-not-allowed' : ''}`}>
-            {isExporting ? <Loader className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
-            {isExporting ? 'Exporting...' : 'Export Excel'}
-          </button>
-          {hasPermission('legacy:admin/goodsreceived/add') && <button onClick={() => router.push('/dashboard/purchase/grn/add')} className="flex items-center gap-1.5 px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition shadow-sm">
-            <Plus className="w-4 h-4" /> Add GRN
-          </button>}
-        </div>
-      </div>
+      <LegacyPageHeader title="Goods/Material Received Note" />
 
-      <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm grid grid-cols-2 md:grid-cols-5 gap-4 items-end">
-        <div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">PO Number</label>
-          <input type="text" name="po_id" value={filters.po_id} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none transition" placeholder="PO-..." />
+      <div className="legacy-filter-row">
+        <div className="legacy-filter-field">
+          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">PO ID</label>
+          <input type="text" name="po_id" value={filters.po_id} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none transition" placeholder="Enter PO ID" />
         </div>
-        <div className="relative">
+        <div className="relative legacy-filter-field">
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Vendor</label>
-          <input 
-            type="text" 
-            value={vendorSearchText} 
+          <input
+            type="text"
+            value={vendorSearchText}
             onChange={(e) => {
               setVendorSearchText(e.target.value);
-              if (e.target.value === '') {
+              if (e.target.value !== vendorSearchText) {
                 setFilters(prev => ({ ...prev, vendor_id: '' }));
               }
-            }} 
+            }}
             onFocus={() => { if (vendorSuggestions.length > 0) setShowVendorDropdown(true); }}
             onBlur={() => setTimeout(() => setShowVendorDropdown(false), 200)}
-            className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none transition" 
-            placeholder="Search Vendor..." 
+            className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none transition"
+            placeholder="Search Vendor..."
           />
           {showVendorDropdown && (
             <ul className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
               {vendorSuggestions.map(v => (
-                <li 
-                  key={v.id} 
+                <li
+                  key={v.id}
                   className="p-2 text-sm hover:bg-cyan-50 cursor-pointer"
                   onClick={() => handleVendorSelect(v)}
                 >
@@ -179,21 +163,25 @@ export default function GrnIndexPage() {
             </ul>
           )}
         </div>
-        <div>
+        <div className="legacy-filter-field">
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Date From</label>
           <DatePicker dateFormat="dd-MM-yyyy" name="from_date" value={filters.from_date} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
         </div>
-        <div>
+        <div className="legacy-filter-field">
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Date To</label>
           <DatePicker dateFormat="dd-MM-yyyy" name="to_date" value={filters.to_date} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
         </div>
-        <div className="flex gap-2">
+        <div className="legacy-filter-actions">
           <button onClick={applyFilters} className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md p-2 flex items-center justify-center font-medium shadow-sm transition">
             <Search className="w-4 h-4 mr-2" /> Search
           </button>
-          <button onClick={resetFilters} className="bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-md p-2 flex items-center justify-center font-medium transition" title="Reset Filters">
-            <X className="w-5 h-5" />
+          <button onClick={resetFilters} className="legacy-button" title="Reset Filters">
+            Reset
           </button>
+        </div>
+        <div className="legacy-filter-actions ml-auto">
+          {canAction('goodsreceived','grnexcel') && <button type="button" onClick={handleExport} disabled={isExporting} aria-label="Export Excel" title="Export Excel"><FileSpreadsheet size={28}/></button>}
+          {hasPermission('legacy:admin/goodsreceived/add') && <button type="button" className="legacy-button" onClick={()=>router.push('/dashboard/purchase/grn/add')}><Plus size={12}/>Add</button>}
         </div>
       </div>
 
@@ -204,7 +192,7 @@ export default function GrnIndexPage() {
             <span className="text-sm font-medium text-slate-600">Loading GRNs...</span>
           </div>
         )}
-        
+
         {isError && (
           <div className="absolute inset-0 bg-white z-10 flex flex-col items-center justify-center text-red-500">
             <AlertCircle className="w-10 h-10 mb-2 opacity-50" />
@@ -216,15 +204,16 @@ export default function GrnIndexPage() {
           <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-xs tracking-wider">
-                <th className="p-4 font-semibold">GRN No</th>
-                <th className="p-4 font-semibold">PO Number</th>
-                <th className="p-4 font-semibold">Inward Date</th>
-                <th className="p-4 font-semibold">Bill No</th>
+                <th className="p-4 font-semibold">GRN No.</th>
+                <th className="p-4 font-semibold">PO Id</th>
+                <th className="p-4 font-semibold">G.R.N. Inward</th>
+                <th className="p-4 font-semibold">Bill No.</th>
                 <th className="p-4 font-semibold">Bill Date</th>
                 <th className="p-4 font-semibold">Supplier</th>
-                <th className="p-4 font-semibold text-right">Total Qty</th>
-                <th className="p-4 font-semibold text-right">Total (₹)</th>
-                <th className="p-4 font-semibold text-center">Actions</th>
+                <th className="p-4 font-semibold text-right">Total Qty.</th>
+                <th className="p-4 font-semibold text-right">Total Received Qty.</th>
+                <th className="p-4 font-semibold text-right">Total Amount (INR)</th>
+                <th className="p-4 font-semibold text-center">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -237,28 +226,29 @@ export default function GrnIndexPage() {
                     <td className="p-4 text-slate-600">{grn.bill_no}</td>
                     <td className="p-4 text-slate-600">{formatContractDate(grn.bill_date)}</td>
                     <td className="p-4 text-slate-600">{grn.vendor_name}</td>
+                    <td className="p-4 text-right font-medium">{grn.order_qty ?? ''}</td>
                     <td className="p-4 text-right font-medium">{grn.total_qty}</td>
                     <td className="p-4 text-right font-bold">{parseFloat(grn.total_amt).toLocaleString('en-IN')}</td>
                     <td className="p-4 text-center">
                       <div className="flex items-center justify-center space-x-3">
-                        <button 
-                          onClick={() => handleDownloadPdf(grn.id)} 
+                        {canAction('goodsreceived','view') && <button
+                          onClick={() => handleDownloadPdf(grn.id)}
                           disabled={downloadingPdf === grn.id}
-                          className="text-red-500 hover:text-red-700 transition disabled:opacity-50" 
+                          className="text-red-500 hover:text-red-700 transition disabled:opacity-50"
                           title="Download GRN PDF"
                         >
                           {downloadingPdf === grn.id ? <Loader className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
-                        </button>
-                        <button onClick={() => router.push(`/dashboard/purchase/grn/view/${grn.id}`)} className="text-green-600 hover:text-green-800 transition" title="View GRN">
+                        </button>}
+                        {canAction('goodsreceived','viewgrndetail') && <button onClick={() => router.push(`/dashboard/purchase/grn/view/${grn.id}`)} className="text-green-600 hover:text-green-800 transition" title="View GRN">
                           <Eye className="w-5 h-5" />
-                        </button>
+                        </button>}
                       </div>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={9} className="p-8 text-center text-slate-500">
+                  <td colSpan={10} className="p-8 text-center text-slate-500">
                     No GRNs found matching your filters.
                   </td>
                 </tr>

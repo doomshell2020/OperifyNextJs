@@ -1,5 +1,7 @@
 'use client';
 
+import {useLegacyActionAccess} from '@/components/ui/useLegacyActionAccess';
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { RefreshCw, Search, List, AlertCircle } from 'lucide-react';
@@ -10,11 +12,12 @@ import { StockDetailModal } from './StockDetailModal';
 import { DatePicker } from '../../../../components/ui/DatePicker';
 
 export default function StockRegisterPage() {
+  const canAction=useLegacyActionAccess();
   const { user } = useAuth();
-  
+
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  
+
   const [selectedProduct, setSelectedProduct] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [dateFrom, setDateFrom] = useState('');
@@ -100,40 +103,21 @@ export default function StockRegisterPage() {
 
   return (
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
-      
-      {/* Breadcrumb */}
-      <div className="flex items-center text-sm text-slate-500 space-x-2">
-        <span className="cursor-pointer hover:text-cyan-600">Home</span>
-        <span>&gt;</span>
-        <span className="font-semibold text-slate-700">Goods Received Manager</span>
-      </div>
 
-      <div className="bg-white border border-slate-200/80 rounded-xl p-8 shadow-sm flex flex-col space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-cyan-50 text-cyan-600 rounded-lg">
-            <List className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-lg font-extrabold text-slate-900 tracking-tight">
-              Stock Register
-            </h1>
-          </div>
-        </div>
-
-        <div className="h-px bg-slate-100"></div>
-
+      <LegacyPageHeader title="Stock Register"/>
+      <div className="bg-white border border-slate-200 p-2 space-y-4">
         {/* Filters */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">Product</label>
-            <ProductSearchSelect 
+            <ProductSearchSelect
               products={products}
               value={selectedProduct}
               onChange={setSelectedProduct}
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Category</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">Category (Optional)</label>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
@@ -147,7 +131,7 @@ export default function StockRegisterPage() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">Date From <span className="text-red-500">*</span></label>
-            <DatePicker  
+            <DatePicker
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
               className="w-full text-sm border border-slate-300 rounded-md p-2 outline-none focus:border-cyan-500"
@@ -155,29 +139,29 @@ export default function StockRegisterPage() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">Date To <span className="text-red-500">*</span></label>
-            <DatePicker  
+            <DatePicker
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
               className="w-full text-sm border border-slate-300 rounded-md p-2 outline-none focus:border-cyan-500"
             />
           </div>
         </div>
-        
+
         {/* Actions */}
         <div className="flex justify-end gap-3 mt-4">
-          <button 
+          <button
             onClick={handleReset}
             className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg text-sm font-semibold transition"
           >
             <RefreshCw className="w-4 h-4" /> Reset
           </button>
-          <button 
+          <button
             onClick={handleSearch}
             className="flex items-center gap-1.5 px-4 py-2 bg-cyan-600 text-white hover:bg-cyan-700 rounded-lg text-sm font-semibold shadow-md transition"
           >
             <Search className="w-4 h-4" /> Search
           </button>
-          <button 
+          {canAction('stockregister','summaryexcel') && <button
             onClick={async () => {
               if (!dateFrom || !dateTo) {
                 setError('Date From and Date To are required for export.');
@@ -197,7 +181,7 @@ export default function StockRegisterPage() {
             className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg text-sm font-semibold shadow-md transition"
           >
             <List className="w-4 h-4" /> Export Summary Excel
-          </button>
+          </button>}
         </div>
 
         {error && (
@@ -205,7 +189,7 @@ export default function StockRegisterPage() {
             <AlertCircle className="w-4 h-4" /> {error}
           </div>
         )}
-        
+
         {/* Results Table */}
         <div className="mt-8 overflow-x-auto rounded-lg border border-slate-200">
           <table className="w-full text-left text-sm text-slate-600">
@@ -235,7 +219,7 @@ export default function StockRegisterPage() {
                     <td className="p-3 font-medium text-cyan-600">{r.opening_stock}</td>
                     <td className="p-3 text-green-600">
                       {parseFloat(r.received_stock.toString()) > 0 ? (
-                        <button 
+                        <button
                           onClick={() => openModal('received', r.date_range, r.item_id, r.item_name)}
                           className="hover:underline text-left"
                         >
@@ -247,7 +231,7 @@ export default function StockRegisterPage() {
                     </td>
                     <td className="p-3 text-amber-600">
                       {parseFloat(r.dispatched_stock.toString()) > 0 ? (
-                        <button 
+                        <button
                           onClick={() => openModal('dispatched', r.date_range, r.item_id, r.item_name)}
                           className="hover:underline text-left"
                         >
@@ -280,7 +264,7 @@ export default function StockRegisterPage() {
       </div>
 
       {modalOpen && (
-        <StockDetailModal 
+        <StockDetailModal
           type={modalType}
           date={modalDate}
           productId={modalProductId}

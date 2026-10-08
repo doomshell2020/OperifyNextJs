@@ -23,10 +23,10 @@ class GrnController {
 
   async exportGrns(req, res) {
     try {
-      const { po_id, vendor_id, from_date, to_date } = req.query;
+      const { po_id, vendor_id, vendor_name, from_date, to_date } = req.query;
       const buffer = await grnService.exportGrnsToExcel(req.dbPool, {
         po_id,
-        vendor_id,
+        vendor_id, vendor_name,
         from_date,
         to_date
       });
@@ -37,7 +37,7 @@ class GrnController {
       res.setHeader('Content-Disposition', `attachment;filename=${filename}`);
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Cache-Control', 'max-age=0');
-      
+
       res.status(200).send(buffer);
     } catch (error) {
       console.error("Error in exportGrns:", error);

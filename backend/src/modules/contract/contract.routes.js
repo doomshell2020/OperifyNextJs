@@ -12,7 +12,7 @@ router.use(tenantMiddleware);
 router.get('/', permission('contracts','index'), contractController.getContracts);
 router.post('/', permission('contracts','add'), contractController.createContract);
 router.get('/form-data', contractController.getFormData);
-router.get('/:id/details', permission('contracts','viewcontractdetail'), contractController.getDetails);
+router.get('/:id/details', permission('production','viewcontractdetail'), contractController.getDetails);
 router.get('/:id/reverse-cost', permission('contracts','viewreverse'), async (req,res,next) => {
   try {
     const id=Number(req.params.id);
@@ -22,7 +22,7 @@ router.get('/:id/reverse-cost', permission('contracts','viewreverse'), async (re
     res.json({success:true,data:{contract,...await require('./contract.reverse-cost')(req.dbPool,id)}});
   } catch(error) { next(error); }
 });
-router.get('/:id/pdf', contractController.exportPDF);
+router.get('/:id/pdf', permission('production','viewcontractdetailspdf'), contractController.exportPDF);
 router.put('/:id', permission('contracts','edit'), contractController.updateContract);
 router.delete('/:id', permission('contracts','delete'), contractController.deleteContract);
 

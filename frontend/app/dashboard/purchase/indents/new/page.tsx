@@ -1,5 +1,6 @@
 'use client';
 
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -286,12 +287,7 @@ export default function NewIndentPage() {
           <ListTodo className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h1 className="text-lg font-bold text-slate-900 leading-none">
-            New Indent
-            {!idLoading && indentId && (
-              <span className="ml-2 text-xs font-normal text-slate-400">ID: #{indentId}</span>
-            )}
-          </h1>
+          <LegacyPageHeader title="Purchase Requisition Manager"/>
           <p className="text-xs text-slate-500 mt-0.5">Purchase Requisition</p>
         </div>
       </div>
@@ -419,7 +415,7 @@ export default function NewIndentPage() {
           ) : (
             <CheckCircle className="w-3.5 h-3.5" />
           )}
-          Save & Finalize
+          Submit
         </button>
       </div>
 

@@ -1,5 +1,6 @@
 'use client';
 
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { quotationService, Quotation, QuotationDetail, QuotationFilters } from '@/services/quotation.service';
@@ -177,7 +178,7 @@ export default function QuotationsPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Quotations</h1>
+          <LegacyPageHeader title="Quotations"/>
           <p className="text-sm text-slate-500 mt-0.5">Manage vendor quotations and purchase proposals</p>
         </div>
         <span className="bg-slate-100 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500">{data?.length ?? 0} records</span>

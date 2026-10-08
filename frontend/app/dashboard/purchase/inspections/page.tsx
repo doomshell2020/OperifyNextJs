@@ -1,9 +1,12 @@
 'use client';
 
+import { LegacyPageHeader } from '@/components/ui/LegacyPageHeader';
+import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import { useListLocation } from '@/components/ui/useListLocation';
 import { ListPagination, LEGACY_LIST_LIMIT } from '@/components/ui/ListPagination';
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import apiClient from '@/services/apiClient';
 import grnInspectionService from '../../../../services/grnInspection.service';
 import { Loader, AlertCircle, RefreshCw, Search, X, Plus, FileSpreadsheet, Eye } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -14,19 +17,21 @@ import {usePermission} from '@/contexts/PermissionContext';
 
 export default function GrnInspectionPage() {
   const {hasPermission}=usePermission();
+  const canAction=useLegacyActionAccess();
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({
     po_id: '',
-    vendor_id: '',
-    bill_no: '', from_date: '', to_date: ''
+    vendor_id: '', vendor_name:'',
+    from_date: '', to_date: ''
   });
   const [activeFilters, setActiveFilters] = useState(filters);
-  const applyFilters = () => { setActiveFilters({ ...filters }); setPage(1); };
+  const {data:vendors=[]}=useQuery<{id:number;name:string}[]>({queryKey:['inspection-filter-vendors',filters.vendor_name],queryFn:async()=>(await apiClient.get('/vendors/search',{params:{q:filters.vendor_name}})).data.data,enabled:filters.vendor_name.length>=2});
+  const applyFilters = () => { const vendor=vendors.find(row=>row.name===filters.vendor_name);setActiveFilters({ ...filters,vendor_id:vendor?String(vendor.id):filters.vendor_id }); setPage(1); };
   const [selectedPoId, setSelectedPoId] = useState<string | null>(null);
   const [isPoModalOpen, setIsPoModalOpen] = useState(false);
 
-  const locationReady = useListLocation(activeFilters, page, ['po_id', 'vendor_id', 'bill_no', 'from_date', 'to_date', 'sort', 'direction'], (next, nextPage) => { setActiveFilters(next); setFilters(next); setPage(nextPage); });
+  const locationReady = useListLocation(activeFilters, page, ['po_id', 'vendor_id', 'vendor_name', 'from_date', 'to_date', 'sort', 'direction'], (next, nextPage) => { setActiveFilters(next); setFilters(next); setPage(nextPage); });
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['grn-inspection', { page, ...activeFilters }],
     enabled: locationReady,
@@ -38,8 +43,8 @@ export default function GrnInspectionPage() {
   };
 
   const resetFilters = () => {
-    setFilters({ po_id: '', vendor_id: '', bill_no: '', from_date: '', to_date: '' });
-    setActiveFilters({ po_id: '', vendor_id: '', bill_no: '', from_date: '', to_date: '' });
+    setFilters({ po_id: '', vendor_id: '', vendor_name:'', from_date: '', to_date: '' });
+    setActiveFilters({ po_id: '', vendor_id: '', vendor_name:'', from_date: '', to_date: '' });
     setPage(1);
   };
 
@@ -55,48 +60,27 @@ export default function GrnInspectionPage() {
 
   return (
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
-            GRN Inspection
-          </h1>
-          <p className="text-sm text-slate-500 font-medium mt-1">Manage Goods Received Note Inspections</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => refetch()} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-sm font-medium transition">
-            <RefreshCw className="w-4 h-4" /> Refresh
-          </button>
-          <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-md text-sm font-medium transition border border-emerald-200">
-            <FileSpreadsheet className="w-4 h-4" /> Export Excel
-          </button>
-          {hasPermission('legacy:admin/goodsreceived/add_inspection_grn') && <button onClick={() => router.push('/dashboard/purchase/inspections/add')} className="flex items-center gap-1.5 px-4 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition shadow-sm">
-            <Plus className="w-4 h-4" /> Add Inspection
-          </button>}
-        </div>
-      </div>
+      <LegacyPageHeader title="Inspection GRN" />
 
-      <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
-        <div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">PO Number</label>
-          <input type="text" name="po_id" value={filters.po_id} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none transition" placeholder="PO-..." />
+      <div className="legacy-filter-row">
+        <div className="legacy-filter-field">
+          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">PO ID</label>
+          <input type="text" name="po_id" value={filters.po_id} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none transition" placeholder="Enter PO ID" />
         </div>
-        <div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Vendor ID</label>
-          <input type="text" name="vendor_id" value={filters.vendor_id} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none transition" placeholder="Supplier ID..." />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Bill No</label>
-          <input type="text" name="bill_no" value={filters.bill_no} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none" />
-        </div>
-        <div><label className="block text-xs font-semibold text-slate-500 mb-1">Date From</label><DatePicker name="from_date" value={filters.from_date} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm" /></div>
-        <div><label className="block text-xs font-semibold text-slate-500 mb-1">Date To</label><DatePicker name="to_date" value={filters.to_date} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm" /></div>
-        <div className="flex gap-2">
+        <label>Vendor<input list="inspection-vendor-options" placeholder="Enter Vendor Name" value={filters.vendor_name} onChange={e=>setFilters({...filters,vendor_name:e.target.value,vendor_id:''})}/><datalist id="inspection-vendor-options">{vendors.map(row=><option key={row.id} value={row.name}/>)}</datalist></label>
+        <div className="legacy-filter-field"><label className="block text-xs font-semibold text-slate-500 mb-1">Date From</label><DatePicker name="from_date" value={filters.from_date} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm" /></div>
+        <div className="legacy-filter-field"><label className="block text-xs font-semibold text-slate-500 mb-1">Date To</label><DatePicker name="to_date" value={filters.to_date} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm" /></div>
+        <div className="legacy-filter-actions">
           <button onClick={applyFilters} className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md p-2 flex items-center justify-center font-medium shadow-sm transition">
             <Search className="w-4 h-4 mr-2" /> Search
           </button>
-          <button onClick={resetFilters} className="bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-md p-2 flex items-center justify-center font-medium transition" title="Reset Filters">
-            <X className="w-5 h-5" />
+          <button onClick={resetFilters} className="legacy-button" title="Reset Filters">
+            Reset
           </button>
+        </div>
+        <div className="legacy-filter-actions ml-auto">
+          {canAction('goodsreceived','grninspectionexcel') && <button type="button" onClick={handleExport} aria-label="Export Excel" title="Export Excel"><FileSpreadsheet size={28}/></button>}
+          {hasPermission('legacy:admin/goodsreceived/add') && canAction('goodsreceived','add_inspection_grn') && <button type="button" className="legacy-button" onClick={()=>router.push('/dashboard/purchase/inspections/add')}><Plus size={12}/>Add</button>}
         </div>
       </div>
 
@@ -107,7 +91,7 @@ export default function GrnInspectionPage() {
             <span className="text-sm font-medium text-slate-600">Loading inspections...</span>
           </div>
         )}
-        
+
         {isError && (
           <div className="absolute inset-0 bg-white z-10 flex flex-col items-center justify-center text-red-500">
             <AlertCircle className="w-10 h-10 mb-2 opacity-50" />
@@ -119,14 +103,14 @@ export default function GrnInspectionPage() {
           <table className="w-full text-left text-sm border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase text-xs tracking-wider">
-                <th className="p-4 font-semibold">Inspection ID</th>
-                <th className="p-4 font-semibold">PO Number</th>
+                <th className="p-4 font-semibold">Inspection No.</th>
+                <th className="p-4 font-semibold">PO Id</th>
                 <th className="p-4 font-semibold">Inspection Inward</th>
-                <th className="p-4 font-semibold">Bill No</th>
+                <th className="p-4 font-semibold">Bill No.</th>
                 <th className="p-4 font-semibold">Bill Date</th>
                 <th className="p-4 font-semibold">Supplier</th>
-                <th className="p-4 font-semibold text-right">Total Qty</th>
-                <th className="p-4 font-semibold text-right">Total (₹)</th>
+                <th className="p-4 font-semibold text-right">Total Qty.</th>
+                <th className="p-4 font-semibold text-right">Total Amount (INR)</th>
               </tr>
             </thead>
             <tbody>

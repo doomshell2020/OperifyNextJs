@@ -2,15 +2,18 @@ const { QueryTypes } = require('sequelize');
 const {listOrder} = require('../../utils/listPagination');
 
 class GrnRepository {
-  async getList(dbPool, { offset, limit, po_id, vendor_id, from_date, to_date, sort:sortName, direction }) {
+  async getList(dbPool, { offset, limit, po_id, vendor_id, vendor_name, from_date, to_date, sort:sortName, direction }) {
     let query = `
-      SELECT 
+      SELECT
         grn.id,
         grn.purchaseorder_id,
         grn.inwarddate,
         grn.bill_no,
         grn.bill_date,
         grn.total_qty,
+        (SELECT po.total_qty FROM st_purchaseorder po
+         WHERE po.purchaseorder_id = grn.purchaseorder_id AND po.status != 'N'
+         ORDER BY po.id DESC LIMIT 1) AS order_qty,
         grn.total_amt,
         grn.status,
         v.name as vendor_name,
@@ -29,6 +32,7 @@ class GrnRepository {
       query += ` AND grn.vendor_id = :vendor_id`;
       params.vendor_id = vendor_id;
     }
+    if(vendor_name && !vendor_id){query += ' AND v.name LIKE :vendor_name'; params.vendor_name=`%${vendor_name.trim()}%`;}
     if (from_date && from_date !== '1970-01-01') {
       query += ` AND DATE(grn.inwarddate) >= :from_date`;
       params.from_date = from_date;
@@ -38,16 +42,16 @@ class GrnRepository {
       params.to_date = to_date;
     }
 
-    let countQuery = query.replace(/SELECT[\s\S]*?FROM/, 'SELECT COUNT(*) as total FROM');
+    const countQuery = 'SELECT COUNT(*) as total ' + query.slice(query.indexOf('FROM st_goodsreceive grn'));
     const countRows = await dbPool.query(countQuery, { replacements: params, type: QueryTypes.SELECT });
 
     const sort = listOrder(sortName,direction,{id:'grn.id',purchaseorder_id:'grn.purchaseorder_id',inwarddate:'grn.inwarddate',bill_no:'grn.bill_no',bill_date:'grn.bill_date',total_qty:'grn.total_qty',total_amt:'grn.total_amt'},'grn.id');
     query += ` ORDER BY ${sort.column} ${sort.direction}${sort.column === 'grn.id' ? '' : ', grn.id DESC'} LIMIT :limit OFFSET :offset`;
     params.limit = parseInt(limit);
     params.offset = parseInt(offset);
-    
+
     const rows = await dbPool.query(query, { replacements: params, type: QueryTypes.SELECT });
-    
+
     return {
       data: rows,
       total: countRows[0].total
@@ -56,7 +60,7 @@ class GrnRepository {
 
   async getInspectionDetails(dbPool, inspectionId) {
     const query = `
-      SELECT 
+      SELECT
         ins.*,
         po.id as po_pk_id,
         v.name as vendor_name
@@ -73,7 +77,7 @@ class GrnRepository {
 
   async getInspectionItems(dbPool, inspectionId) {
     const query = `
-      SELECT 
+      SELECT
         gd.*,
         i.item_name,
         COALESCE(u.unit_name, 'KG') as uom,
@@ -89,7 +93,7 @@ class GrnRepository {
 
   async getGrnDetails(dbPool, id) {
     const query = `
-      SELECT 
+      SELECT
         grn.*,
         v.name as vendor_name,
         v.gst_number as vendor_gstin
@@ -103,7 +107,7 @@ class GrnRepository {
 
   async getGrnItems(dbPool, goodsId) {
     const query = `
-      SELECT 
+      SELECT
         sr.*,
         i.item_name,
         u.unit_name as uom,
@@ -131,10 +135,10 @@ class GrnRepository {
   }
 
   async exportGrns(dbPool, filters) {
-    const { po_id, vendor_id, from_date, to_date } = filters;
-    
+    const { po_id, vendor_id, vendor_name, from_date, to_date } = filters;
+
     let query = `
-      SELECT 
+      SELECT
         grn.id as grn_id,
         grn.inwarddate,
         grn.purchaseorder_id as po_no,
@@ -150,8 +154,8 @@ class GrnRepository {
       FROM st_goodsreceive grn
       LEFT JOIN vendors v ON grn.vendor_id = v.id
       LEFT JOIN (
-        SELECT purchaseorder_id, total_qty 
-        FROM st_purchaseorder 
+        SELECT purchaseorder_id, total_qty
+        FROM st_purchaseorder
         WHERE id IN (
           SELECT MAX(id) FROM st_purchaseorder WHERE status != 'N' GROUP BY purchaseorder_id
         )
@@ -171,6 +175,7 @@ class GrnRepository {
       query += ` AND grn.vendor_id = :vendor_id`;
       params.vendor_id = vendor_id;
     }
+    if(vendor_name && !vendor_id){query += ' AND v.name LIKE :vendor_name'; params.vendor_name=`%${vendor_name.trim()}%`;}
     if (from_date && from_date !== '1970-01-01') {
       query += ` AND DATE(grn.inwarddate) >= :from_date`;
       params.from_date = from_date;
@@ -181,7 +186,7 @@ class GrnRepository {
     }
 
     query += ` ORDER BY grn.inwarddate DESC, grn.id DESC`;
-    
+
     return await dbPool.query(query, { replacements: params, type: QueryTypes.SELECT });
   }
 }

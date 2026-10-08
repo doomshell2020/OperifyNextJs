@@ -1,5 +1,9 @@
 'use client';
 
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
+import {useLegacyActionAccess} from '@/components/ui/useLegacyActionAccess';
+import {useListLocation} from '@/components/ui/useListLocation';
+import {usePermission} from '@/contexts/PermissionContext';
 import { ListPagination, LEGACY_LIST_LIMIT } from '@/components/ui/ListPagination';
 import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
@@ -29,49 +33,8 @@ import {
 
 // ─── Nested Item Dropdown ────────────────────────────────────────────────────
 
-function ItemsDropdown({ items }: { items: IndentSummary['items'] }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div>
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 text-xs font-medium text-slate-600 hover:text-cyan-700 transition-colors"
-      >
-        <Package className="w-3.5 h-3.5" />
-        <span>{items.length} item{items.length !== 1 ? 's' : ''}</span>
-        {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-      </button>
-      {open && (
-        <div className="mt-2 rounded-lg border border-slate-100 overflow-hidden shadow-sm">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="bg-slate-50 text-slate-500 uppercase tracking-wide">
-                <th className="px-3 py-2 text-left font-semibold">Item</th>
-                <th className="px-3 py-2 text-center font-semibold">Req. Qty</th>
-                <th className="px-3 py-2 text-center font-semibold text-emerald-600">In Stock</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {items.map(item => (
-                <tr key={item.id} className="bg-white hover:bg-slate-50 transition-colors">
-                  <td className="px-3 py-2 font-medium text-slate-800">
-                    {item.item_name}
-                    {item.size_name && (
-                      <span className="ml-1 text-slate-400">({item.size_name})</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-center font-bold text-rose-600">{item.quantity}</td>
-                  <td className="px-3 py-2 text-center font-bold text-emerald-600">
-                    {item.stock_in_hand ?? '—'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
+function ItemsDropdown({items}:{items:IndentSummary['items']}) {
+ return <table className="w-full"><thead><tr><th>Name</th><th>Qty</th><th>PO In-Stock</th></tr></thead><tbody>{items.map(item=><tr key={item.id}><td>{item.item_name}{item.size_name?` (${item.size_name})`:''}</td><td className="text-red-600">{item.quantity}</td><td className="text-green-600">{item.stock_in_hand ?? ''}</td></tr>)}</tbody></table>;
 }
 
 // ─── Search Bar ───────────────────────────────────────────────────────────────
@@ -105,7 +68,7 @@ function SearchBar({
           type="text"
           value={filters.indent_id}
           onChange={e => onChange({ ...filters, indent_id: e.target.value })}
-          placeholder="e.g. 1023"
+          placeholder="Enter Indent Id"
           className="h-9 px-3 rounded-lg border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
         />
       </div>
@@ -113,7 +76,7 @@ function SearchBar({
         <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
           Date From
         </label>
-        <DatePicker dateFormat="dd-MM-yyyy"  
+        <DatePicker dateFormat="dd-MM-yyyy"
           value={filters.date_from}
           onChange={e => onChange({ ...filters, date_from: e.target.value })}
           className="h-9 px-3 rounded-lg border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500"
@@ -123,7 +86,7 @@ function SearchBar({
         <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">
           Date To
         </label>
-        <DatePicker dateFormat="dd-MM-yyyy"  
+        <DatePicker dateFormat="dd-MM-yyyy"
           value={filters.date_to}
           onChange={e => onChange({ ...filters, date_to: e.target.value })}
           className="h-9 px-3 rounded-lg border border-slate-200 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500"
@@ -150,13 +113,16 @@ function SearchBar({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function IndentsListPage() {
+  const canAction=useLegacyActionAccess();
+  const {hasPermission}=usePermission();
   const [page, setPage] = useState(1);
   const [quickSearch, setQuickSearch] = useState('');
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<Filters>(EMPTY_FILTERS);
 
+  const ready=useListLocation(appliedFilters,page,['indent_id','date_from','date_to'],(next,nextPage)=>{setAppliedFilters(next);setFilters(next);setPage(nextPage);});
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['indents', appliedFilters],
+    queryKey: ['indents', appliedFilters], enabled:ready,
     queryFn: () =>
       indentService.listIndents({
         indent_id: appliedFilters.indent_id || undefined,
@@ -184,25 +150,8 @@ export default function IndentsListPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-5">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-cyan-600 flex items-center justify-center shadow-sm">
-            <ListTodo className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900 leading-none">Indent Manager</h1>
-            <p className="text-xs text-slate-500 mt-0.5">Purchase Requisitions</p>
-          </div>
-        </div>
-        <Link
-          href="/dashboard/purchase/indents/new"
-          className="flex items-center gap-2 h-9 px-4 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          New Indent
-        </Link>
-      </div>
+      <LegacyPageHeader title="Indent Manager"/>
+      {canAction('indent','add') && <Link href="/dashboard/purchase/indents/new" className="legacy-button">+ Add</Link>}
 
       {/* Filters */}
       <SearchBar
@@ -263,7 +212,7 @@ export default function IndentsListPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
-                {['#', 'Indent ID', 'Items', 'Total Qty', 'Created By', 'Date', 'Actions'].map(h => (
+                {['#', 'Indent ID', 'Items', 'Requested Qty', 'Genrated Date', 'Indent / PO'].map(h => (
                   <th
                     key={h}
                     className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap"
@@ -290,12 +239,6 @@ export default function IndentsListPage() {
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                      <User className="w-3 h-3 text-slate-400" />
-                      {indent.created_by || '—'}
-                    </div>
-                  </td>
-                  <td className="px-5 py-4">
-                    <div className="flex items-center gap-1.5 text-xs text-slate-600">
                       <Calendar className="w-3 h-3 text-slate-400" />
                       {formatContractDate(indent.added_time)}
                     </div>
@@ -310,7 +253,7 @@ export default function IndentsListPage() {
                       >
                         <FileText className="w-4 h-4" />
                       </Link>
-                      {Number(indent.remaining_qty) > 0 && <Link
+                      {Number(indent.remaining_qty) > 0 && hasPermission('legacy:admin/purchaseorder/add') && <Link
                         href={`/dashboard/purchase/orders/add?indent_id=${indent.indent_id}`}
                         title="Create Purchase Order"
                         className="p-1.5 rounded-lg bg-cyan-50 text-cyan-600 hover:bg-cyan-100 transition-colors"

@@ -6,6 +6,7 @@ const fs = require('fs');
 const designsheetController = require('./designsheet.controller');
 const authenticate = require('../../middleware/auth');
 const tenantMiddleware = require('../../middleware/tenant');
+const permission = require('../jobChallan/legacyPermission');
 
 // Enforce auth and multi-tenancy contexts
 router.use(authenticate);
@@ -43,7 +44,7 @@ const upload = multer({
   }
 });
 
-router.get('/', designsheetController.index);
+router.get('/', permission('designsheet','index'), designsheetController.index);
 router.get('/check-item', designsheetController.checkDesignSheetItem);
 router.get('/bom-products', designsheetController.getBomFinishedProduct);
 // API Routes for Add Workflow
@@ -54,10 +55,10 @@ router.get('/check-item', tenantMiddleware, designsheetController.checkDesignShe
 router.get('/search-items', tenantMiddleware, designsheetController.searchItems);
 router.get('/indent-items', tenantMiddleware, designsheetController.indentItems);
 router.get('/item-category', tenantMiddleware, designsheetController.getItemCatg);
-router.get('/view/:designsheetno', tenantMiddleware, designsheetController.viewDesignSheet);
-router.get('/view/:designsheetno/pdf', (req, res, next) => { req.pdfDownload = true; next(); }, designsheetController.viewDesignSheet);
+router.get('/view/:designsheetno', permission('designsheet','viewdesignsheet'), designsheetController.viewDesignSheet);
+router.get('/view/:designsheetno/pdf', permission('designsheet','viewdesignsheet'), (req, res, next) => { req.pdfDownload = true; next(); }, designsheetController.viewDesignSheet);
 router.get('/contract-details/:contractId', tenantMiddleware, designsheetController.getContractDetails);
-router.get('/:id', designsheetController.getById);
+router.get('/:id', permission('designsheet','edit'), designsheetController.getById);
 
 const { requirePermission } = require('../../middleware/permission');
 

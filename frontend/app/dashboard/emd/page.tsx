@@ -1,5 +1,6 @@
 'use client';
 
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { emdService, EmdRecord, EmdDetail, EmdFilters } from '@/services/emd.service';
@@ -184,7 +185,7 @@ export default function EmdPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">EMD / Bank Guarantee</h1>
+          <LegacyPageHeader title="EMD Manager"/>
           <p className="text-sm text-slate-500 mt-0.5">Manage Earnest Money Deposits and Bank Guarantee records</p>
         </div>
         <div className="flex items-center gap-2 text-sm text-slate-500">

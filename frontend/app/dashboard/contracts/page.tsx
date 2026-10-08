@@ -1,5 +1,7 @@
 'use client';
 
+import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
+import { LegacyPageHeader } from '@/components/ui/LegacyPageHeader';
 import { useListLocation } from '@/components/ui/useListLocation';
 import { ListPagination, LEGACY_LIST_LIMIT } from '@/components/ui/ListPagination';
 import React, { useState } from 'react';
@@ -9,15 +11,15 @@ import apiClient from '@/services/apiClient';
 import contractService, { ContractFilters } from '../../../services/contract.service';
 import { ContractDetailsModal } from '../../../components/dashboard/ContractDetailsModal';
 import { usePermission } from '../../../contexts/PermissionContext';
-import { 
-  FileText, 
-  Search, 
-  RefreshCw, 
-  Eye, 
-  Loader, 
-  AlertCircle, 
-  Calendar, 
-  DollarSign, 
+import {
+  FileText,
+  Search,
+  RefreshCw,
+  Eye,
+  Loader,
+  AlertCircle,
+  Calendar,
+  DollarSign,
   Briefcase,
   X,
   Printer,
@@ -31,6 +33,7 @@ import { DatePicker } from '../../../components/ui/DatePicker';
 import { formatContractDate } from '../../../utils/dateFormatter';
 
 export default function ContractsPage() {
+  const canAction=useLegacyActionAccess();
   const { hasPermission } = usePermission();
   // Filters state
   const [filters, setFilters] = useState<ContractFilters>({
@@ -106,17 +109,8 @@ export default function ContractsPage() {
 
   return (
     <div className="w-full px-4 py-4 space-y-4 font-sans select-none text-[#333]">
-      
-      {/* Header and Title */}
-      <div className="flex items-center justify-between border-b border-[#e0e0e0] pb-2 mb-4">
-        <h1 className="text-xl text-[#333] font-normal tracking-tight">
-          Contracts Manager
-        </h1>
-        <div className="flex items-center gap-1.5 text-[#555] text-sm cursor-pointer hover:text-[#1683D8]">
-          <Home className="w-4 h-4" />
-          <span className="font-semibold text-xs">Home</span>
-        </div>
-      </div>
+
+      <LegacyPageHeader title="Contracts Manager" />
 
       {/* Search & Filter Form */}
       <form onSubmit={handleSearch} className="bg-white p-4 mb-4 space-y-3 border border-[#ccc] rounded-[3px]">
@@ -176,7 +170,7 @@ export default function ContractsPage() {
             <label className="text-xs font-bold text-[#555] block mb-1">
               Start Date
             </label>
-            <DatePicker  
+            <DatePicker
               dateFormat="dd-MM-yyyy"
               value={filters.datefrom || ''}
               onChange={(e) => setFilters({ ...filters, datefrom: e.target.value })}
@@ -188,7 +182,7 @@ export default function ContractsPage() {
             <label className="text-xs font-bold text-[#555] block mb-1">
               End Date
             </label>
-            <DatePicker  
+            <DatePicker
               dateFormat="dd-MM-yyyy"
               value={filters.dateto || ''}
               onChange={(e) => setFilters({ ...filters, dateto: e.target.value })}
@@ -257,10 +251,10 @@ export default function ContractsPage() {
             <tbody>
               {contracts.map((c, idx) => (
                 <tr key={c.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-[#f9f9f9]'}>
-                  <td className="px-3 py-2 border-r border-[#ccc] border-b">{idx + 1}.</td>
+                  <td className="px-3 py-2 border-r border-[#ccc] border-b">{(page - 1) * limit + idx + 1}.</td>
                   <td className="px-3 py-2 border-r border-[#ccc] border-b">
-                    <button 
-                      onClick={() => setSelectedContractId(c.id)}
+                    <button
+                      onClick={() => {if(canAction('production','viewcontractdetail'))setSelectedContractId(c.id);}}
                       className="text-[#1683D8] hover:underline text-left cursor-pointer"
                     >
                       {c.title}({c.workorder})
@@ -273,7 +267,7 @@ export default function ContractsPage() {
                   <td className="px-3 py-2 border-r border-[#ccc] border-b text-center">{formatContractDate(c.issuedate)}</td>
                   <td className="px-3 py-2 border-r border-[#ccc] border-b text-center">{formatContractDate(c.contract_start_date)}</td>
                   <td className="px-3 py-2 border-r border-[#ccc] border-b text-center">{formatContractDate(c.contract_end_date)}</td>
-                  <td className="px-3 py-2 border-r border-[#ccc] border-b max-w-[150px] truncate" title={c.description}>
+                  <td className="px-3 py-2 border-r border-[#ccc] border-b " title={c.description}>
                     {c.description || ''}
                   </td>
                   <td className="px-3 py-2 border-b text-center">
@@ -288,7 +282,7 @@ export default function ContractsPage() {
                           <Trash2 className="w-4 h-4" />
                         </button>
                       )}
-                      <button
+                      {canAction('production','viewcontractdetailspdf') && <button
                         onClick={async () => {
                           try {
                             toast.loading('Generating PDF...', { id: 'pdf-toast' });
@@ -303,14 +297,14 @@ export default function ContractsPage() {
                         title="Download PDF"
                       >
                         <Download className="w-4 h-4 stroke-[2.5px]" />
-                      </button>
+                      </button>}
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          
+
 
         </div>
       )}

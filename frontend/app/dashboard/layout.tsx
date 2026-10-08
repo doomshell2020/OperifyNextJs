@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { DashboardSidebar, DashboardTopbar } from '../../components/dashboard/DashboardHeader';
+import './legacy.css';
 
 export default function DashboardLayout({
   children,
@@ -9,8 +10,8 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#f1f3f6] text-[#333] flex flex-col font-sans print:block print:bg-white print:min-h-0">
-      
+    <div className="legacy-erp min-h-screen text-[#333] flex flex-col print:block print:bg-white print:min-h-0">
+
       {/* Top Header with Navigation */}
       <div className="sticky top-0 z-30 print:hidden shadow-sm">
         <DashboardTopbar />
@@ -18,7 +19,7 @@ export default function DashboardLayout({
 
       {/* Main area: scrollable content */}
       <div className="flex-1 flex flex-col min-w-0 print:block">
-        <main className="flex-1 p-4 overflow-auto print:p-0 print:overflow-visible print:block">
+        <main className="legacy-content flex-1 overflow-auto print:p-0 print:overflow-visible print:block">
           <div className="max-w-[100%] mx-auto bg-transparent">
              {children}
           </div>

@@ -1,0 +1,203 @@
+OPERIFY PHP PARITY AUDIT - 8 OCTOBER 2026
+
+Status: source-based corrections implemented and verified locally. This is NOT
+certification that the complete application now has visual and workflow parity.
+Authenticated, full-page comparisons and live deployment remain outstanding.
+No database records, schema, permission records, or test data were changed.
+
+1. MODULES CHECKED
+Compared active PHP views (excluding commented controls), controller/helper
+rules and current list/data paths for Contract, Design Sheet, Purchase Order,
+GRN Inspection, GRN, Indents (stock issues and purchase requisitions), JC Challan,
+JC Receive, Gate Pass, Stock Register, Products and Categories.
+Additional manager headers checked: EMD, Payments, Quotation, Reverse Indents,
+Maintenance, Daily Stock, Vendors, Production Orders and Daily Sheet. Their
+complete business workflows were not certified in this pass.
+
+2. UI DIFFERENCES FOUND
+Modern cards, typography, rounded fields, large rows, upper-case table headings,
+subtitles, substituted navigation icons and missing breadcrumbs diverged from
+admin/style.css and headernew.ctp. Lists also differed in columns and searches.
+Contract descriptions were truncated. Design Sheet asked for a raw contract ID.
+Products had extra tax/cost/sale/status columns absent from the active PHP view.
+Categories used a modal and separate status/report columns; PHP uses a page form
+and action icons. JC lists had extra quantity/amount columns and missing status
+or vehicle information. Stock Register had a Goods Received breadcrumb.
+
+3. UI FIXES COMPLETED
+Shared ERP styling uses Roboto, source colors, 32px fields, compact bordered
+striped tables, square inputs, restrained cards, and PHP pagination styling.
+Available original header icons were copied from the old project; EMD and Gate
+Pass retain existing icon substitutes because the referenced original files are
+missing. Navigation preserves existing routes and company switching.
+LegacyPageHeader supplies page title and Home breadcrumb. Phase-1 add/edit
+headings and additional manager titles now use the PHP names.
+Contract description displays fully; Design Sheet searches names/workorders;
+PO has the source Type/product/status controls, conditional fields, and three
+Excel reports. Inspection has PO/vendor/date filters. GRN restores ordered and
+received quantities separately. JC Challan removes its extra amount column.
+JC Receive restores the nine PHP columns, vehicle and Completed state; Gate
+Pass restores company/date/limit fields and seven columns including status.
+Products restores eight columns and compact action icons. Categories restores
+four columns, a page form and required description. Purchase requisitions show
+nested item rows directly. Stock Register breadcrumb/title are corrected.
+Indent stock-issue form uses compact fields and Issued By wording; its list
+retains all five independent name/date searches from the previous pushed fix.
+
+4. FUNCTIONALITY DIFFERENCES FOUND
+PO list permission incorrectly made Add/Delete/Revise/Delivery Note visible.
+PO comparison/delivery/GRN-summary reports were absent. Design Sheet contract
+name was not understood by the API. GRN did not supply ordered quantity.
+Inspection vendor names were not searched. GRN selected vendor labels were lost
+on URL restoration. Native date inputs did not receive required/range/disabled
+attributes. Empty pagination displayed an invalid zero-page counter.
+
+5. LOGIC FIXES COMPLETED
+Design Sheet name/workorder conditions and Inspection/GRN vendor conditions are
+parameterized and applied before count and SQL pagination. Selected IDs take
+priority. GRN ordered quantity uses the latest non-deactivated PO family row;
+a scalar query avoids duplicated GRNs. Its count explicitly uses the GRN FROM
+clause, so the new scalar query cannot corrupt the count SQL.
+PO reports use latest revision selection, full filtered data, family receipt
+quantities, matching delivery-note grouping/fallback and five distinct historic
+PO prices as described by the PHP controllers and CommanHelper. Zero prices
+are excluded from minimum-price highlighting. Date display/validation and
+empty/last-page counters are corrected. Existing transactional stock, receipt,
+PO revision and deletion protections were retained.
+
+6. PERMISSION DIFFERENCES FIXED
+PO mutation controls require their individual grants instead of list access.
+PO detail/print/export and Contract detail/print routes now check the source
+configured action labels. The source Contract actions belong to Production.
+Design Sheet list/view/edit reads check configured labels. An authenticated,
+read-only label catalog makes PHP controls without explicit view guards follow
+the same policy as their APIs: configured labels require grants; absent labels
+retain PHP availability. Explicit Add/Edit/Delete controls still require grants.
+Product/category status/print/export visibility uses that catalog. Stock/Indent
+exports and Indent print/detail controls also follow their API labels. Print-only
+Indent access opens the PDF directly without first requiring detail permission.
+Supplier/User/Permission settings links no longer display unconditionally.
+The PO view alias uses an exact URL comparison instead of matching detail URLs
+as print permissions. No role or permission assignments were modified.
+Remaining: exhaustive View-only/Edit-only/Print-only/Export-only role journeys
+and every auxiliary API require authenticated end-to-end validation.
+
+7. PAGINATION AND DATA
+AppController defaults to 50; retained for SQL-paginated manager lists.
+Gate Pass defaults to 20 and offers PHP limits 20/50/100/500; its effective
+limit remains capped at Cake's 100. This is source behavior, not a random size.
+Category and requisition DataTables paginate complete returned collections on
+the client. SQL-paginated lists are not sliced again on the client. Filters,
+selected vendor labels and pages persist in URLs; searches reset page to one.
+PO and existing exports use complete data rather than the visible page.
+JC Receive retains existing server pagination (50), an extension over PHP's
+merged unpaginated list, so all records remain accessible without loading the
+entire cross-company list at once.
+
+Verification: 87 backend regression tests passed using in-memory fixtures;
+four targeted frontend checks passed (Indent print identity, empty/last page,
+native date validation). TypeScript checks and production build passed during
+implementation. The final ship workflow repeats backend syntax/build checks.
+Tests remain local under the repository's existing ignored tests folders; they
+were not added to GitHub CI. Tests did not connect to or write a database.
+Local Indent layout was inspected in the browser. With no authenticated local
+session/backend response it displayed a load error; actual rows, user menus,
+modals and full-page old/new comparisons were NOT visually certified.
+
+8. FILES CHANGED
+  backend/src/modules/auth/auth.repository.js
+  backend/src/modules/contract/contract.routes.js
+  backend/src/modules/designsheet/designsheet.controller.js
+  backend/src/modules/designsheet/designsheet.routes.js
+  backend/src/modules/grn/grn.controller.js
+  backend/src/modules/grn/grn.repository.js
+  backend/src/modules/grnInspection/grnInspection.repository.js
+  backend/src/modules/permission/permission.routes.js
+  backend/src/modules/purchaseOrder/purchaseOrder.export.js
+  backend/src/modules/purchaseOrder/purchaseOrder.routes.js
+  frontend/app/dashboard/admin/categories/page.tsx
+  frontend/app/dashboard/admin/products/add/page.tsx
+  frontend/app/dashboard/admin/products/edit/[id]/page.tsx
+  frontend/app/dashboard/admin/products/page.tsx
+  frontend/app/dashboard/admin/suppliers/page.tsx
+  frontend/app/dashboard/contracts/add/page.tsx
+  frontend/app/dashboard/contracts/edit/[id]/page.tsx
+  frontend/app/dashboard/contracts/page.tsx
+  frontend/app/dashboard/design-sheet/add/page.tsx
+  frontend/app/dashboard/design-sheet/edit/[id]/page.tsx
+  frontend/app/dashboard/design-sheet/page.tsx
+  frontend/app/dashboard/emd/page.tsx
+  frontend/app/dashboard/inventory/daily/page.tsx
+  frontend/app/dashboard/inventory/stock/page.tsx
+  frontend/app/dashboard/jc-challan/create/page.tsx
+  frontend/app/dashboard/jc-challan/page.tsx
+  frontend/app/dashboard/layout.tsx
+  frontend/app/dashboard/legacy.css
+  frontend/app/dashboard/maintenance/breakdowns/page.tsx
+  frontend/app/dashboard/payments/page.tsx
+  frontend/app/dashboard/production/entry/page.tsx
+  frontend/app/dashboard/production/sheet/page.tsx
+  frontend/app/dashboard/purchase/grn/add/page.tsx
+  frontend/app/dashboard/purchase/grn/page.tsx
+  frontend/app/dashboard/purchase/indentpo/[id]/edit/page.tsx
+  frontend/app/dashboard/purchase/indentpo/new/page.tsx
+  frontend/app/dashboard/purchase/indentpo/page.tsx
+  frontend/app/dashboard/purchase/indents/new/page.tsx
+  frontend/app/dashboard/purchase/indents/page.tsx
+  frontend/app/dashboard/purchase/inspections/add/page.tsx
+  frontend/app/dashboard/purchase/inspections/page.tsx
+  frontend/app/dashboard/purchase/orders/add/page.tsx
+  frontend/app/dashboard/purchase/orders/page.tsx
+  frontend/app/dashboard/quotations/page.tsx
+  frontend/app/dashboard/reverse/page.tsx
+  frontend/app/layout.tsx
+  frontend/components/dashboard/DashboardHeader.tsx
+  frontend/components/jobChallan/GatepassForm.tsx
+  frontend/components/jobChallan/JcModuleList.tsx
+  frontend/components/jobChallan/ReceiveForm.tsx
+  frontend/components/ui/DatePicker.tsx
+  frontend/components/ui/LegacyPageHeader.tsx
+  frontend/components/ui/ListPagination.tsx
+  frontend/components/ui/useLegacyActionAccess.ts
+  frontend/public/legacy/headericons/cheque.png
+  frontend/public/legacy/headericons/contractsindex.png
+  frontend/public/legacy/headericons/designsheetindex.png
+  frontend/public/legacy/headericons/goodsreceivedindex.png
+  frontend/public/legacy/headericons/indentpoindex.png
+  frontend/public/legacy/headericons/inspectionindex.png
+  frontend/public/legacy/headericons/maintenanceindex.png
+  frontend/public/legacy/headericons/productionindex.png
+  frontend/public/legacy/headericons/productionproductionorders.png
+  frontend/public/legacy/headericons/purchaseorderindex.png
+  frontend/public/legacy/headericons/quotationindex.png
+  frontend/public/legacy/headericons/reverseindentindex.png
+  frontend/public/legacy/headericons/setting.png
+  frontend/public/legacy/headericons/stockregisterdailystock.png
+  frontend/public/legacy/headericons/stockregisterindex.png
+  frontend/services/designsheet.service.ts
+  UI_PARITY_AUDIT.txt (this report)
+
+9. REMAINING DIFFERENCES / BLOCKERS
+- Full authenticated old/new screenshots at desktop/mobile widths, every form
+  from top to bottom, modal dimensions and action menus remain to be verified.
+  Some form section grouping/subtitles still differs; shared styling/headings
+  alone do not certify exact layout parity.
+- Individual names/IDs still use native datalist suggestions in several filters
+  instead of the old jQuery autocomplete widget. This preserves API selection
+  but is not an exact widget appearance match.
+- Revised-PO batch printing and delivery-schedule PDF actions still need a
+  separate source-driven parity review. Current PO PDF behavior was preserved.
+- The complete Contract expenditure helper rawindentitemqty is missing from
+  the supplied PHP source; its full expenditure result cannot be certified.
+- Previously recorded missing UOM/category links, category-group conflicts and
+  integer stock-cache precision differences need data-owner/schema review.
+  They were not repaired by modifying records or schema.
+- Additional manager business workflows require their own full audit; this
+  pass only standardizes their shared UI and source page headings.
+- Actual live read/write workflows were not executed. No production writes or
+  test-data insertion were used to validate this work.
+- GitHub validation success is not a deployment. Recent deployment jobs were
+  skipped: AWS_DEPLOY_ENABLED and server variables/SSH secrets are absent.
+  Server access or deployment configuration is required to update live and
+  compare the running build. Do not describe this release as live until that
+  deployment and browser verification have actually succeeded.

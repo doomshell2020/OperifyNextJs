@@ -1,5 +1,6 @@
 "use client";
 
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { reverseIndentService, ReverseIndent } from "../../../services/reverseIndent.service";
@@ -112,7 +113,7 @@ export default function ReverseIndentListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Reverse Manager</h1>
+          <LegacyPageHeader title="Reverse Manager"/>
         </div>
         <div className="flex gap-3">
           <Link href="/dashboard/reverse/add">

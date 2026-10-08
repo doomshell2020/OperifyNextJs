@@ -47,21 +47,21 @@ export const DashboardTopbar: React.FC = () => {
   }, [user?.id, user?.db]);
 
   const navItems = [
-    { title: 'EMD', icon: <FolderClosed className="w-[18px] h-[18px]" />, path: '/dashboard/emd' },
-    { title: 'Payments', icon: <CreditCard className="w-[18px] h-[18px]" />, path: '/dashboard/payments' },
-    { title: 'Contract', icon: <FileText className="w-[18px] h-[18px]" />, path: '/dashboard/contracts' },
-    { title: 'Design Sheet', icon: <Layers className="w-[18px] h-[18px]" />, path: '/dashboard/design-sheet' },
-    { title: 'Quotation', icon: <FileSpreadsheet className="w-[18px] h-[18px]" />, path: '/dashboard/quotations' },
-    { title: 'PO', icon: <ShoppingBag className="w-[18px] h-[18px]" />, path: '/dashboard/purchase/orders' },
-    { title: 'GRN Inspection', icon: <ClipboardCheck className="w-[18px] h-[18px]" />, path: '/dashboard/purchase/inspections' },
-    { title: 'GRN', icon: <Truck className="w-[18px] h-[18px]" />, path: '/dashboard/purchase/grn' },
-    { title: 'Indents', icon: <FileSpreadsheet className="w-[18px] h-[18px]" />, path: '/dashboard/purchase/indentpo' },
-    { title: 'Reverse', icon: <RefreshCw className="w-[18px] h-[18px]" />, path: '/dashboard/reverse' },
-    { title: 'Production', icon: <Factory className="w-[18px] h-[18px]" />, path: '/dashboard/production/entry' },
-    { title: 'Daily Sheet', icon: <Calendar className="w-[18px] h-[18px]" />, path: '/dashboard/production/sheet' },
-    { title: 'Maintenance', icon: <Wrench className="w-[18px] h-[18px]" />, path: '/dashboard/maintenance/breakdowns' },
-    { title: 'Stock', icon: <Database className="w-[18px] h-[18px]" />, path: '/dashboard/inventory/stock' },
-    { title: 'Daily Stock', icon: <Archive className="w-[18px] h-[18px]" />, path: '/dashboard/inventory/daily' }
+    { title: 'EMD', icon: <FolderClosed className="w-[18px] h-[18px]"/>, path: '/dashboard/emd' },
+    { title: 'Payments', icon: <img src="/legacy/headericons/inspectionindex.png" alt="" width={33} height={26}/>, path: '/dashboard/payments' },
+    { title: 'Contract', icon: <img src="/legacy/headericons/contractsindex.png" alt="" width={33} height={26}/>, path: '/dashboard/contracts' },
+    { title: 'Design Sheet', icon: <img src="/legacy/headericons/designsheetindex.png" alt="" width={33} height={26}/>, path: '/dashboard/design-sheet' },
+    { title: 'Quotation', icon: <img src="/legacy/headericons/quotationindex.png" alt="" width={33} height={26}/>, path: '/dashboard/quotations' },
+    { title: 'PO', icon: <img src="/legacy/headericons/purchaseorderindex.png" alt="" width={33} height={26}/>, path: '/dashboard/purchase/orders' },
+    { title: 'GRN Inspection', icon: <img src="/legacy/headericons/quotationindex.png" alt="" width={33} height={26}/>, path: '/dashboard/purchase/inspections' },
+    { title: 'GRN', icon: <img src="/legacy/headericons/goodsreceivedindex.png" alt="" width={33} height={26}/>, path: '/dashboard/purchase/grn' },
+    { title: 'Indents', icon: <img src="/legacy/headericons/indentpoindex.png" alt="" width={33} height={26}/>, path: '/dashboard/purchase/indentpo' },
+    { title: 'Reverse', icon: <img src="/legacy/headericons/reverseindentindex.png" alt="" width={33} height={26}/>, path: '/dashboard/reverse' },
+    { title: 'Production', icon: <img src="/legacy/headericons/productionproductionorders.png" alt="" width={33} height={26}/>, path: '/dashboard/production/entry' },
+    { title: 'Daily Sheet', icon: <img src="/legacy/headericons/productionindex.png" alt="" width={33} height={26}/>, path: '/dashboard/production/sheet' },
+    { title: 'Maintenance', icon: <img src="/legacy/headericons/maintenanceindex.png" alt="" width={33} height={26}/>, path: '/dashboard/maintenance/breakdowns' },
+    { title: 'Stock', icon: <img src="/legacy/headericons/stockregisterindex.png" alt="" width={33} height={26}/>, path: '/dashboard/inventory/stock' },
+    { title: 'Daily Stock', icon: <img src="/legacy/headericons/stockregisterdailystock.png" alt="" width={33} height={26}/>, path: '/dashboard/inventory/daily' }
   ];
 
   const jobWorkItems = [
@@ -73,9 +73,9 @@ export const DashboardTopbar: React.FC = () => {
   const settingsMenu = [
     { title: 'Categories', path: '/dashboard/admin/categories', allowed: hasPermission('legacy:admin/itemcategory/index') },
     { title: 'Products', path: '/dashboard/admin/products', allowed: hasPermission('legacy:admin/additem/index') },
-    { title: 'Suppliers', path: '/dashboard/admin/suppliers' },
-    { title: 'Users', path: '/dashboard/admin/roles' },
-    { title: 'Permission', path: '/admin/permission' }
+    { title: 'Suppliers', path: '/dashboard/admin/suppliers', allowed: hasPermission('legacy:admin/vendors/index') },
+    { title: 'Users', path: '/dashboard/admin/roles', allowed: hasPermission('legacy:admin/roles/index') },
+    { title: 'Permission', path: '/admin/permission', allowed: Number(user?.role_id) === 101 }
   ].filter(item => !('allowed' in item) || item.allowed);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -108,13 +108,13 @@ export const DashboardTopbar: React.FC = () => {
             <div className="flex-1"></div>
           </>
         ) : (
-          navItems.filter(item => { 
+          navItems.filter(item => {
             if(item.title==="EMD") return hasPermission("legacy:admin/emd/index");
             if(item.title==="Payments") return hasPermission("legacy:admin/paymentmanager/index");
-            if(item.title==="Contract") return hasPermission("contracts:view") || hasPermission("legacy:admin/contracts/index"); 
+            if(item.title==="Contract") return hasPermission("contracts:view") || hasPermission("legacy:admin/contracts/index");
             if(item.title==="Design Sheet") return hasPermission("designsheet:view") || hasPermission("legacy:admin/designsheet/index");
             if(item.title==="Quotation") return hasPermission("legacy:admin/quotation/index");
-            if(item.title==="PO") return hasPermission("purchaseorder:view") || hasPermission("legacy:admin/purchaseorder/index"); 
+            if(item.title==="PO") return hasPermission("purchaseorder:view") || hasPermission("legacy:admin/purchaseorder/index");
             if(item.title==="GRN Inspection") return hasPermission("legacy:admin/goodsreceived/grninspection");
             if(item.title==="GRN") return hasPermission("grn:view") || hasPermission("legacy:admin/goodsreceived/index");
             if(item.title==="Indents") return hasPermission("legacy:admin/indentpo/index");
@@ -124,10 +124,10 @@ export const DashboardTopbar: React.FC = () => {
             if(item.title==="Maintenance") return hasPermission("legacy:admin/maintenance/index");
             if(item.title==="Stock") return hasPermission("stock:view") || hasPermission("legacy:admin/stockregister/index");
             if(item.title==="Daily Stock") return hasPermission("legacy:admin/stockregister/dailystock");
-            
-            // For others where we are not 100% sure of the exact CakePHP URL, we still show them by default, 
+
+            // For others where we are not 100% sure of the exact CakePHP URL, we still show them by default,
             // but the user can add precise URL restrictions if needed.
-            return true; 
+            return true;
           }).map((item) => {
             const isActive = pathname === item.path || pathname.startsWith(item.path + '/');
             return (
@@ -138,17 +138,15 @@ export const DashboardTopbar: React.FC = () => {
                   isActive ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'
                 }`}
               >
-                {React.cloneElement(item.icon as React.ReactElement<{ className?: string }>, {
-                  className: `w-[18px] h-[18px] pointer-events-none ${isActive ? 'text-[#1683D8]' : 'text-[#555]'}`
-                })}
-                <span className="text-[9px] font-medium text-center whitespace-nowrap leading-none pointer-events-none">{item.title}</span>
+                {item.icon}
+                <span className="text-[9px] font-normal text-center whitespace-nowrap leading-none pointer-events-none">{item.title}</span>
               </Link>
             );
           })
         )}
         {user?.role_id !== 101 && jobWorkItems.map(item => <Link key={item.path} href={item.path}
           className={`flex flex-col items-center justify-center px-1 h-[52px] gap-[3px] shrink-0 border-b-2 ${pathname.startsWith(item.path) ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'}`}>
-          <Receipt className="w-[22px] h-[22px]" />
+          {item.title === "Gate Pass" ? <Receipt className="w-[22px] h-[22px]"/> : <img src={item.title === "JC Challan" ? "/legacy/headericons/cheque.png" : "/legacy/headericons/goodsreceivedindex.png"} alt="" width={33} height={26}/>}
           <span className="text-[9px] whitespace-nowrap">{item.title}</span>
         </Link>)}
       </nav>
@@ -160,23 +158,23 @@ export const DashboardTopbar: React.FC = () => {
           <>
             <Link href="/dashboard/admin/schools" className="flex flex-col items-center justify-center px-[4px] h-[52px] gap-[3px] border-b-[2px] border-transparent text-[#222] [&>*]:pointer-events-none hover:bg-[#f5f5f5]">
               <Database className="w-[18px] h-[18px] text-[#555]" />
-              <span className="text-[9px] font-medium text-center whitespace-nowrap leading-none">Companies</span>
+              <span className="text-[9px] font-normal text-center whitespace-nowrap leading-none">Companies</span>
             </Link>
             <Link href="/dashboard/admin/template" className="flex flex-col items-center justify-center px-[4px] h-[52px] gap-[3px] border-b-[2px] border-transparent text-[#222] [&>*]:pointer-events-none hover:bg-[#f5f5f5]">
               <FileText className="w-[18px] h-[18px] text-[#555]" />
-              <span className="text-[9px] font-medium text-center whitespace-nowrap leading-none">Template</span>
+              <span className="text-[9px] font-normal text-center whitespace-nowrap leading-none">Template</span>
             </Link>
             <Link href="/admin/permission" className={`flex flex-col items-center justify-center px-[4px] h-[52px] gap-[3px] border-b-[2px] transition-colors [&>*]:pointer-events-none ${pathname.includes('/admin/permission') ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'}`}>
               <Settings className={`w-[18px] h-[18px] ${pathname.includes('/admin/permission') ? 'text-[#1683D8]' : 'text-[#555]'}`} />
-              <span className="text-[9px] font-medium text-center whitespace-nowrap leading-none">Permission</span>
+              <span className="text-[9px] font-normal text-center whitespace-nowrap leading-none">Permission</span>
             </Link>
             <Link href="/dashboard/admin/demo" className="flex flex-col items-center justify-center px-[4px] h-[52px] gap-[3px] border-b-[2px] border-transparent text-[#222] [&>*]:pointer-events-none hover:bg-[#f5f5f5]">
               <FileSpreadsheet className="w-[18px] h-[18px] text-[#555]" />
-              <span className="text-[9px] font-medium text-center whitespace-nowrap leading-none">Demo Request</span>
+              <span className="text-[9px] font-normal text-center whitespace-nowrap leading-none">Demo Request</span>
             </Link>
             <Link href="/dashboard/admin/spam" className="flex flex-col items-center justify-center px-[4px] h-[52px] gap-[3px] border-b-[2px] border-transparent text-[#222] [&>*]:pointer-events-none hover:bg-[#f5f5f5]">
               <Archive className="w-[18px] h-[18px] text-[#555]" />
-              <span className="text-[9px] font-medium text-center whitespace-nowrap leading-none">Spam</span>
+              <span className="text-[9px] font-normal text-center whitespace-nowrap leading-none">Spam</span>
             </Link>
           </>
         ) : (
@@ -188,9 +186,9 @@ export const DashboardTopbar: React.FC = () => {
               }`}
             >
               <Settings className={`w-[18px] h-[18px] ${pathname.includes('/admin/') ? 'text-[#1683D8]' : 'text-[#555]'}`} />
-              <span className="text-[9px] font-medium text-center whitespace-nowrap leading-none">Settings</span>
+              <span className="text-[9px] font-normal text-center whitespace-nowrap leading-none">Settings</span>
             </button>
-            
+
             {settingsOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} />
@@ -219,8 +217,8 @@ export const DashboardTopbar: React.FC = () => {
         )}
 
         {user?.companies && user.companies.length > 1 ? (
-          <select 
-            value={user.db} 
+          <select
+            value={user.db}
             onChange={(e) => switchCompany(e.target.value)}
             className="flex items-center bg-white border border-[#ccc] rounded-[2px] px-1 py-1 text-[10px] text-[#222] outline-none cursor-pointer hover:border-[#999] h-[26px] w-[140px]"
           >
@@ -253,7 +251,7 @@ export const DashboardTopbar: React.FC = () => {
                   <p className="text-[10px] font-bold text-[#222] truncate">{user?.user_name}</p>
                   <p className="text-[9px] text-[#666] truncate">{user?.email}</p>
                 </div>
-                
+
                 <Link
                   href="/dashboard/admin/profile"
                   onClick={() => setProfileOpen(false)}

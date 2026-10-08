@@ -1,6 +1,7 @@
 import apiClient from './apiClient';
 
 export interface DesignSheetFilter {
+  contract_name?: string;
   contract_id?: string;
   datestart?: string;
   dateto?: string;
@@ -13,7 +14,7 @@ export const designsheetService = {
     const { data } = await apiClient.get('/designsheets', { params: filters });
     return data;
   },
-  
+
   getDesignSheetById: async (id: string | number) => {
     const { data } = await apiClient.get(`/designsheets/${id}`);
     return data;

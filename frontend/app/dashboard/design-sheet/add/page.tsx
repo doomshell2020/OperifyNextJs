@@ -2,6 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any, react/no-unescaped-entities */
 
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { designsheetService } from '../../../../services/designsheet.service';
@@ -214,7 +215,7 @@ export default function AddDesignSheetPage() {
     quantity: '',
     datefrom: new Date().toISOString().split('T')[0],
   });
-  
+
   const [contractName, setContractName] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [bomProducts, setBomProducts] = useState<any[]>([]);
@@ -225,7 +226,7 @@ export default function AddDesignSheetPage() {
     setContractName(`${contract.title}(${contract.workorder})`);
     setFormData(prev => ({ ...prev, contract_id: contract.id, item_id: '', quantity: '' }));
     setAlreadyExists(false);
-    
+
     try {
         const res = await designsheetService.getBomFinishedProducts(contract.id);
         setBomProducts(res.products || []);
@@ -239,11 +240,11 @@ export default function AddDesignSheetPage() {
      const val = e.target.value;
      setFormData({ ...formData, item_id: val, quantity: '' });
      setAlreadyExists(false);
-     
+
      if (val && formData.contract_id) {
          try {
              const res = await designsheetService.checkDesignSheetItem(formData.contract_id, val);
-             
+
              if (res.checkdesign) {
                  setAlreadyExists(true);
                  setFormData(prev => ({ ...prev, item_id: '', quantity: '' }));
@@ -267,7 +268,7 @@ export default function AddDesignSheetPage() {
   const handleDetailChange = (index: number, field: string, value: string) => {
      const newDetails = [...details];
      newDetails[index][field] = value;
-     
+
      // Recalculate quantity if km_item_qty changes
      if (field === 'km_item_qty') {
          if (value && formData.quantity) {
@@ -278,7 +279,7 @@ export default function AddDesignSheetPage() {
      }
      setDetails(newDetails);
   };
-  
+
   const handleItemSelect = async (index: number, item: any) => {
       const isDuplicate = details.some((detail, idx) => idx !== index && String(detail.pitemname) === String(item.id));
       if (isDuplicate) {
@@ -289,20 +290,20 @@ export default function AddDesignSheetPage() {
       const newDetails = [...details];
       newDetails[index].pitemnameText = item.item_name;
       newDetails[index].pitemname = item.id;
-      
+
       try {
           const res = await designsheetService.getIndentItems(item.id);
           if (res.itemname) {
               newDetails[index].unit_name = res.itemname.unit_name || '';
           }
       } catch {}
-      
+
       setDetails(newDetails);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-      
+
       if (!formData.contract_id) {
           toast.error("Your entered Contract does not exist.");
           return;
@@ -320,12 +321,12 @@ export default function AddDesignSheetPage() {
           toast.error('This Item Already added');
           return;
       }
-      
+
       try {
           const form = new FormData();
           Object.entries(formData).forEach(([k, v]) => form.append(k, v));
           if (file) form.append('design_sheet', file);
-          
+
           details.forEach((d) => {
               form.append('pitemname', d.pitemname);
               form.append('km_item_qty', d.km_item_qty);
@@ -333,7 +334,7 @@ export default function AddDesignSheetPage() {
               form.append('unit_name', d.unit_name);
               form.append('is_group', d.is_group);
           });
-          
+
           await designsheetService.createDesignSheet(form);
           toast.success('Design Sheet added successfully!');
           router.push('/dashboard/design-sheet');
@@ -348,9 +349,9 @@ export default function AddDesignSheetPage() {
         <Link href="/dashboard/design-sheet" className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600 transition">
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <h1 className="text-xl font-extrabold text-slate-900">Create New Design Sheet</h1>
+        <LegacyPageHeader title="Add Design Sheet"/>
       </div>
-      
+
       <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-xl p-6 space-y-6 shadow-sm">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             <div>
@@ -391,7 +392,7 @@ export default function AddDesignSheetPage() {
               <div className="text-[10px] text-rose-500 font-semibold mt-1">PDF, JPG, JPEG or PNG files only</div>
             </div>
         </div>
-        
+
         <div className="pt-4 border-t border-slate-100">
            <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-bold text-slate-800">Items</h3>
@@ -399,7 +400,7 @@ export default function AddDesignSheetPage() {
                  <Plus className="w-3.5 h-3.5" /> Add Row
               </button>
            </div>
-           
+
            <div className="overflow-visible">
              <table className="w-full text-left text-sm border border-slate-200 rounded-lg">
                  <thead className="bg-slate-200 text-xs font-bold text-slate-800">
@@ -444,7 +445,7 @@ export default function AddDesignSheetPage() {
              </table>
            </div>
         </div>
-        
+
         <div className="flex justify-end pt-4 border-t border-slate-100">
            <button type="submit" className="flex items-center gap-2 px-6 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-semibold shadow-sm transition">
               <Save className="w-4 h-4" /> Add

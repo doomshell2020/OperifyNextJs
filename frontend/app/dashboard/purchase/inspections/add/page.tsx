@@ -1,5 +1,6 @@
 'use client';
 
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -115,7 +116,7 @@ export default function AddGrnInspectionPage() {
           setValue('vendor_id', details.po.vendor_id);
           setValue('vendor_name', details.po.vendor_name);
           setDeliveryDate(details.po.delivery_date ? String(details.po.delivery_date).split('T')[0] : null);
-          
+
           const newItems = details.items.map(i => ({
             item_id: i.item_id,
             item_name: i.item_name,
@@ -205,11 +206,11 @@ export default function AddGrnInspectionPage() {
               <ArrowLeft className="w-5 h-5 text-slate-600" />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">Add GRN Inspection</h1>
+              <LegacyPageHeader title="GRN Inspection"/>
               <p className="text-sm text-slate-500">Create a new Goods Received Note Inspection</p>
             </div>
           </div>
-          <button 
+          <button
             type="submit"
             disabled={submitMutation.isPending || isPoLoading}
             className="flex items-center justify-center gap-2 px-6 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-medium shadow-sm transition disabled:opacity-50 w-full sm:w-auto"
@@ -233,11 +234,11 @@ export default function AddGrnInspectionPage() {
             <h3 className="font-semibold text-slate-800">Basic Information</h3>
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            
+
             {/* Purchase Order */}
             <div className="space-y-1.5 relative">
               <label className="block text-sm font-medium text-slate-700">Purchase Order <span className="text-red-500">*</span></label>
-              <AsyncPoSearchSelect 
+              <AsyncPoSearchSelect
                 value={po_id}
                 onChange={(v) => setValue('po_id', v, { shouldValidate: true })}
                 error={errors.po_id?.message}
@@ -254,20 +255,20 @@ export default function AddGrnInspectionPage() {
             {/* Inspection No */}
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-slate-700">Inspection No. (Auto)</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 {...register('inspection_id')}
-                disabled 
-                className="w-full h-10 border border-slate-200 bg-slate-50 text-slate-500 rounded-md px-3 text-sm focus:outline-none" 
+                disabled
+                className="w-full h-10 border border-slate-200 bg-slate-50 text-slate-500 rounded-md px-3 text-sm focus:outline-none"
               />
             </div>
 
             {/* Inward Date */}
             <div className="space-y-1.5 relative">
               <label className="block text-sm font-medium text-slate-700">Inward Date <span className="text-red-500">*</span></label>
-              <DatePicker dateFormat="dd-MM-yyyy"   
+              <DatePicker dateFormat="dd-MM-yyyy"
                 {...register('inwarddate')}
-                className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white ${errors.inwarddate ? 'border-red-500' : 'border-slate-300'}`} 
+                className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white ${errors.inwarddate ? 'border-red-500' : 'border-slate-300'}`}
               />
               {errors.inwarddate && <p className="text-xs text-red-600 absolute -bottom-5">{errors.inwarddate.message}</p>}
             </div>
@@ -275,23 +276,23 @@ export default function AddGrnInspectionPage() {
             {/* Vendor (Read only via PO) */}
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-slate-700">Vendor</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 {...register('vendor_name')}
-                disabled 
+                disabled
                 placeholder="Select a PO first..."
-                className="w-full h-10 border border-slate-200 bg-slate-50 text-slate-500 rounded-md px-3 text-sm focus:outline-none" 
+                className="w-full h-10 border border-slate-200 bg-slate-50 text-slate-500 rounded-md px-3 text-sm focus:outline-none"
               />
             </div>
 
             {/* Bill No */}
             <div className="space-y-1.5 relative">
               <label className="block text-sm font-medium text-slate-700">Bill No. <span className="text-red-500">*</span></label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 {...register('bill_no')}
                 placeholder="Enter bill number"
-                className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white ${errors.bill_no ? 'border-red-500' : 'border-slate-300'}`} 
+                className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white ${errors.bill_no ? 'border-red-500' : 'border-slate-300'}`}
               />
               {errors.bill_no && <p className="text-xs text-red-600 absolute -bottom-5">{errors.bill_no.message}</p>}
             </div>
@@ -299,9 +300,9 @@ export default function AddGrnInspectionPage() {
             {/* Bill Date */}
             <div className="space-y-1.5 relative">
               <label className="block text-sm font-medium text-slate-700">Bill Date <span className="text-red-500">*</span></label>
-              <DatePicker dateFormat="dd-MM-yyyy"   
+              <DatePicker dateFormat="dd-MM-yyyy"
                 {...register('bill_date')}
-                className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white ${errors.bill_date ? 'border-red-500' : 'border-slate-300'}`} 
+                className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white ${errors.bill_date ? 'border-red-500' : 'border-slate-300'}`}
               />
               {errors.bill_date && <p className="text-xs text-red-600 absolute -bottom-5">{errors.bill_date.message}</p>}
             </div>
@@ -316,7 +317,7 @@ export default function AddGrnInspectionPage() {
               <h3 className="font-semibold text-slate-800">Item Details</h3>
               {isPoLoading && <Loader2 className="w-5 h-5 text-cyan-600 animate-spin" />}
             </div>
-            
+
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm min-w-[800px]">
                 <thead className="bg-slate-100/50">
@@ -339,16 +340,16 @@ export default function AddGrnInspectionPage() {
                       <td colSpan={10} className="p-8 text-center text-slate-500 italic">No items found for this PO.</td>
                     </tr>
                   )}
-                  
+
                   {fields.map((field, idx) => {
                     const currentItem = items?.[idx];
                     const rate = Number(currentItem?.rate) || 0;
                     const taxRate = Number(currentItem?.tax_rate) || 0;
-                    
+
                     const amt = currentItem ? portion(currentItem, currentItem.order_base) : 0;
                     const taxAmt = currentItem ? portion(currentItem, currentItem.order_tax) : 0;
                     const totalAmt = currentItem ? portion(currentItem, currentItem.order_amount) : 0;
-                    
+
                     const hasError = !!errors.items?.[idx]?.received_qty;
 
                     return (
@@ -366,7 +367,7 @@ export default function AddGrnInspectionPage() {
                         <td className="p-3 text-right text-slate-600">{field.order_qty}</td>
                         <td className="p-3 text-right text-orange-600 font-medium">{field.pending_qty}</td>
                         <td className="p-3 align-top">
-                          <input 
+                          <input
                             type="number"
                             step="any"
                             max={field.pending_qty}
@@ -414,7 +415,7 @@ export default function AddGrnInspectionPage() {
             <h3 className="font-semibold text-slate-800">Remarks</h3>
           </div>
           <div className="p-6 relative">
-            <textarea 
+            <textarea
               {...register('remark')}
               rows={4}
               placeholder="Enter inspection remarks..."

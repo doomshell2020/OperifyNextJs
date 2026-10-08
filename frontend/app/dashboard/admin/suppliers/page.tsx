@@ -1,5 +1,6 @@
 'use client';
 
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsService, Supplier } from '@/services/settings.service';
@@ -117,7 +118,7 @@ export default function SuppliersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Suppliers / Vendors</h1>
+          <LegacyPageHeader title="Vendor Manager"/>
           <p className="text-sm text-slate-500 mt-0.5">Manage supplier and vendor master records</p>
         </div>
         <button onClick={openAdd} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">

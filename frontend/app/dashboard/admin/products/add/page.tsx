@@ -1,5 +1,6 @@
 'use client';
 
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -56,9 +57,9 @@ export default function AddProductPage() {
   // Fetch dropdown data
   const { data: categories } = useQuery({ queryKey: ['product-cats'], queryFn: () => settingsService.getProductCategoryList() });
   const { data: uoms } = useQuery({ queryKey: ['product-uoms'], queryFn: () => settingsService.getUomList() });
-  const { data: processes } = useQuery({ 
-    queryKey: ['product-processes'], 
-    queryFn: () => settingsService.getFinishedProcessList() 
+  const { data: processes } = useQuery({
+    queryKey: ['product-processes'],
+    queryFn: () => settingsService.getFinishedProcessList()
   });
 
   const createMutation = useMutation({
@@ -84,7 +85,7 @@ export default function AddProductPage() {
           <ArrowLeft className="w-5 h-5 text-slate-600" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Create New Item</h1>
+          <LegacyPageHeader title="Add Item Master"/>
           <p className="text-sm text-slate-500 mt-0.5">Add a new raw material or finished product</p>
         </div>
       </div>
@@ -99,7 +100,7 @@ export default function AddProductPage() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-            
+
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">
                 Item Name <span className="text-red-500">*</span>
@@ -196,7 +197,7 @@ export default function AddProductPage() {
                 placeholder="Enter Min. Order Qty"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1">Tax</label>
               <select {...register('tax')} className="w-full border rounded-lg p-2 text-sm"><option value="">Select Tax</option>{masters?.taxes.map(t=><option key={t.id} value={t.id}>{t.tax_name} ({t.tax}%)</option>)}</select>
@@ -267,7 +268,7 @@ export default function AddProductPage() {
             )}
 
           </div>
-          
+
           <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3 rounded-b-2xl">
             <Link href="/dashboard/admin/products" className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
               Cancel

@@ -1,5 +1,6 @@
 'use client';
 
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { Layers, Search, Download, Loader2 } from 'lucide-react';
@@ -86,9 +87,7 @@ export default function DailyStockPage() {
             <Layers className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-lg font-extrabold text-slate-900 tracking-tight">
-              Daily Stock Report
-            </h1>
+            <LegacyPageHeader title="Stock Report"/>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
               View daily opening, received, issued, reversed, returned, and closing stock balances.
             </p>

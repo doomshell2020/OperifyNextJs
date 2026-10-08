@@ -1,4 +1,5 @@
 'use client';
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import {useState} from 'react';
 import {useRouter,useSearchParams} from 'next/navigation';
 import Link from 'next/link';
@@ -29,7 +30,7 @@ export default function ReceiveForm({returnId}:{returnId?:string}) {
   const allowed=can('jobchallan',returnId?'itemreceived':'receiveadd');
   if(loading) return <p className="p-6">Loading permissions...</p>;
   if(!allowed) return <p className="p-6" role="alert">You do not have permission to receive this JC.</p>;
-  return <main className="max-w-7xl mx-auto px-6 py-8 space-y-5"><h1 className="text-2xl font-bold">{returnId?'Receive Returned Items':'Receive JC'}</h1><form className="space-y-5" onSubmit={async e=>{
+  return <main className="max-w-7xl mx-auto px-6 py-8 space-y-5"><LegacyPageHeader title="JC Receive"/><form className="space-y-5" onSubmit={async e=>{
     e.preventDefault();if(busy || loadingItems || loadError)return;
     const selected=items.filter(item=>item.item_id && Number(item.receive_qty)>0);
     if(!selected.length){toast.error('Enter a receive quantity for at least one item.');return;}
