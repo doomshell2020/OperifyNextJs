@@ -95,7 +95,7 @@ class DashboardRepository {
   }
 
   async getProductionStatus(dbPool) {
-    return await dbPool.models.production.findAll({
+    return await dbPool.models.productionorder.findAll({
       attributes: ['status', [fn('COUNT', literal('*')), 'count']],
       group: ['status'],
       raw: true
@@ -119,7 +119,8 @@ class DashboardRepository {
     return await st_purchaseorder.findAll({
       attributes: [
         'id', ['purchaseorder_id', 'po_no'], ['total_amt', 'amount'],
-        'status', 'postatus', ['added_time', 'date'], [col('vendor.name'), 'vendor_name']
+        'status', 'postatus', 'is_revised', 'total_qty', 'delivery_date', ['added_time', 'date'],
+        [col('vendor.name'), 'vendor_name'], [col('vendor.contact_no'), 'contact_no'], [col('vendor.email'), 'email']
       ],
       include: [{ model: vendors, as: 'vendor', attributes: [] }],
       order: [['id', 'DESC']],
@@ -129,20 +130,15 @@ class DashboardRepository {
   }
 
   async getLatestProduction(dbPool) {
-    const { production, machine_master } = dbPool.models;
-    if (!production.associations.machine) {
-      production.belongsTo(machine_master, { foreignKey: 'machine_id', as: 'machine' });
-    }
-    return await production.findAll({
-      attributes: [
-        'id', 'manpower_day', 'plan_qty', 'status', ['created', 'date'],
-        'machine_id', [col('machine.machine_name'), 'machine_name']
-      ],
-      include: [{ model: machine_master, as: 'machine', attributes: [] }],
-      order: [['id', 'DESC']],
-      limit: 5,
-      raw: true
-    });
+    return dbPool.query(`
+      SELECT p.id, p.po_id AS po_no, p.contract_id, c.title AS contract_name,
+        a.item_name AS product_name, p.plannedqty AS plan_qty, p.status,
+        p.added_time AS date, p.startdate AS start_date, p.enddate AS end_date
+      FROM productionorder p
+      LEFT JOIN contracts c ON p.contract_id = c.id
+      LEFT JOIN st_additem a ON p.item_id = a.id
+      ORDER BY p.id DESC LIMIT 5
+    `, { type: QueryTypes.SELECT });
   }
 
   async getLatestMaintenance(dbPool) {
@@ -153,7 +149,8 @@ class DashboardRepository {
     return await maintenance.findAll({
       attributes: [
         'id', 'breakdown_type', 'assigned_to', ['created', 'date'],
-        ['maintenance_status', 'status'], [col('machine.machine_name'), 'machine_name']
+        ['maintenance_status', 'status'], 'total_time', 'shift_incharge', 'maintenance_incharge',
+        'production_head', [col('machine.machine_name'), 'machine_name']
       ],
       include: [{ model: machine_master, as: 'machine', attributes: [] }],
       order: [['id', 'DESC']],
@@ -163,15 +160,14 @@ class DashboardRepository {
   }
 
   async getLatestInspection(dbPool) {
-    return await dbPool.models.st_inspection_report.findAll({
-      attributes: [
-        'id', 'name', 'work_order_no', 'file', 'remark',
-        ['inspection_date', 'date'], 'status', 'created_at'
-      ],
-      order: [['id', 'DESC']],
-      limit: 5,
-      raw: true
-    });
+    return dbPool.query(`
+      SELECT i.id, i.name, i.work_order_no, i.file, i.remark,
+        i.inspection_date AS date, i.status, i.created_at, c.title AS contract_name,
+        c.id AS contract_id
+      FROM st_inspection_report i
+      LEFT JOIN contracts c ON i.work_order_no = c.id
+      ORDER BY i.id DESC LIMIT 5
+    `, { type: QueryTypes.SELECT });
   }
 
   async getLatestGrn(dbPool) {
@@ -181,7 +177,7 @@ class DashboardRepository {
     }
     return await st_goodsreceive.findAll({
       attributes: [
-        'id', ['purchaseorder_id', 'po_no'], 'bill_no', ['inwarddate', 'date'],
+        'id', ['purchaseorder_id', 'po_no'], 'bill_no', 'bill_date', ['inwarddate', 'date'],
         ['total_amt', 'amount'], 'status', [col('vendor.name'), 'vendor_name']
       ],
       include: [{ model: vendors, as: 'vendor', attributes: [] }],

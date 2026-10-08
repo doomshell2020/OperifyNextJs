@@ -3,6 +3,8 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import purchaseOrderService from '../services/purchaseOrder.service';
+import { openPurchaseOrderPdf } from '../services/purchaseOrderPdf.service';
+import toast from 'react-hot-toast';
 import { X, Printer, AlertCircle, Loader } from 'lucide-react';
 import { StatusBadge } from './dashboard/StatusBadge';
 import { formatDate, formatContractDate } from '../utils/dateFormatter';
@@ -28,7 +30,7 @@ export const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps>
   if (!isOpen) return null;
 
   const handlePrint = () => {
-    window.open(`/dashboard/purchase/inspections/print-po/${id}`, '_blank');
+    void openPurchaseOrderPdf(Number(id)).catch(() => toast.error('Unable to open purchase order PDF. Please retry and allow popups.'));
   };
 
   

@@ -40,6 +40,11 @@ export interface PurchaseOrderRecord {
   status: string;
   postatus: string;
   date: string;
+  contact_no?: string;
+  email?: string;
+  total_qty?: number;
+  delivery_date?: string;
+  is_revised?: number;
 }
 
 export interface ProductionRecord {
@@ -49,6 +54,12 @@ export interface ProductionRecord {
   status: string;
   date: string;
   machine_name: string;
+  po_no?: string;
+  contract_id?: number;
+  contract_name?: string;
+  product_name?: string;
+  start_date?: string;
+  end_date?: string;
 }
 
 export interface MaintenanceRecord {
@@ -58,6 +69,10 @@ export interface MaintenanceRecord {
   date: string;
   status: string;
   machine_name: string;
+  total_time?: string;
+  shift_incharge?: string;
+  maintenance_incharge?: string;
+  production_head?: string;
 }
 
 export interface InspectionRecord {
@@ -68,6 +83,8 @@ export interface InspectionRecord {
   remark: string;
   date: string;
   status: string;
+  contract_name?: string;
+  contract_id?: number;
 }
 
 export interface GrnRecord {
@@ -78,6 +95,7 @@ export interface GrnRecord {
   amount: number;
   status: string;
   vendor_name: string;
+  bill_date?: string;
 }
 
 class DashboardService {

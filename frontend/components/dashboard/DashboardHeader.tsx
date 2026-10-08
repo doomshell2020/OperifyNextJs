@@ -23,7 +23,6 @@ export const DashboardTopbar: React.FC = () => {
   const { hasPermission } = usePermission();
   const { can: canJc } = useJcAccess();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [jobWorkOpen, setJobWorkOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
 
   useEffect(() => {
@@ -70,7 +69,6 @@ export const DashboardTopbar: React.FC = () => {
     { title: 'JC Receive', path: '/dashboard/jc-receive', allowed: canJc('jobchallan', 'receiveindex') },
     { title: 'Gate Pass', path: '/dashboard/gatepass', allowed: canJc('gatepasses', 'index') }
   ].filter(item => item.allowed);
-  const jobWorkActive = jobWorkItems.some(item => pathname === item.path || pathname.startsWith(item.path + '/'));
 
   const settingsMenu = [
     { title: 'Categories', path: '/dashboard/admin/categories', allowed: hasPermission('legacy:admin/itemcategory/index') },
@@ -92,9 +90,9 @@ export const DashboardTopbar: React.FC = () => {
   };
 
   return (
-    <header className="bg-[#fff] border-b border-[#ddd] flex items-center justify-between px-1 select-none h-[66px] w-full shadow-[0_1px_2px_rgba(0,0,0,0.03)] z-50 relative">
+    <header className="bg-[#fff] border-b border-[#ddd] flex items-center justify-between px-1 select-none h-[58px] w-full shadow-[0_1px_2px_rgba(0,0,0,0.03)] z-50 relative">
       {/* 2. Logo Section */}
-      <Link href="/dashboard" className="flex items-center gap-1.5 shrink-0 justify-start w-[110px] cursor-pointer hover:opacity-80 transition-opacity [&>*]:pointer-events-none">
+      <Link href="/dashboard" className="flex items-center gap-1.5 shrink-0 justify-start w-[115px] cursor-pointer hover:opacity-80 transition-opacity [&>*]:pointer-events-none">
         <div className="h-[28px] w-[28px] flex items-center justify-center shrink-0">
           <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
         </div>
@@ -136,69 +134,61 @@ export const DashboardTopbar: React.FC = () => {
               <Link
                 key={item.title}
                 href={item.path}
-                className={`flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] shrink-0 border-b-[2px] transition-colors [&>*]:pointer-events-none ${
+                className={`flex flex-col items-center justify-center px-[4px] h-[52px] gap-[3px] shrink-0 border-b-[2px] transition-colors [&>*]:pointer-events-none ${
                   isActive ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'
                 }`}
               >
                 {React.cloneElement(item.icon as React.ReactElement<{ className?: string }>, {
                   className: `w-[18px] h-[18px] pointer-events-none ${isActive ? 'text-[#1683D8]' : 'text-[#555]'}`
                 })}
-                <span className="text-[11px] font-semibold text-center whitespace-nowrap leading-none pointer-events-none">{item.title}</span>
+                <span className="text-[9px] font-medium text-center whitespace-nowrap leading-none pointer-events-none">{item.title}</span>
               </Link>
             );
           })
         )}
+        {user?.role_id !== 101 && jobWorkItems.map(item => <Link key={item.path} href={item.path}
+          className={`flex flex-col items-center justify-center px-1 h-[52px] gap-[3px] shrink-0 border-b-2 ${pathname.startsWith(item.path) ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'}`}>
+          <Receipt className="w-[22px] h-[22px]" />
+          <span className="text-[9px] whitespace-nowrap">{item.title}</span>
+        </Link>)}
       </nav>
 
       {/* 7. Right Section */}
       <div className="flex items-center gap-[6px] shrink-0 ml-auto justify-end h-full relative">
-        {jobWorkItems.length > 0 && <div className="relative flex items-center h-full shrink-0">
-          <button type="button" aria-expanded={jobWorkOpen} aria-controls="job-work-links" onClick={() => setJobWorkOpen(!jobWorkOpen)} className={`flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] border-b-[2px] transition-colors ${jobWorkActive ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'}`}>
-            <Receipt className="w-[18px] h-[18px]" />
-            <span className="flex items-center gap-1 text-[11px] font-semibold whitespace-nowrap">Job Work <ChevronDown className="w-3 h-3" /></span>
-          </button>
-          {jobWorkOpen && <>
-            <div className="fixed inset-0 z-40" onClick={() => setJobWorkOpen(false)} />
-            <div id="job-work-links" className="absolute right-0 top-[55px] w-[150px] bg-white border border-[#ccc] shadow-lg rounded-sm py-1 z-50">
-              {jobWorkItems.map(item => <Link key={item.path} href={item.path} onClick={() => setJobWorkOpen(false)} className={`block px-3 py-2 text-[11px] font-medium hover:bg-[#f5f5f5] ${pathname === item.path || pathname.startsWith(item.path + '/') ? 'text-[#1683D8]' : 'text-[#222]'}`}>{item.title}</Link>)}
-            </div>
-          </>}
-        </div>}
-        
         {/* Superadmin specific links or Settings */}
         {user?.role_id === 101 ? (
           <>
-            <Link href="/dashboard/admin/schools" className="flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] border-b-[2px] border-transparent text-[#222] [&>*]:pointer-events-none hover:bg-[#f5f5f5]">
+            <Link href="/dashboard/admin/schools" className="flex flex-col items-center justify-center px-[4px] h-[52px] gap-[3px] border-b-[2px] border-transparent text-[#222] [&>*]:pointer-events-none hover:bg-[#f5f5f5]">
               <Database className="w-[18px] h-[18px] text-[#555]" />
-              <span className="text-[11px] font-semibold text-center whitespace-nowrap leading-none">Companies</span>
+              <span className="text-[9px] font-medium text-center whitespace-nowrap leading-none">Companies</span>
             </Link>
-            <Link href="/dashboard/admin/template" className="flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] border-b-[2px] border-transparent text-[#222] [&>*]:pointer-events-none hover:bg-[#f5f5f5]">
+            <Link href="/dashboard/admin/template" className="flex flex-col items-center justify-center px-[4px] h-[52px] gap-[3px] border-b-[2px] border-transparent text-[#222] [&>*]:pointer-events-none hover:bg-[#f5f5f5]">
               <FileText className="w-[18px] h-[18px] text-[#555]" />
-              <span className="text-[11px] font-semibold text-center whitespace-nowrap leading-none">Template</span>
+              <span className="text-[9px] font-medium text-center whitespace-nowrap leading-none">Template</span>
             </Link>
-            <Link href="/admin/permission" className={`flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] border-b-[2px] transition-colors [&>*]:pointer-events-none ${pathname.includes('/admin/permission') ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'}`}>
+            <Link href="/admin/permission" className={`flex flex-col items-center justify-center px-[4px] h-[52px] gap-[3px] border-b-[2px] transition-colors [&>*]:pointer-events-none ${pathname.includes('/admin/permission') ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'}`}>
               <Settings className={`w-[18px] h-[18px] ${pathname.includes('/admin/permission') ? 'text-[#1683D8]' : 'text-[#555]'}`} />
-              <span className="text-[11px] font-semibold text-center whitespace-nowrap leading-none">Permission</span>
+              <span className="text-[9px] font-medium text-center whitespace-nowrap leading-none">Permission</span>
             </Link>
-            <Link href="/dashboard/admin/demo" className="flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] border-b-[2px] border-transparent text-[#222] [&>*]:pointer-events-none hover:bg-[#f5f5f5]">
+            <Link href="/dashboard/admin/demo" className="flex flex-col items-center justify-center px-[4px] h-[52px] gap-[3px] border-b-[2px] border-transparent text-[#222] [&>*]:pointer-events-none hover:bg-[#f5f5f5]">
               <FileSpreadsheet className="w-[18px] h-[18px] text-[#555]" />
-              <span className="text-[11px] font-semibold text-center whitespace-nowrap leading-none">Demo Request</span>
+              <span className="text-[9px] font-medium text-center whitespace-nowrap leading-none">Demo Request</span>
             </Link>
-            <Link href="/dashboard/admin/spam" className="flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] border-b-[2px] border-transparent text-[#222] [&>*]:pointer-events-none hover:bg-[#f5f5f5]">
+            <Link href="/dashboard/admin/spam" className="flex flex-col items-center justify-center px-[4px] h-[52px] gap-[3px] border-b-[2px] border-transparent text-[#222] [&>*]:pointer-events-none hover:bg-[#f5f5f5]">
               <Archive className="w-[18px] h-[18px] text-[#555]" />
-              <span className="text-[11px] font-semibold text-center whitespace-nowrap leading-none">Spam</span>
+              <span className="text-[9px] font-medium text-center whitespace-nowrap leading-none">Spam</span>
             </Link>
           </>
         ) : (
           <div className="relative flex items-center h-full shrink-0 mr-2">
             <button
               onClick={() => setSettingsOpen(!settingsOpen)}
-              className={`flex flex-col items-center justify-center px-[8px] h-[52px] gap-[3px] border-b-[2px] transition-colors [&>*]:pointer-events-none ${
+              className={`flex flex-col items-center justify-center px-[4px] h-[52px] gap-[3px] border-b-[2px] transition-colors [&>*]:pointer-events-none ${
                 pathname.includes('/admin/') ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'
               }`}
             >
               <Settings className={`w-[18px] h-[18px] ${pathname.includes('/admin/') ? 'text-[#1683D8]' : 'text-[#555]'}`} />
-              <span className="text-[11px] font-semibold text-center whitespace-nowrap leading-none">Settings</span>
+              <span className="text-[9px] font-medium text-center whitespace-nowrap leading-none">Settings</span>
             </button>
             
             {settingsOpen && (
