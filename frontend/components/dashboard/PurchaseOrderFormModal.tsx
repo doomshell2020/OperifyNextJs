@@ -18,8 +18,8 @@ export function PurchaseOrderFormModal({ poId, onClose }: PurchaseOrderFormModal
   const [items, setItems] = useState<Partial<PurchaseOrderItem>[]>([]);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['purchase-order-details', poId],
-    queryFn: () => purchaseOrderService.getDetails(poId),
+    queryKey: ['purchase-order-revision-data', poId],
+    queryFn: () => purchaseOrderService.getRevisionData(poId),
     enabled: !!poId,
   });
 
@@ -34,7 +34,9 @@ export function PurchaseOrderFormModal({ poId, onClose }: PurchaseOrderFormModal
     mutationFn: (payload: any) => purchaseOrderService.revisePurchaseOrder(poId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-order-revision-data', poId] });
       queryClient.invalidateQueries({ queryKey: ['purchase-order-details', poId] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-order-delivery-data', poId] });
       onClose();
     }
   });

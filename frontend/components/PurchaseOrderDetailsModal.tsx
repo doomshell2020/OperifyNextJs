@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import purchaseOrderService from '../services/purchaseOrder.service';
 import { openPurchaseOrderPdf } from '../services/purchaseOrderPdf.service';
 import toast from 'react-hot-toast';
+import { useLegacyActionAccess } from './ui/useLegacyActionAccess';
 import { X, Printer, AlertCircle, Loader } from 'lucide-react';
 import { StatusBadge } from './dashboard/StatusBadge';
 import { formatDate, formatContractDate } from '../utils/dateFormatter';
@@ -20,6 +21,7 @@ export const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps>
   isOpen,
   onClose
 }) => {
+  const canAction = useLegacyActionAccess();
   const { data, isLoading, isError } = useQuery({
     queryKey: ['purchase-order', 'details', id],
     queryFn: () => purchaseOrderService.getDetails(id),
@@ -38,7 +40,7 @@ export const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps>
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
       
       {/* Modal Dialog Box */}
-      <div className="bg-white border border-slate-200 shadow-2xl rounded-2xl max-w-4xl w-full p-6 flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]">
+      <div className="bg-white border border-slate-200 shadow-2xl rounded-2xl max-w-[900px] w-full p-6 flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]">
         
         {/* Top Control Bar */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
@@ -46,7 +48,7 @@ export const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps>
             Purchase Order Details
           </h3>
           <div className="flex items-center gap-3">
-            {data && (
+            {data && canAction('purchaseorder','view') && (
               <button
                 onClick={handlePrint}
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold shadow-sm transition cursor-pointer print:hidden"

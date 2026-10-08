@@ -14,9 +14,9 @@ interface DeliveryNoteModalProps {
 export function DeliveryNoteModal({ poId, onClose }: DeliveryNoteModalProps) {
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['purchase-order-details', poId],
-    queryFn: () => purchaseOrderService.getDetails(poId),
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['purchase-order-delivery-data', poId],
+    queryFn: () => purchaseOrderService.getDeliveryData(poId),
     enabled: !!poId,
   });
 
@@ -66,7 +66,9 @@ export function DeliveryNoteModal({ poId, onClose }: DeliveryNoteModalProps) {
     onSuccess: () => {
       toast.success('Delivery Schedule added successfully.');
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-order-delivery-data', poId] });
       queryClient.invalidateQueries({ queryKey: ['purchase-order-details', poId] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-order-revision-data', poId] });
       onClose();
     }
   });
@@ -158,6 +160,10 @@ export function DeliveryNoteModal({ poId, onClose }: DeliveryNoteModalProps) {
       schedules: payloadSchedules
     });
   };
+
+  if (isError || (!isLoading && !data)) {
+    return <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 p-4"><div className="bg-white p-6 w-full max-w-[900px]" role="alert"><p>Unable to load the delivery schedule.</p><button type="button" onClick={onClose}>Close</button></div></div>;
+  }
 
   if (!poId || isLoading || !data) {
     return (

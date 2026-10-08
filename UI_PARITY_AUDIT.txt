@@ -201,3 +201,40 @@ modals and full-page old/new comparisons were NOT visually certified.
   Server access or deployment configuration is required to update live and
   compare the running build. Do not describe this release as live until that
   deployment and browser verification have actually succeeded.
+
+CONTINUATION: FORM AND MODAL CORRECTIONS (8 OCTOBER 2026)
+- Item Master add/edit: removed visible Tax, Size, Location and Company selectors
+  absent from active PHP forms. Hidden edit values are preserved. Add selects
+  the PHP hidden company ID 1 only when present in the active company list.
+  Restored editable Weight, Volume and Min. Order Qty; grouped all three types
+  in source order; restored full-width page heading and breadcrumb.
+- Purchase order revise/delivery form reads now use action-specific API routes
+  guarded by the same exact permissions as writes. Separate query keys prevent
+  details cache from bypassing form reads. Both form writes invalidate detail,
+  revision and delivery queries.
+- Contract, purchase order and issued-indent modal Print controls now check
+  the matching PDF permission. Contract reverse expenditure checks viewreverse.
+  Contract printing uses authenticated PDF loading instead of a token in URL.
+- Contract, PO detail and issued-indent modal width is 900px as in source.
+  PO details/delivery load failures now show an error with a working Close.
+- Regression checks use in-memory requests only; no database mutation or data
+  insertion. Full authenticated visual checks and remaining workflows listed
+  in section 9 are still outstanding.
+- GitHub run 37761167307 for commit 166d8f7 completed validation successfully;
+  Deploy Ubuntu PM2 server was skipped. This is not a live deployment.
+Additional changed files:
+  backend/src/modules/purchaseOrder/purchaseOrder.routes.js
+  frontend/services/purchaseOrder.service.ts
+  frontend/components/dashboard/PurchaseOrderFormModal.tsx
+  frontend/components/dashboard/DeliveryNoteModal.tsx
+  frontend/components/dashboard/PurchaseOrderDetailsModal.tsx
+  frontend/components/dashboard/ContractDetailsModal.tsx
+  frontend/app/dashboard/purchase/indentpo/page.tsx
+  frontend/app/dashboard/admin/products/add/page.tsx
+  frontend/app/dashboard/admin/products/edit/[id]/page.tsx
+  frontend/components/PurchaseOrderDetailsModal.tsx (shared print guard/900px)
+  frontend/components/GrnDetailsModal.tsx (source 900px width)
+  frontend/app/dashboard/purchase/indents/page.tsx (view/print permission)
+Validation of this continuation: 89 backend regression checks and 4 frontend
+checks passed; TypeScript and the shipping production build must pass before
+pushing. Tests remain local under the existing repository ignore policy.

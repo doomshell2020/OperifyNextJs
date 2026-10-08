@@ -140,6 +140,16 @@ class PurchaseOrderService {
     return response.data.data;
   }
 
+  async getRevisionData(id: number | string): Promise<PurchaseOrderDetailsData> {
+    const response = await apiClient.get(`/purchase-orders/${id}/revision-data`);
+    return response.data.data;
+  }
+
+  async getDeliveryData(id: number | string): Promise<PurchaseOrderDetailsData> {
+    const response = await apiClient.get(`/purchase-orders/${id}/delivery-data`);
+    return response.data.data;
+  }
+
   async revisePurchaseOrder(id: number | string, data: any): Promise<void> {
     await apiClient.put(`/purchase-orders/${id}`, data);
   }

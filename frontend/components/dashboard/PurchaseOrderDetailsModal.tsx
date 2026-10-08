@@ -6,6 +6,7 @@ import purchaseOrderService from '../../services/purchaseOrder.service';
 import { Loader, X } from 'lucide-react';
 import { openPurchaseOrderPdf } from '../../services/purchaseOrderPdf.service';
 import toast from 'react-hot-toast';
+import { useLegacyActionAccess } from '../ui/useLegacyActionAccess';
 
 interface PurchaseOrderDetailsModalProps {
   poId: number;
@@ -22,7 +23,8 @@ function formatCurrency(amount: any) {
 }
 
 export function PurchaseOrderDetailsModal({ poId, onClose }: PurchaseOrderDetailsModalProps) {
-  const { data: details, isLoading } = useQuery({
+  const canAction = useLegacyActionAccess();
+  const { data: details, isLoading, isError } = useQuery({
     queryKey: ['purchase-order-details', poId],
     queryFn: () => purchaseOrderService.getDetails(poId),
     enabled: !!poId,
@@ -32,6 +34,10 @@ export function PurchaseOrderDetailsModal({ poId, onClose }: PurchaseOrderDetail
     if (!details?.schedules) return [];
     return Array.from(new Set(details.schedules.map((s: any) => s.delivery_date)));
   }, [details]);
+
+  if (isError || (!isLoading && !details)) {
+    return <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 p-4"><div className="bg-white p-6 w-full max-w-[900px]" role="alert"><p>Unable to load purchase order details.</p><button type="button" onClick={onClose}>Close</button></div></div>;
+  }
 
   if (!poId || isLoading || !details) {
     return (
@@ -51,7 +57,7 @@ export function PurchaseOrderDetailsModal({ poId, onClose }: PurchaseOrderDetail
 
   return (
     <div className="fixed inset-0 z-[10000] flex justify-center items-start overflow-y-auto bg-black/40 pt-10 pb-10 font-sans text-[14px]">
-      <div className="bg-white rounded w-[95%] max-w-[1000px] shadow-lg relative p-4 pb-8">
+      <div className="bg-white rounded w-[95%] max-w-[900px] shadow-lg relative p-4 pb-8">
         
         <button onClick={onClose} className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 bg-gray-100 rounded p-1">
           <X className="w-5 h-5" />
@@ -59,12 +65,12 @@ export function PurchaseOrderDetailsModal({ poId, onClose }: PurchaseOrderDetail
 
         <div className="tableContainer" style={{ border: '1px solid #ccc', padding: '15px' }}>
           
-          <button type="button"
+          {canAction('purchaseorder','view') && <button type="button"
              onClick={() => { void openPurchaseOrderPdf(po.id).catch(() => toast.error('Unable to open purchase order PDF. Please retry and allow popups.')); }}
              className="float-right bg-[#00a65a] hover:bg-[#008d4c] text-white px-[20px] py-[6px] rounded text-[14px] flex items-center gap-1 mt-2"
              style={{ textDecoration: 'none' }}>
             <i className="fa fa-file-pdf-o"></i> Print
-          </button>
+          </button>}
 
           <div className="tableHeader">
             <p style={{ textAlign: 'center', fontSize: '15px', marginBottom: '5px' }}><b>Purchase Order Details</b></p>

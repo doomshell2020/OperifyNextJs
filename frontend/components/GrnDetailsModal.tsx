@@ -31,7 +31,7 @@ export const GrnDetailsModal: React.FC<GrnDetailsModalProps> = ({
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
       
       {/* Modal Dialog Box */}
-      <div className="bg-white border border-slate-200 shadow-2xl rounded-2xl max-w-5xl w-full p-6 flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]">
+      <div className="bg-white border border-slate-200 shadow-2xl rounded-2xl max-w-[900px] w-full p-6 flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]">
         
         {/* Top Control Bar */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">

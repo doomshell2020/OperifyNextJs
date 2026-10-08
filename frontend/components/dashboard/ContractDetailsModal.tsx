@@ -4,7 +4,8 @@ import React, {useState} from 'react';
 import {ContractReverseCost} from './ContractReverseCost';
 import { useQuery } from '@tanstack/react-query';
 import contractService from '../../services/contract.service';
-import { API_URL } from '../../services/apiConfig';
+import { openModulePdf } from '../../services/pdf.service';
+import { useLegacyActionAccess } from '../ui/useLegacyActionAccess';
 import { Loader, AlertCircle, X, Printer } from 'lucide-react';
 import { formatQty, formatAmt } from '@/utils/formatters';
 import { formatContractDate } from '../../utils/dateFormatter';
@@ -15,6 +16,7 @@ interface ContractDetailsModalProps {
 }
 
 export function ContractDetailsModal({ contractId, onClose }: ContractDetailsModalProps) {
+  const canAction = useLegacyActionAccess();
   const [showReverseCost,setShowReverseCost]=useState(false);
   const { data: details, isLoading, isError } = useQuery({
     queryKey: ['contract-details', contractId],
@@ -26,14 +28,14 @@ export function ContractDetailsModal({ contractId, onClose }: ContractDetailsMod
   
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white border border-slate-200 shadow-2xl rounded-2xl max-w-3xl w-full p-6 flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]">
+      <div className="bg-white border border-slate-200 shadow-2xl rounded-2xl max-w-[900px] w-full p-6 flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]">
         
         {/* Top Close Control */}
         <div className="absolute top-4 right-4 z-10 flex gap-2">
-          {details && (
+          {details && canAction('production','viewcontractdetailspdf') && (
             <button
               onClick={() => {
-                window.open(`${API_URL}/contracts/${contractId}/pdf?token=${localStorage.getItem('accessToken')}`, '_blank');
+                void openModulePdf(`/contracts/${contractId}/pdf`);
               }}
               className="flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded font-bold shadow-sm transition cursor-pointer print:hidden text-sm"
             >
@@ -64,7 +66,7 @@ export function ContractDetailsModal({ contractId, onClose }: ContractDetailsMod
           <div className="flex-1 flex flex-col overflow-y-auto space-y-6 select-text pr-2 print:p-0 print:overflow-visible">
             
             <h2 className="text-center font-bold text-lg text-black mt-2">Contract Details</h2>
-            <button className="text-cyan-700 underline text-sm self-start" onClick={()=>setShowReverseCost(true)}>Reverse expenditure details</button>
+            {canAction('contracts','viewreverse') && <button className="text-cyan-700 underline text-sm self-start" onClick={()=>setShowReverseCost(true)}>Reverse expenditure details</button>}
 
             {/* Header Information Grid */}
             <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-xs text-black font-semibold px-4">

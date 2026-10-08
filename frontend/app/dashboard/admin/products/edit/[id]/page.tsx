@@ -6,7 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsService } from '@/services/settings.service';
-import { ArrowLeft, Save, Loader2, AlertCircle } from 'lucide-react';
+import { Save, Loader2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 type EditItemFormValues = {
@@ -53,7 +53,6 @@ export default function EditProductPage() {
     }
   });
 
-  const {data:masters}=useQuery({queryKey:['product-form-masters'],queryFn:()=>settingsService.getProductFormData()});
   const itemtype = watch('itemtype');
 
   // Fetch dropdown data
@@ -118,15 +117,7 @@ export default function EditProductPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard/admin/products" className="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
-          <ArrowLeft className="w-5 h-5 text-slate-600" />
-        </Link>
-        <div>
-          <LegacyPageHeader title="Edit Item Master"/>
-          <p className="text-sm text-slate-500 mt-0.5">Update product details</p>
-        </div>
-      </div>
+      <LegacyPageHeader title="Edit Item Master"/>
 
       {errorMsg && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
@@ -215,18 +206,16 @@ export default function EditProductPage() {
             <div>
               <label className="block text-sm font-semibold text-slate-400 mb-1.5">Weight</label>
               <input
-                disabled
                 {...register('weight')}
-                className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-500 cursor-not-allowed"
+                className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700"
               />
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-slate-400 mb-1.5">Volume</label>
               <input
-                disabled
                 {...register('volume')}
-                className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-500 cursor-not-allowed"
+                className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700"
               />
             </div>
 
@@ -234,31 +223,18 @@ export default function EditProductPage() {
               <label className="block text-sm font-semibold text-slate-400 mb-1.5">Min. Order Qty</label>
               <input
                 type="number"
-                disabled
                 {...register('min_order_qty')}
-                className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-500 cursor-not-allowed"
+                className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Tax</label>
-              <select {...register('tax')} className="w-full border rounded-lg p-2 text-sm"><option value="">Select Tax</option>{masters?.taxes.map(t=><option key={t.id} value={t.id}>{t.tax_name} ({t.tax}%)</option>)}</select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Size</label>
-              <select {...register('size_id')} className="w-full border rounded-lg p-2 text-sm"><option value="">Select Size</option>{masters?.sizes.map(t=><option key={t.id} value={t.id}>{t.size_name}</option>)}</select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Location</label>
-              <select {...register('location_name')} className="w-full border rounded-lg p-2 text-sm"><option value="">Select Location</option>{masters?.locations.filter(t=>Number(t.parent)===0).map(t=><option key={t.id} value={t.id}>{t.location_name}</option>)}</select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Company</label>
-              <select {...register('cname')} className="w-full border rounded-lg p-2 text-sm"><option value="">Select Company</option>{masters?.companies.map(t=><option key={t.id} value={t.id}>{t.cname}</option>)}</select>
-            </div>
+            <input type="hidden" {...register('tax')} />
+            <input type="hidden" {...register('size_id')} />
+            <input type="hidden" {...register('location_name')} />
+            <input type="hidden" {...register('cname')} />
             <div className="md:col-span-3 pt-4 border-t border-slate-100">
               <label className="block text-sm font-semibold text-slate-400 mb-2">Item Type :</label>
-              <div className="flex items-center gap-6">
+              <div className="flex flex-col gap-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
@@ -268,6 +244,7 @@ export default function EditProductPage() {
                   />
                   <span className="text-sm text-slate-500">RawMaterial</span>
                 </label>
+                <label className="flex items-center gap-2"><input type="radio" value="Semi-Finished Product" {...register('itemtype')} />Semi-Finished Product</label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
@@ -280,7 +257,6 @@ export default function EditProductPage() {
               </div>
             </div>
 
-            <label className="flex items-center gap-2"><input type="radio" value="Semi-Finished Product" {...register('itemtype')} />Semi-Finished Product</label>
             {itemtype === 'FinishedProduct' && (
               <div className="md:col-span-3 pt-2">
                 <label className="block text-sm font-semibold text-slate-400 mb-3">Process Name :</label>

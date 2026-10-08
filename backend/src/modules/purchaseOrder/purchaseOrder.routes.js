@@ -19,6 +19,9 @@ router.get('/item/:itemId/history', purchaseOrderController.getItemHistory);
 router.get('/:id', permission('purchaseorder','viewpodetail'), purchaseOrderController.getDetails); // Alias for consistency with new API standard
 router.get('/:id/pdf', permission('purchaseorder','view'), purchaseOrderController.generatePdf);
 router.get('/:id/hover', permission('purchaseorder','viewpodetail'), purchaseOrderController.getHoverDetails);
+// Form reads require the same action permission as their corresponding writes.
+router.get('/:id/revision-data', requireAnyPermission(['purchaseorder:revise', 'legacy:admin/purchaseorder/revised']), purchaseOrderController.getDetails);
+router.get('/:id/delivery-data', requireAnyPermission(['purchaseorder:deliverynote', 'legacy:admin/purchaseorder/deliverynote']), purchaseOrderController.getDetails);
 router.get('/:id/details', permission('purchaseorder','viewpodetail'), purchaseOrderController.getDetails);
 router.put('/:id', requireAnyPermission(['purchaseorder:revise', 'legacy:admin/purchaseorder/revised']), purchaseOrderController.revisePurchaseOrder);
 router.delete('/:id', requireAnyPermission(['purchaseorder:delete', 'legacy:admin/purchaseorder/delete']), purchaseOrderController.deletePurchaseOrder);

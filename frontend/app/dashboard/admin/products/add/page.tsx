@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsService } from '@/services/settings.service';
-import { ArrowLeft, Save, Loader2, AlertCircle } from 'lucide-react';
+import { Save, Loader2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 type AddItemFormValues = {
@@ -33,7 +33,7 @@ export default function AddProductPage() {
   const qc = useQueryClient();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<AddItemFormValues>({
+  const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm<AddItemFormValues>({
     defaultValues: {
       tax: '',size_id:'',location_name:'',cname:'',
       item_name: '',
@@ -52,6 +52,9 @@ export default function AddProductPage() {
   });
 
   const {data:masters}=useQuery({queryKey:['product-form-masters'],queryFn:()=>settingsService.getProductFormData()});
+  useEffect(() => {
+    if (masters?.companies.some(company => Number(company.id) === 1)) setValue('cname', '1');
+  }, [masters, setValue]);
   const itemtype = watch('itemtype');
 
   // Fetch dropdown data
@@ -80,15 +83,7 @@ export default function AddProductPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard/admin/products" className="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
-          <ArrowLeft className="w-5 h-5 text-slate-600" />
-        </Link>
-        <div>
-          <LegacyPageHeader title="Add Item Master"/>
-          <p className="text-sm text-slate-500 mt-0.5">Add a new raw material or finished product</p>
-        </div>
-      </div>
+      <LegacyPageHeader title="Add Item Master"/>
 
       {errorMsg && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
@@ -198,25 +193,13 @@ export default function AddProductPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Tax</label>
-              <select {...register('tax')} className="w-full border rounded-lg p-2 text-sm"><option value="">Select Tax</option>{masters?.taxes.map(t=><option key={t.id} value={t.id}>{t.tax_name} ({t.tax}%)</option>)}</select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Size</label>
-              <select {...register('size_id')} className="w-full border rounded-lg p-2 text-sm"><option value="">Select Size</option>{masters?.sizes.map(t=><option key={t.id} value={t.id}>{t.size_name}</option>)}</select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Location</label>
-              <select {...register('location_name')} className="w-full border rounded-lg p-2 text-sm"><option value="">Select Location</option>{masters?.locations.filter(t=>Number(t.parent)===0).map(t=><option key={t.id} value={t.id}>{t.location_name}</option>)}</select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Company</label>
-              <select {...register('cname')} className="w-full border rounded-lg p-2 text-sm"><option value="">Select Company</option>{masters?.companies.map(t=><option key={t.id} value={t.id}>{t.cname}</option>)}</select>
-            </div>
+            <input type="hidden" {...register('tax')} />
+            <input type="hidden" {...register('size_id')} />
+            <input type="hidden" {...register('location_name')} />
+            <input type="hidden" {...register('cname')} />
             <div className="md:col-span-3 pt-4 border-t border-slate-100">
               <label className="block text-sm font-semibold text-slate-700 mb-2">Item Type :</label>
-              <div className="flex items-center gap-6">
+              <div className="flex flex-col gap-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
@@ -226,6 +209,7 @@ export default function AddProductPage() {
                   />
                   <span className="text-sm text-slate-800">RawMaterial</span>
                 </label>
+                <label className="flex items-center gap-2"><input type="radio" value="Semi-Finished Product" {...register('itemtype')} />Semi-Finished Product</label>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="radio"
@@ -238,7 +222,6 @@ export default function AddProductPage() {
               </div>
             </div>
 
-            <label className="flex items-center gap-2"><input type="radio" value="Semi-Finished Product" {...register('itemtype')} />Semi-Finished Product</label>
             {itemtype === 'FinishedProduct' && (
               <div className="md:col-span-3 pt-2">
                 <label className="block text-sm font-semibold text-slate-700 mb-3">Process Name :</label>

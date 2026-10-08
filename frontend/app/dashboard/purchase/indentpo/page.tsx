@@ -188,6 +188,7 @@ function Button({ children, onClick, variant = 'primary', disabled, className = 
 }
 
 function IndentDetailsModal({ id, onClose }: { id: number, onClose: () => void }) {
+  const canAction = useLegacyActionAccess();
   const [details, setDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -208,7 +209,7 @@ function IndentDetailsModal({ id, onClose }: { id: number, onClose: () => void }
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-[900px] max-h-[90vh] flex flex-col">
         {loading ? (
           <div className="p-12 flex justify-center"><RefreshCw className="w-8 h-8 animate-spin text-blue-600" /></div>
         ) : details ? (
@@ -216,10 +217,10 @@ function IndentDetailsModal({ id, onClose }: { id: number, onClose: () => void }
             <div className="flex justify-between items-center p-4 border-b">
               <h2 className="text-xl font-bold">Indent Details</h2>
               <div className="flex gap-2">
-                <Button onClick={handlePrint} variant="primary">
+                {canAction('indentpo','viewindentpopdf') && <Button onClick={handlePrint} variant="primary">
                   <Printer className="w-4 h-4 mr-2" />
                   Print
-                </Button>
+                </Button>}
                 <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full">✕</button>
               </div>
             </div>

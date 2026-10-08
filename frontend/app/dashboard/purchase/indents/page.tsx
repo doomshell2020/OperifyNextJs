@@ -245,14 +245,14 @@ export default function IndentsListPage() {
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-2">
-                      <Link
+                      {canAction('indent','view') && <Link
                         href={`/dashboard/purchase/indents/${indent.indent_id}`}
                         target="_blank"
                         title="View / Print Indent"
                         className="p-1.5 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-100 transition-colors"
                       >
                         <FileText className="w-4 h-4" />
-                      </Link>
+                      </Link>}
                       {Number(indent.remaining_qty) > 0 && hasPermission('legacy:admin/purchaseorder/add') && <Link
                         href={`/dashboard/purchase/orders/add?indent_id=${indent.indent_id}`}
                         title="Create Purchase Order"
