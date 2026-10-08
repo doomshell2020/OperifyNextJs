@@ -87,11 +87,25 @@ button[type="submit"], button.bg-blue-500, button.bg-cyan-600, a.bg-blue-500 {
   box-shadow: none !important;
 }
 
-/* Inputs, Selects, Textareas */
-input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea {
+/* Defaults must yield to field utilities that reserve space for adornments. */
+@layer base {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([role="combobox"]):not([data-date-native]),
+  select,
+  textarea {
+    padding-left: 8px;
+    padding-right: 8px;
+    min-width: 0;
+    max-width: 100%;
+    line-height: 1.5;
+  }
+}
+
+/* Composite controls own the geometry of their internal combobox input. */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([role="combobox"]):not([data-date-native]), select, textarea {
   border: 1px solid #ccc !important;
   border-radius: 3px !important;
-  padding: 4px 8px !important;
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
   font-size: 12px !important;
   color: #333 !important;
   background-color: #fff !important;
@@ -99,9 +113,15 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, tex
   box-shadow: none !important;
 }
 
-input:focus, select:focus, textarea:focus {
+input:not([role="combobox"]):not([data-date-native]):focus, select:focus, textarea:focus {
   outline: none !important;
   border-color: #1683D8 !important;
+}
+
+/* Direct trailing icons include autocomplete loading/search indicators. */
+.relative:has(> svg.absolute:is([class~="right-2"], [class~="right-2.5"], [class~="right-3"])) > input:not([type="hidden"]):not([role="combobox"]),
+input[data-date-display] {
+  padding-right: 2.5rem;
 }
 
 

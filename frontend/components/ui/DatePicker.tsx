@@ -28,6 +28,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
           type="text"
           value={displayValue}
           readOnly
+          data-date-display
           className={className}
           placeholder={placeholderText}
         />
@@ -36,6 +37,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
         </div>
         <input
           type="date"
+          data-date-native
           name={props.name}
           ref={hiddenDateRef}
           value={value || ''}
