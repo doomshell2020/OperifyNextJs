@@ -1,183 +1,165 @@
 "use client";
 import { openModulePdf } from '@/services/pdf.service';
-
-import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { useCallback, useState, useEffect } from "react";
 import { indentpoService, Indentpo } from "../../../../services/indentpo.service";
-import { Search, Plus, Printer, RefreshCw, Eye } from "lucide-react";
+import { Search, Plus, Printer, RefreshCw, FileSpreadsheet, Home } from "lucide-react";
 import Link from "next/link";
 import { ContractDetailsModal } from "../../../../components/dashboard/ContractDetailsModal";
 import { formatQty } from "@/utils/formatters";
-import {  formatDate , formatContractDate } from '../../../../utils/dateFormatter';
-import {ListPagination} from '@/components/ui/ListPagination';
-import {usePermission} from '@/contexts/PermissionContext';
-import {useListLocation} from '@/components/ui/useListLocation';
+import { formatContractDate } from '../../../../utils/dateFormatter';
+import { ListPagination } from '@/components/ui/ListPagination';
+import { DatePicker } from '@/components/ui/DatePicker';
+import { usePermission } from '@/contexts/PermissionContext';
+import { useListLocation } from '@/components/ui/useListLocation';
+import styles from './page.module.css';
+
+const emptyFilters = { contract_name: '', product_name: '', machine_name: '', date_from: '', date_to: '' };
+const filterKeys = Object.keys(emptyFilters);
 
 export default function IndentPoListPage() {
-  const {hasPermission}=usePermission();
-  const [page,setPage]=useState(1),[total,setTotal]=useState(0);
-  const [dateFrom,setDateFrom]=useState(''),[dateTo,setDateTo]=useState('');
+  const { hasPermission } = usePermission();
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [filters, setFilters] = useState(emptyFilters);
+  const [draftFilters, setDraftFilters] = useState(emptyFilters);
   const [indents, setIndents] = useState<Indentpo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [error, setError] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
   const [selectedIndentId, setSelectedIndentId] = useState<number | null>(null);
   const [selectedContractId, setSelectedContractId] = useState<number | null>(null);
-  const ready=useListLocation({search:searchTerm,date_from:dateFrom,date_to:dateTo},page,['search','date_from','date_to'],(filters,nextPage)=>{setSearchTerm(filters.search);setDateFrom(filters.date_from);setDateTo(filters.date_to);setPage(nextPage);});
+  const ready = useListLocation(filters, page, filterKeys, (restored, nextPage) => {
+    setFilters(restored);
+    setDraftFilters(restored);
+    setPage(nextPage);
+  });
+  const fetchIndents = useCallback(() => setRefreshKey(key => key + 1), []);
 
   useEffect(() => {
-    if(ready)fetchIndents();
-  }, [ready,page,searchTerm,dateFrom,dateTo]);
-
-  const fetchIndents = async () => {
+    if (!ready) return;
+    let active = true;
     setIsLoading(true);
-    try {
-      const result = await indentpoService.listPage({page,search:searchTerm,date_from:dateFrom,date_to:dateTo});
-      setIndents(result.data);setTotal(result.total);
-    } catch (error) {
-      alert("Failed to load Indent POs");
-    } finally {
-      setIsLoading(false);
-    }
+    setError('');
+    indentpoService.listPage({ page, ...filters }).then(result => {
+      if (!active) return;
+      // A deletion can leave the current page beyond the last available page.
+      const lastPage = Math.max(1, Math.ceil(result.total / 50));
+      if (page > lastPage) {
+        setPage(lastPage);
+        return;
+      }
+      setIndents(result.data);
+      setTotal(result.total);
+    }).catch(() => {
+      if (active) setError('Failed to load indents. Please try again.');
+    }).finally(() => {
+      if (active) setIsLoading(false);
+    });
+    return () => { active = false; };
+  }, [ready, page, filters, refreshKey]);
+
+  const updateDraft = (key: keyof typeof emptyFilters, value: string) => {
+    setDraftFilters(current => ({ ...current, [key]: value }));
   };
 
-  const filteredIndents = indents.filter((indent) => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      indent.indent_id?.toLowerCase().includes(searchLower) ||
-      indent.contract_name?.toLowerCase().includes(searchLower) ||
-      indent.product_name?.toLowerCase().includes(searchLower) ||
-      indent.machine_name?.toLowerCase().includes(searchLower) ||
-      indent.issued_name?.toLowerCase().includes(searchLower)
-    );
-  });
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Indent PO / Stock Issue</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage production issues and raw materials.</p>
-        </div>
-        <div className="flex gap-3">
-          <Button onClick={async()=>{try{await indentpoService.exportExcel({search:searchTerm,date_from:dateFrom,date_to:dateTo});}catch(error){alert('Unable to export indents');}}} variant="outline">Export Excel</Button>
-          <Button onClick={fetchIndents} variant="outline" disabled={isLoading}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          {hasPermission('legacy:admin/indentpo/add') && <Link href="/dashboard/purchase/indentpo/new">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Indent PO
-            </Button>
-          </Link>}
-        </div>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl text-slate-900">Indent Manager</h1>
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-xs font-semibold text-slate-700">
+          <Link href="/dashboard" className="inline-flex items-center gap-1 hover:text-blue-600"><Home className="h-3 w-3" />Home</Link>
+          <span aria-hidden="true">&gt;</span><span>Indent Manager</span>
+        </nav>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-          <h2 className="text-lg font-semibold text-slate-800">All Issued Indents</h2>
-          <div className="relative w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search indents..."
-              className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
-              value={searchTerm}
-              onChange={(e) => {setSearchTerm(e.target.value);setPage(1);}}
-            />
+      <div className="bg-white border border-slate-200 p-2.5">
+        <form className="flex flex-wrap items-end gap-x-6 gap-y-3 pb-2.5 pt-4" onSubmit={event => {
+          event.preventDefault();
+          if (draftFilters.date_from && draftFilters.date_to && draftFilters.date_from > draftFilters.date_to) return;
+          const next = { ...draftFilters, contract_name: draftFilters.contract_name.trim(), product_name: draftFilters.product_name.trim(), machine_name: draftFilters.machine_name.trim() };
+          setDraftFilters(next);
+          setFilters(next);
+          setPage(1);
+          fetchIndents();
+        }}>
+          <label className="flex min-w-0 flex-1 basis-[130px] flex-col gap-1">
+            Contract Name
+            <input className="h-8 w-full" placeholder="Enter Contract Name" value={draftFilters.contract_name} onChange={event => updateDraft('contract_name', event.target.value)} />
+          </label>
+          <label className="flex min-w-0 flex-1 basis-[130px] flex-col gap-1">
+            Product Name
+            <input className="h-8 w-full" placeholder="Enter Product Name" value={draftFilters.product_name} onChange={event => updateDraft('product_name', event.target.value)} />
+          </label>
+          <label className="flex min-w-0 flex-1 basis-[130px] flex-col gap-1">
+            Machine Name
+            <input className="h-8 w-full" placeholder="Enter Machine Name" value={draftFilters.machine_name} onChange={event => updateDraft('machine_name', event.target.value)} />
+          </label>
+          <label className="flex min-w-0 flex-1 basis-[130px] flex-col gap-1">
+            Start Date
+            <DatePicker aria-label="Start Date" name="date_from" dateFormat="dd-MM-yyyy" className="h-8 w-full" value={draftFilters.date_from} onChange={event => updateDraft('date_from', event.target.value)} />
+          </label>
+          <label className="flex min-w-0 flex-1 basis-[130px] flex-col gap-1">
+            End Date
+            <DatePicker aria-label="End Date" name="date_to" dateFormat="dd-MM-yyyy" className="h-8 w-full" value={draftFilters.date_to} onChange={event => updateDraft('date_to', event.target.value)} />
+          </label>
+          <div className="mb-1 flex gap-1">
+            <button type="submit" className={styles.primaryButton} disabled={!ready}>Search</button>
+            <button type="button" className={styles.primaryButton} disabled={!ready} onClick={() => {
+              setDraftFilters(emptyFilters);
+              setFilters(emptyFilters);
+              setPage(1);
+              fetchIndents();
+            }}>Reset</button>
           </div>
-        </div>
-        <div className="flex gap-3 p-4">
-          <label>Issue date from <input type="date" value={dateFrom} onChange={e=>{setDateFrom(e.target.value);setPage(1);}} className="border rounded p-2" /></label>
-          <label>Issue date to <input type="date" value={dateTo} onChange={e=>{setDateTo(e.target.value);setPage(1);}} className="border rounded p-2" /></label>
-        </div>
+          <div className="mb-1 ml-auto flex items-center gap-3">
+            <button type="button" title="Export Excel" aria-label="Export Excel" className="p-1 text-slate-800 hover:text-blue-600" disabled={!ready} onClick={async () => {
+              try { await indentpoService.exportExcel(filters); } catch { alert('Unable to export indents'); }
+            }}><FileSpreadsheet className="h-7 w-7" /></button>
+            {hasPermission('legacy:admin/indentpo/add') && <Link href="/dashboard/purchase/indentpo/new" className={styles.primaryButton}><Plus className="h-3 w-3" />Add</Link>}
+          </div>
+        </form>
+        {draftFilters.date_from && draftFilters.date_to && draftFilters.date_from > draftFilters.date_to && <p role="alert" className="mb-2 text-xs text-red-600">Start Date must be on or before End Date.</p>}
+        {error && <div role="alert" className="mb-3 flex items-center gap-3 text-sm text-red-600">{error}<button type="button" className="underline" onClick={fetchIndents}>Retry</button></div>}
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 text-slate-500 border-b border-slate-200">
-              <tr>
-                <th className="px-6 py-4 font-medium">Indent No</th>
-                <th className="px-6 py-4 font-medium">Issue Date</th>
-                <th className="px-6 py-4 font-medium">Contract</th>
-                <th className="px-6 py-4 font-medium">Product</th>
-                <th className="px-6 py-4 font-medium">Machine</th>
-                <th className="px-6 py-4 font-medium">Issued To</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-8 text-slate-500">
-                    <div className="flex items-center justify-center gap-2">
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      Loading...
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredIndents.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="text-center py-12 text-slate-500">
-                    <div className="flex flex-col items-center justify-center">
-                      <Search className="w-8 h-8 text-slate-300 mb-3" />
-                      <p>No indents found matching your criteria</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                filteredIndents.map((indent) => (
-                  <tr key={indent.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-blue-600 cursor-pointer hover:underline" onClick={() => setSelectedIndentId(indent.id)}>
-                      {indent.indent_id}
-                    </td>
-                    <td className="px-6 py-4 text-slate-600">
-                      {formatContractDate(indent.issue_date)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div 
-                        className="text-blue-600 font-medium cursor-pointer hover:underline"
-                        onClick={() => setSelectedContractId(indent.contract_id || null)}
-                      >
-                        {indent.contract_name}
-                      </div>
-                      <div className="text-xs text-slate-500 mt-1">{indent.workorder}</div>
-                    </td>
-                    <td className="px-6 py-4 text-slate-700">{indent.product_name}</td>
-                    <td className="px-6 py-4 text-slate-700">{indent.machine_name}</td>
-                    <td className="px-6 py-4 text-slate-700">{indent.issued_name}</td>
-                    <td className="px-6 py-4 text-right">
-                      {hasPermission('legacy:admin/indentpo/edit') && <Link href={`/dashboard/purchase/indentpo/${indent.indent_id}/edit`} className="p-2 text-blue-600">Edit</Link>}
-                      {hasPermission('legacy:admin/indentpo/delete') && <button className="p-2 text-red-600" onClick={async()=>{
-                        if(!window.confirm(`Delete indent ${indent.indent_id}?`))return;
-                        try{await indentpoService.remove(String(indent.indent_id));await fetchIndents();}catch(error){alert('Unable to delete indent');}
-                      }}>Delete</button>}
-                      <Link href={`/dashboard/purchase/indentpo/${indent.indent_id}`}>
-                        <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View / Print">
-                          <Printer className="h-4 w-4" />
-                        </button>
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              )}
+          <table className={`${styles.indentTable} w-full text-left`}>
+            <thead><tr>
+              <th scope="col">S No.</th>
+              <th scope="col">Indent Id</th>
+              <th scope="col">Contract name</th>
+              <th scope="col">Product</th>
+              <th scope="col">Machine Name</th>
+              <th scope="col">Issue By</th>
+              <th scope="col">Issue Date</th>
+              <th scope="col">Action</th>
+            </tr></thead>
+            <tbody>
+              {isLoading ? <tr><td colSpan={8} className="text-center"><div className="flex items-center justify-center gap-2 py-6"><RefreshCw className="h-4 w-4 animate-spin" />Loading...</div></td></tr>
+                : error ? <tr><td colSpan={8} className="text-center">Unable to load indents</td></tr>
+                : indents.length === 0 ? <tr><td colSpan={8} className="text-center"><div className="flex items-center justify-center gap-2 py-6"><Search className="h-4 w-4" />No indents found matching your criteria</div></td></tr>
+                : indents.map((indent, index) => <tr key={indent.id}>
+                  <td>{(page - 1) * 50 + index + 1}</td>
+                  <td><button type="button" className="font-semibold text-blue-500 hover:underline" onClick={() => setSelectedIndentId(indent.id)}>{indent.indent_id}</button></td>
+                  <td><button type="button" className="text-left font-semibold text-blue-500 hover:underline" disabled={!indent.contract_id} onClick={() => setSelectedContractId(indent.contract_id || null)}>{indent.contract_name}{indent.workorder ? `(${indent.workorder})` : ''}</button></td>
+                  <td>{indent.product_name}</td>
+                  <td>{indent.machine_name}</td>
+                  <td>{indent.issued_name}</td>
+                  <td className="whitespace-nowrap">{formatContractDate(indent.issue_date)}</td>
+                  <td><div className="flex items-center gap-2 whitespace-nowrap">
+                    {hasPermission('legacy:admin/indentpo/edit') && <Link href={`/dashboard/purchase/indentpo/${indent.indent_id}/edit`} className="text-blue-600 hover:underline">Edit</Link>}
+                    {hasPermission('legacy:admin/indentpo/delete') && <button type="button" className="text-red-600 hover:underline" onClick={async () => {
+                      if (!window.confirm(`Delete indent ${indent.indent_id}?`)) return;
+                      try { await indentpoService.remove(String(indent.indent_id)); fetchIndents(); } catch { alert('Unable to delete indent'); }
+                    }}>Delete</button>}
+                    <Link href={`/dashboard/purchase/indentpo/${indent.indent_id}`} aria-label={`View or print indent ${indent.indent_id}`} title="View / Print" className="text-slate-400 hover:text-blue-600"><Printer className="h-4 w-4" /></Link>
+                  </div></td>
+                </tr>)}
             </tbody>
           </table>
         </div>
         <ListPagination page={page} limit={50} total={total} busy={isLoading} onPageChange={setPage} />
       </div>
-
-      {selectedIndentId && (
-        <IndentDetailsModal 
-          id={selectedIndentId} 
-          onClose={() => setSelectedIndentId(null)} 
-        />
-      )}
-
-      {selectedContractId && (
-        <ContractDetailsModal
-          contractId={selectedContractId}
-          onClose={() => setSelectedContractId(null)}
-        />
-      )}
+      {selectedIndentId && <IndentDetailsModal id={selectedIndentId} onClose={() => setSelectedIndentId(null)} />}
+      {selectedContractId && <ContractDetailsModal contractId={selectedContractId} onClose={() => setSelectedContractId(null)} />}
     </div>
   );
 }

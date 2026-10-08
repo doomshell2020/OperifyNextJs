@@ -1,6 +1,9 @@
 import apiClient from './apiClient';
 
 export interface IndentpoFilter {
+  contract_name?: string;
+  product_name?: string;
+  machine_name?: string;
   contract_id?: string;
   machine_id?: string;
   product_id?: string;

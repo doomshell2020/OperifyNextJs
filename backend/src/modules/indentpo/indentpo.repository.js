@@ -238,7 +238,19 @@ class IndentpoRepository {
     let where = '1=1';
     const params = {};
     if(filters.indent_id){where+=' AND i.indent_id=:indent_id';params.indent_id=filters.indent_id;}
-    if(filters.search){where+=' AND (i.indent_id LIKE :search OR c.title LIKE :search OR a.item_name LIKE :search OR m.machine_name LIKE :search OR i.issued_name LIKE :search)';params.search=`%${filters.search}%`;}
+    if(filters.search){where+=' AND (i.indent_id LIKE :search OR c.title LIKE :search OR c.workorder LIKE :search OR a.item_name LIKE :search OR m.machine_name LIKE :search OR i.issued_name LIKE :search)';params.search=`%${filters.search}%`;}
+    if (filters.contract_name?.trim()) {
+      where += " AND (c.title LIKE :contract_name OR c.workorder LIKE :contract_name OR CONCAT(c.title, '(', c.workorder, ')') LIKE :contract_name)";
+      params.contract_name = `%${filters.contract_name.trim()}%`;
+    }
+    if (filters.product_name?.trim()) {
+      where += ' AND a.item_name LIKE :product_name';
+      params.product_name = `%${filters.product_name.trim()}%`;
+    }
+    if (filters.machine_name?.trim()) {
+      where += ' AND m.machine_name LIKE :machine_name';
+      params.machine_name = `%${filters.machine_name.trim()}%`;
+    }
 
     if (filters.contract_id) {
       where += ' AND i.contract_id = :contract_id';

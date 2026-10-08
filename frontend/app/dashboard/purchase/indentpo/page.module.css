@@ -1,0 +1,50 @@
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 32px;
+  padding: 4px 16px;
+  border-radius: 3px;
+  background: #2998df !important;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.primaryButton:hover {
+  background: #1683d8 !important;
+}
+
+.primaryButton:disabled {
+  opacity: 0.5;
+}
+
+.indentTable {
+  min-width: 1100px;
+}
+
+.indentTable th:nth-child(1) { width: 5%; }
+.indentTable th:nth-child(2) { width: 7%; }
+.indentTable th:nth-child(3) { width: 15%; }
+.indentTable th:nth-child(4) { width: 25%; }
+.indentTable th:nth-child(5) { width: 21%; }
+.indentTable th:nth-child(6) { width: 12%; }
+.indentTable th:nth-child(7) { width: 8%; }
+
+.indentTable th {
+  padding: 9px 8px !important;
+}
+
+.indentTable td {
+  padding: 8px !important;
+  vertical-align: middle;
+}
+
+.indentTable tbody tr:nth-child(odd) {
+  background: #f2f2f2 !important;
+}
+
+.indentTable tbody tr:nth-child(even) {
+  background: white !important;
+}
