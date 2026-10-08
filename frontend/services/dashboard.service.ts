@@ -57,6 +57,7 @@ export interface ProductionRecord {
   po_no?: string;
   contract_id?: number;
   contract_name?: string;
+  contract_number?: string;
   product_name?: string;
   start_date?: string;
   end_date?: string;
@@ -84,6 +85,7 @@ export interface InspectionRecord {
   date: string;
   status: string;
   contract_name?: string;
+  contract_number?: string;
   contract_id?: number;
 }
 

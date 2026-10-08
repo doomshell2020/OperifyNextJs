@@ -17,18 +17,20 @@ function openPdf(id: number) {
 }
 
 function Table({ title, headers, rows }: { title: string; headers: string[]; rows: React.ReactNode[][] }) {
+  const widths = title.includes('Purchase Order') ? [7, 9, 23, 33, 8, 11, 9] : title.includes('Production Orders') ? [6, 10, 29, 29, 10, 10, 6] : title.includes('Maintenance') ? [10, 20, 15, 7, 12, 12, 12, 12] : undefined;
   return <section className={styles.section}>
     <h2>{title}</h2>
     <div className={styles.tableScroll}><table>
+      <colgroup>{headers.map((h, i) => <col key={h} style={widths ? { width: `${widths[i]}%` } : undefined} />)}</colgroup>
       <thead><tr>{headers.map(h => <th key={h} scope="col">{h}</th>)}</tr></thead>
-      <tbody>{rows.length ? rows.map((row, i) => <tr key={i}>{row.map((cell, j) => <td key={j}>{cell}</td>)}</tr>) :
+      <tbody>{rows.length ? rows.map((row, i) => <tr key={i}>{row.map((cell, j) => <td key={j} style={/Quantity|Amount|Planned Qty/.test(headers[j]) ? { textAlign: 'right' } : undefined}>{cell}</td>)}</tr>) :
         <tr><td colSpan={headers.length} className={styles.empty}>No records found</td></tr>}</tbody>
     </table></div>
   </section>;
 }
 
 function Pie({ title, data, colors }: { title: string; data: ChartItem[]; colors: string[] }) {
-  const entries = data.filter(item => Number(item.value) > 0);
+  const entries = data;
   const total = entries.reduce((sum, item) => sum + Number(item.value), 0);
   let angle = -Math.PI / 2;
   return <section className={styles.chart} aria-label={title}>
@@ -41,6 +43,7 @@ function Pie({ title, data, colors }: { title: string; data: ChartItem[]; colors
         const start = angle;
         const sweep = Number(item.value) / total * Math.PI * 2;
         angle += sweep;
+        if (sweep <= 0) return null;
         const label = `${item.name}: ${item.value}`;
         const fill = colors[i % colors.length];
         if (sweep >= Math.PI * 2 - 0.00001) return <circle key={item.name} cx="70" cy="70" r="62" fill={fill}><title>{label}</title></circle>;
@@ -81,7 +84,7 @@ export default function DashboardPage() {
       <div className={styles.productionRow}>
         <Pie title="Total Production Orders" data={charts?.production || []} colors={['#207748', '#e52e46', '#e5e5e5']} />
         <Table title="Last Five Production Orders" headers={['PO No.', 'Date Created', 'Contract Name', 'Product', 'Start Date', 'End Date', 'Planned Qty']} rows={(latestProduction || []).map(r => [
-          text(r.po_no), date(r.date), r.contract_id ? <Link key={r.id} href={`/dashboard/contracts/edit/${r.contract_id}`}>{r.contract_name || r.contract_id}({r.contract_id})</Link> : '-',
+          text(r.po_no), date(r.date), r.contract_id ? <Link key={r.id} href={`/dashboard/production/viewcontractdetailspdf/${r.contract_id}`}>{r.contract_name || r.contract_id}({r.contract_number || r.contract_id})</Link> : '-',
           text(r.product_name), date(r.start_date), date(r.end_date), text(r.plan_qty)
         ])} />
       </div>
@@ -93,11 +96,11 @@ export default function DashboardPage() {
       </div>
       <div className={styles.bottomRow}>
         <Table title="Last Five Inspection" headers={['S.No', 'Contract Name', 'Name', 'Inspection Date']} rows={(latestInspection || []).map((r, i) => [
-          i + 1, r.contract_id ? <Link key={r.id} href={`/dashboard/contracts/edit/${r.contract_id}`}>{r.contract_name || r.contract_id}({r.contract_id})</Link> : text(r.work_order_no), r.name, date(r.date)
+          i + 1, r.contract_id ? <Link key={r.id} href={`/dashboard/production/viewcontractdetailspdf/${r.contract_id}`}>{r.contract_name || r.contract_id}({r.contract_number || r.contract_id})</Link> : text(r.work_order_no), r.name, date(r.date)
         ])} />
         <Table title="Last Five GRN(Goods Received) Request" headers={['GRN No.', 'PO Id', 'G.R.N. Inward Date', 'Bill Date', 'Supplier', 'Total Amount (INR)']} rows={(latestGrn || []).map(r => [
           <Link key={r.id} href={`/dashboard/purchase/grn/view/${r.id}`}>{r.id}</Link>,
-          <Link key="po" href={`/dashboard/purchase/orders?po_no=${encodeURIComponent(r.po_no)}`}>{r.po_no}</Link>, date(r.date), date(r.bill_date), r.vendor_name, amount(r.amount)
+          <Link key="po" href={`/dashboard/purchase/orders?po_number=${encodeURIComponent(r.po_no)}`}>{r.po_no}</Link>, date(r.date), date(r.bill_date), r.vendor_name, amount(r.amount)
         ])} />
       </div>
     </main>

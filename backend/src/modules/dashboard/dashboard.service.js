@@ -67,22 +67,17 @@ class DashboardService {
       dashboardRepository.getMaintenanceStatus(dbPool)
     ]);
 
-    // Format PO Status (O -> Open, C -> Closed, others)
-    const formattedPo = poStatus.map(r => ({
-      name: r.status === 'O' ? 'Open' : r.status === 'C' ? 'Closed' : 'Other',
-      value: r.count
-    }));
-
-    // Format Production Status (O -> Open, C -> Closed)
-    const formattedProd = prodStatus.map(r => ({
-      name: r.status === 'O' ? 'Pending' : r.status === 'C' ? 'Completed' : 'Draft',
-      value: r.count
-    }));
+    const formattedPo = poStatus.map(r => ({ name: r.status, value: Number(r.count) }));
+    const formattedProd = prodStatus.map(r => ({ name: r.status, value: Number(r.count) }));
 
     // Format Maintenance Status (pending, assigned, complete)
-    const formattedMaint = maintStatus.map(r => ({
-      name: r.status ? r.status.charAt(0).toUpperCase() + r.status.slice(1) : 'Unknown',
-      value: r.count
+    const formattedMaint = ['Complete', 'Assigned', 'Pending'].map(name => ({
+      name,
+      value: maintStatus.reduce((sum, row) => {
+        const status = String(row.status || '').toLowerCase();
+        const matches = name === 'Complete' ? ['complete', 'completed'].includes(status) : status === name.toLowerCase();
+        return sum + (matches ? Number(row.count) : 0);
+      }, 0)
     }));
 
     return {
