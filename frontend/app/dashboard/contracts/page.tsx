@@ -1,4 +1,5 @@
 'use client';
+import { LegacyAutocompleteInput } from '@/components/ui/LegacyAutocompleteInput';
 
 import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import { LegacyPageHeader } from '@/components/ui/LegacyPageHeader';
@@ -119,7 +120,7 @@ export default function ContractsPage() {
             <label className="text-xs font-bold text-[#555] block mb-1">
               Contract Name
             </label>
-            <input
+            <LegacyAutocompleteInput
               type="text"
               list="contract-names-list"
               placeholder="Enter Contract Name"
@@ -138,7 +139,7 @@ export default function ContractsPage() {
             <label className="text-xs font-bold text-[#555] block mb-1">
               Supplier Name
             </label>
-            <input
+            <LegacyAutocompleteInput
               type="text"
               list="supplier-names-list"
               placeholder="Enter Supplier Name"

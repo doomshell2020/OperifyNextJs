@@ -1,4 +1,5 @@
 'use client';
+import {DatePicker} from '@/components/ui/DatePicker';
 
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -298,19 +299,14 @@ export default function AddJobChallan() {
   if (!can('jobchallan','add')) return <p className="p-6" role="alert">You do not have permission to add a JC.</p>;
 
   return (
-    <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 font-sans">
+    <main className="legacy-form-page max-w-7xl w-full mx-auto px-6 py-8 space-y-6 font-sans">
+      <LegacyPageHeader title="Job Challan"/>
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <LegacyPageHeader title="Job Challan"/>
-          <p className="text-sm text-slate-500 font-medium mt-1">Issue raw materials or goods to sub-contractors</p>
-        </div>
-        <button onClick={() => router.back()} className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-sm font-medium transition">
-          <ArrowLeft className="w-4 h-4" /> Back to List
-        </button>
-      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+
+      <form onSubmit={handleSubmit} className="legacy-form legacy-form-jc space-y-6">
+<div className="legacy-box-heading">Add Job Challan</div>
+
         {/* ── Basic Details ─────────────────────────────── */}
         <div className="bg-white border border-slate-200 p-6 rounded-xl shadow-sm">
           <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4 border-b pb-2">Basic Details</h3>
@@ -324,7 +320,7 @@ export default function AddJobChallan() {
             </div>
             <div>
               <label className={labelCls}>Date</label>
-              <input required type="date" className={inputCls} value={jcDate} onChange={e => setJcDate(e.target.value)} />
+              <DatePicker required  className={inputCls} value={jcDate} onChange={e => setJcDate(e.target.value)} />
             </div>
             <div>
               <label className={labelCls}>Sub Contractor</label>
@@ -516,7 +512,11 @@ export default function AddJobChallan() {
             {loading ? 'Saving...' : 'Save Job Challan'}
           </button>
         </div>
-      </form>
+
+<div className="legacy-form-footer"><button onClick={() => router.back()} className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-sm font-medium transition">
+          <ArrowLeft className="w-4 h-4" /> Back to List
+        </button></div>
+</form>
     </main>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import {useLegacyActionAccess} from '@/components/ui/useLegacyActionAccess';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -76,6 +77,7 @@ function DetailModal({ payment, onClose }: { payment: Payment; onClose: () => vo
 }
 
 export default function PaymentsPage() {
+  const canAction=useLegacyActionAccess();
   const [filters, setFilters] = useState<PaymentFilters>({});
   const [applied, setApplied] = useState<PaymentFilters>({});
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
@@ -95,14 +97,9 @@ export default function PaymentsPage() {
 
   return (
     <div className="space-y-6">
+<LegacyPageHeader title="Payments Manager"/>
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <LegacyPageHeader title="Payments Manager"/>
-          <p className="text-sm text-slate-500 mt-0.5">Track vendor bill payments and receipts</p>
-        </div>
-        <span className="bg-slate-100 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500">{data?.length ?? 0} records</span>
-      </div>
+
 
       {/* Filters */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
@@ -145,7 +142,7 @@ export default function PaymentsPage() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1.5">From Date</label>
-            <DatePicker  
+            <DatePicker
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={filters.datefrom || ''}
               onChange={e => setFilters(f => ({ ...f, datefrom: e.target.value }))}
@@ -153,7 +150,7 @@ export default function PaymentsPage() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-500 mb-1.5">To Date</label>
-            <DatePicker  
+            <DatePicker
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={filters.dateto || ''}
               onChange={e => setFilters(f => ({ ...f, dateto: e.target.value }))}
@@ -199,12 +196,12 @@ export default function PaymentsPage() {
                     <td className="px-4 py-3 text-sm text-slate-500 max-w-[120px] truncate">{row.remark || '—'}</td>
                     <td className="px-4 py-3"><StatusBadge status={row.status} /></td>
                     <td className="px-4 py-3">
-                      <button
+                      {canAction('paymentmanager','viewamount') && <button
                         onClick={() => setSelectedPayment(row)}
                         className="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
                       >
                         View
-                      </button>
+                      </button>}
                     </td>
                   </tr>
                 ))

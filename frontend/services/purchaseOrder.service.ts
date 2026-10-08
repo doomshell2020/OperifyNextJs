@@ -140,6 +140,11 @@ class PurchaseOrderService {
     return response.data.data;
   }
 
+  async getPrintData(id: number | string, mode: 'current' | 'revised' | 'delivery' = 'current'): Promise<PurchaseOrderDetailsData[]> {
+    const response = await apiClient.get(`/purchase-orders/${id}/print-data`, { params: { mode } });
+    return response.data.data;
+  }
+
   async getRevisionData(id: number | string): Promise<PurchaseOrderDetailsData> {
     const response = await apiClient.get(`/purchase-orders/${id}/revision-data`);
     return response.data.data;
@@ -165,6 +170,10 @@ class PurchaseOrderService {
   async getNextPoNumber(): Promise<string> {
     const response = await apiClient.get('/purchase-orders/next-id');
     return response.data.nextId;
+  }
+
+  async getLastItemPrice(itemId: string): Promise<{price: number | null}> {
+    return (await apiClient.get(`/purchase-orders/item/${itemId}/last-price`)).data.data;
   }
 
   async getItemHistory(itemId: string): Promise<any[]> {

@@ -1,4 +1,5 @@
 'use client';
+import { LegacyAutocompleteInput } from '@/components/ui/LegacyAutocompleteInput';
 
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState } from 'react';
@@ -144,10 +145,9 @@ export default function AddContractPage() {
   }
 
   return (
-    <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
-<div>
-        <LegacyPageHeader title="Add Contract"/>
-      </div>
+    <main className="legacy-form-page max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
+      <LegacyPageHeader title="Add Contract"/>
+
 
       <div className="bg-white border-t-[3px] border-t-[#00bcd4] border-x border-b border-slate-200 shadow-sm p-0 overflow-hidden">
         <div className="bg-white px-4 py-3 border-b border-slate-200 flex items-center gap-2 font-bold text-slate-700 text-sm">
@@ -155,14 +155,14 @@ export default function AddContractPage() {
           Create New Contract
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 bg-white">
+        <form onSubmit={handleSubmit} className="legacy-form legacy-form-contract p-6 space-y-6 bg-white">
           {/* Main 8 Fields Grid */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
               <label className="text-[11px] font-bold text-slate-600 block mb-1">
                 Supplier Name <span className="text-red-500">*</span>
               </label>
-              <input
+              <LegacyAutocompleteInput
                 type="text"
                 list="suppliers-list"
                 value={supplierName}
@@ -303,7 +303,7 @@ export default function AddContractPage() {
                 {products.map((prod, idx) => (
                   <tr key={idx} className="border-b border-slate-200">
                     <td className="px-2 py-2">
-                      <input
+                      <LegacyAutocompleteInput
                         type="text"
                         list="items-list"
                         placeholder="Enter Item Name"

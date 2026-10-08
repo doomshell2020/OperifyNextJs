@@ -1,4 +1,5 @@
 'use client';
+import { LegacyAutocompleteInput } from '@/components/ui/LegacyAutocompleteInput';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -100,7 +101,7 @@ export default function DesignSheetsPage() {
       <LegacyPageHeader title="Design Sheet" />
       <form onSubmit={handleSearch} className="legacy-filter-row">
         <label>Contract Name
-          <input aria-label="Contract Name" list="designsheet-contract-options" placeholder="Enter Contract Name" value={filters.contract_name || ''} onChange={e => setFilters({ ...filters, contract_name: e.target.value, contract_id: '' })} />
+          <LegacyAutocompleteInput aria-label="Contract Name" list="designsheet-contract-options" placeholder="Enter Contract Name" value={filters.contract_name || ''} onChange={e => setFilters({ ...filters, contract_name: e.target.value, contract_id: '' })} />
           <datalist id="designsheet-contract-options">{contractOptions.map(row => <option key={row.id} value={`${row.title}(${row.workorder})`} />)}</datalist>
         </label>
         <label>Start Date<DatePicker aria-label="Start Date" placeholder="Start Date" value={filters.datestart || ''} onChange={e => setFilters({ ...filters, datestart: e.target.value })} /></label>
@@ -151,7 +152,7 @@ export default function DesignSheetsPage() {
                   </td>
                   <td className="px-4 py-3">
                         <button
-                            onClick={() => setSelectedContractId(d.contract_id)}
+                            onClick={() => { if (canAction('production', 'viewcontractdetail')) setSelectedContractId(d.contract_id); }}
                             className="text-cyan-600 hover:text-cyan-800 font-semibold hover:underline"
                         >
                             {d.contract_title ? `${d.contract_title} (${d.workorder})` : ''}
@@ -201,7 +202,7 @@ export default function DesignSheetsPage() {
 
       {selectedSheetNo !== null && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedSheetNo(null)}>
-          <div className="bg-white border border-slate-200 shadow-2xl rounded max-w-4xl w-full p-8 flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]" onClick={e => e.stopPropagation()}>
+          <div className="bg-white border border-slate-200 shadow-2xl rounded max-w-[900px] w-full p-8 flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]" onClick={e => e.stopPropagation()}>
             {detailsLoading ? (
               <div className="flex-1 flex flex-col items-center justify-center py-20 text-slate-400 gap-2">
                 <Loader className="w-8 h-8 animate-spin text-cyan-600" />
@@ -276,7 +277,7 @@ export default function DesignSheetsPage() {
 
       {selectedContractId !== null && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedContractId(null)}>
-          <div className="bg-white border border-slate-200 shadow-2xl rounded max-w-6xl w-full p-8 flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-200 max-h-[95vh]" onClick={e => e.stopPropagation()}>
+          <div className="bg-white border border-slate-200 shadow-2xl rounded max-w-[900px] w-full p-8 flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-200 max-h-[95vh]" onClick={e => e.stopPropagation()}>
             {contractLoading ? (
               <div className="flex-1 flex flex-col items-center justify-center py-20 text-slate-400 gap-2">
                 <Loader className="w-8 h-8 animate-spin text-cyan-600" />

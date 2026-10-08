@@ -1,5 +1,6 @@
 'use client';
 
+import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -43,6 +44,7 @@ type POFormInput = z.input<typeof poSchema>;
 type POFormValues = z.output<typeof poSchema>;
 
 export default function AddPurchaseOrderPage() {
+  const canAction = useLegacyActionAccess();
   const router = useRouter();
 
   const [poNumber, setPoNumber] = useState('');
@@ -172,7 +174,7 @@ export default function AddPurchaseOrderPage() {
       } else {
         // Inclusive
         const taxAmt = baseAmount - (baseAmount * (100 / (100 + taxPerc)));
-        subtotal += baseAmount;
+        subtotal += baseAmount - taxAmt;
         totalTax += taxAmt;
         grandTotal += baseAmount;
       }
@@ -193,10 +195,8 @@ export default function AddPurchaseOrderPage() {
 
     let lprPrice = product.cost_price || 0;
     try {
-      const history = await purchaseOrderService.getItemHistory(product.id.toString());
-      if (history && history.length > 0) {
-        lprPrice = history[0].price;
-      }
+      const latest = await purchaseOrderService.getLastItemPrice(product.id.toString());
+      if (latest.price != null) lprPrice = latest.price;
     } catch (e) {
       console.error("Failed to fetch LPR for product", e);
     }
@@ -217,7 +217,7 @@ export default function AddPurchaseOrderPage() {
     try {
       setIsAddingVendor(true);
       setVendorAddError('');
-      await settingsService.createSupplier(newVendorForm);
+      await settingsService.createPurchaseOrderSupplier(newVendorForm);
       const suppliersRes = await settingsService.getSuppliers({});
       setVendors(suppliersRes);
 
@@ -306,72 +306,32 @@ export default function AddPurchaseOrderPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="max-w-[1600px] mx-auto p-4 md:p-6 lg:p-8 font-sans space-y-6 bg-gray-50 min-h-screen">
+    <form onSubmit={handleSubmit(onSubmit)} className="legacy-form legacy-form-po max-w-[1600px] mx-auto p-4 md:p-6 lg:p-8 font-sans space-y-6 bg-gray-50 min-h-screen">
+<LegacyPageHeader title="Purchase Order Manager"/>
+<div className="legacy-box-heading">Generate Purchase Order id : {poNumber}</div>
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-xl shadow-sm border border-gray-200">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <LegacyPageHeader title="Purchase Order Manager"/>
-            <span className="px-2.5 py-1 text-xs font-semibold bg-gray-100 text-gray-600 rounded-md border border-gray-200">DRAFT</span>
-          </div>
-          <p className="text-sm text-gray-500 flex items-center gap-2">
-            Generated PO Number: <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">{poNumber}</span>
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={() => router.back()} className="px-4 py-2 h-[42px] bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm flex items-center justify-center gap-2 focus:ring-2 focus:ring-offset-1 focus:ring-gray-200">
-            <ArrowLeft className="w-4 h-4" /> Back
-          </button>
-          <button type="submit" disabled={isSubmitting} className="px-5 py-2 h-[42px] bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed focus:ring-2 focus:ring-offset-1 focus:ring-blue-600">
-            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Submit
-          </button>
-        </div>
-      </div>
+
 
       {/* Form Content */}
       <div className="space-y-6">
 
         {/* Purchase Information Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center gap-2 mb-5 pb-3 border-b border-gray-100">
-              <FileText className="w-5 h-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-800">Purchase Information</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-start">
-              <div>
+          <div className="legacy-po-fields"><div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">PO Number</label>
                 <input type="text" className="w-full h-[42px] border border-gray-200 rounded-lg px-3 py-2 bg-gray-50 text-gray-500 cursor-not-allowed shadow-sm focus:outline-none" value={poNumber} readOnly />
               </div>
-              <div>
+<div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Generated Date <span className="text-red-500">*</span></label>
                 <Controller name="poDate" control={control} render={({ field }) => <DatePicker dateFormat="dd-MM-yyyy" className={`w-full h-[42px] border rounded-lg px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-shadow ${errors.poDate ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`} {...field} />} />
                 {errors.poDate && <p className="text-red-500 text-xs mt-1 absolute">{errors.poDate.message}</p>}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Expected Delivery Date <span className="text-red-500">*</span></label>
-                <Controller name="deliveryDate" control={control} render={({ field }) => <DatePicker dateFormat="dd-MM-yyyy" className={`w-full h-[42px] border rounded-lg px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-shadow ${errors.deliveryDate ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`} {...field} />} />
-                {errors.deliveryDate && <p className="text-red-500 text-xs mt-1 absolute">{errors.deliveryDate.message}</p>}
-              </div>
-            </div>
-          </div>
-
-          {/* Vendor & Contract Information */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center gap-2 mb-5 pb-3 border-b border-gray-100">
-              <Building2 className="w-5 h-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-800">Vendor & Contract</h2>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-              <div>
+<div>
                 <label className="flex items-center justify-between text-sm font-medium text-gray-700 mb-1">
                   <span>Supplier <span className="text-red-500">*</span></span>
-                  <button type="button" onClick={() => setIsAddVendorOpen(true)} className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
+                  {canAction('purchaseorder','addsupplier') && <button type="button" onClick={() => setIsAddVendorOpen(true)} className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1">
                     <UserPlus className="w-3 h-3" /> Add New
-                  </button>
+                  </button>}
                 </label>
                 <div className="relative mb-2" ref={vendorRef}>
                   <div className="relative">
@@ -420,36 +380,28 @@ export default function AddPurchaseOrderPage() {
                 </div>
                 {errors.vendorId && <p className="text-red-500 text-xs mb-2">{errors.vendorId.message}</p>}
 
-                {selectedVendorDetails && (
-                  <div className="p-3.5 bg-blue-50/50 rounded-lg border border-blue-100 text-sm">
-                    <div className="grid grid-cols-2 gap-y-3 gap-x-4">
-                      <div><span className="text-gray-500 text-[10px] font-bold block uppercase tracking-wider">GST Number</span> <span className="font-medium text-gray-800">{selectedVendorDetails.gst_number || 'N/A'}</span></div>
-                      <div><span className="text-gray-500 text-[10px] font-bold block uppercase tracking-wider">Contact</span> <span className="font-medium text-gray-800">{selectedVendorDetails.contact_no || 'N/A'}</span></div>
-                      <div className="col-span-2"><span className="text-gray-500 text-[10px] font-bold block uppercase tracking-wider">Address</span> <span className="text-gray-700 leading-snug">{selectedVendorDetails.address || 'N/A'}</span></div>
-                    </div>
-                  </div>
-                )}
-              </div>
 
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Contract Reference</label>
+              </div>
+<div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Expected Delivery Date <span className="text-red-500">*</span></label>
+                <Controller name="deliveryDate" control={control} render={({ field }) => <DatePicker dateFormat="dd-MM-yyyy" className={`w-full h-[42px] border rounded-lg px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-shadow ${errors.deliveryDate ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'}`} {...field} />} />
+                {errors.deliveryDate && <p className="text-red-500 text-xs mt-1 absolute">{errors.deliveryDate.message}</p>}
+              </div>
+<div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Contract</label>
                   <input type="text" placeholder="e.g. C-12345" className="w-full h-[42px] border border-gray-300 rounded-lg px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow" {...register('contract')} />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Project Name</label>
+<div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
                   <input type="text" placeholder="e.g. Infrastructure Upgrade" className="w-full h-[42px] border border-gray-300 rounded-lg px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow" {...register('project')} />
-                </div>
-              </div>
-            </div>
-          </div>
+                </div></div>
 
           {/* Purchase Items Table */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="p-5 border-b border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-gray-50">
               <div className="flex items-center gap-2 mb-3 sm:mb-0">
                 <ShoppingCart className="w-5 h-5 text-blue-600" />
-                <h2 className="text-lg font-semibold text-gray-800">Purchase Items</h2>
+                <h2 className="text-lg font-semibold text-gray-800">Items</h2>
               </div>
               <button
                 type="button"
@@ -470,8 +422,10 @@ export default function AddPurchaseOrderPage() {
                     <th className="px-3 py-3 w-28 text-right">Weight</th>
                     <th className="px-3 py-3 w-28 text-right">Volume</th>
                     <th className="px-3 py-3 w-36 text-right">Unit Price</th>
-                    <th className="px-3 py-3 w-40 text-right">Tax settings</th>
-                    <th className="px-4 py-3 w-36 text-right">Total</th>
+                    <th className="px-3 py-3 text-right">Total Price</th>
+                    <th className="px-3 py-3 w-40 text-right">Tax Rate</th>
+                    <th className="px-3 py-3 text-right">Tax Amount</th>
+                    <th className="px-4 py-3 w-36 text-right">Total Amount</th>
                     <th className="px-4 py-3 w-16 text-center sticky right-0 bg-gray-100 z-20 shadow-[-1px_0_0_0_#e5e7eb]">Action</th>
                   </tr>
                 </thead>
@@ -486,6 +440,8 @@ export default function AddPurchaseOrderPage() {
                     let rowTotal = 0;
                     if (taxCal === '1') rowTotal = baseAmt + ((baseAmt * taxPerc) / 100);
                     else rowTotal = baseAmt;
+                    const rowPreTax = taxCal === '1' ? baseAmt : baseAmt / (1 + taxPerc / 100);
+                    const rowTax = rowTotal - rowPreTax;
 
                     return (
                       <tr key={field.id} className="bg-white hover:bg-gray-50/50 transition-colors group align-top">
@@ -519,17 +475,18 @@ export default function AddPurchaseOrderPage() {
                           {watchItems[index]?.item_id && (
                              <div className="flex items-center justify-start gap-1 mt-1.5">
                                <div className="text-[10px] text-gray-700 font-semibold uppercase tracking-wide">LPR: ₹{watchItems[index]?.unit_price}</div>
-                               <button
+                               {canAction('purchaseorder','viewitemdetail') && <button
                                  type="button"
                                  onClick={() => openLprModal(watchItems[index].item_id, watchItems[index].item_name)}
                                  className="text-red-500 hover:text-red-700 p-0.5 rounded-full hover:bg-red-50 transition-colors"
                                  title="View Last Purchase History"
                                >
                                  <Eye className="w-3.5 h-3.5" />
-                               </button>
+                               </button>}
                              </div>
                           )}
                         </td>
+                        <td className="p-3 text-right">{formatAmt(rowPreTax)}</td>
                         <td className="p-3">
                            <div className="flex flex-col gap-2">
                              <select className="w-full h-[40px] border border-gray-300 rounded-md px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm" {...register(`items.${index}.tax_id` as const)} onChange={(e) => {
@@ -551,6 +508,7 @@ export default function AddPurchaseOrderPage() {
                              </div>
                            </div>
                         </td>
+                        <td className="p-3 text-right">{formatAmt(rowTax)}</td>
                         <td className="p-3 text-right">
                           <span className="font-bold text-gray-800 bg-blue-50 px-3 py-2 h-[40px] flex items-center justify-end rounded-md border border-blue-100 tabular-nums">
                             ₹{formatAmt(rowTotal)}
@@ -565,6 +523,7 @@ export default function AddPurchaseOrderPage() {
                     );
                   })}
                 </tbody>
+                <tfoot><tr><td colSpan={6} className="text-right">Net Amount (₹)</td><td className="text-right">{formatAmt(subtotal)}</td><td></td><td className="text-right">{formatAmt(totalTax)}</td><td className="text-right">{formatAmt(grandTotal)}</td><td></td></tr></tfoot>
               </table>
             </div>
             {errors.items?.root && (
@@ -581,7 +540,7 @@ export default function AddPurchaseOrderPage() {
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
                   <CreditCard className="w-5 h-5 text-blue-600" />
-                  <h2 className="text-lg font-semibold text-gray-800">Payment Terms</h2>
+                  <h2 className="text-lg font-semibold text-gray-800">Payment Term</h2>
                 </div>
                 <textarea
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow h-28 resize-none shadow-sm"
@@ -592,7 +551,7 @@ export default function AddPurchaseOrderPage() {
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-100">
                   <Info className="w-5 h-5 text-blue-600" />
-                  <h2 className="text-lg font-semibold text-gray-800">Internal Remarks</h2>
+                  <h2 className="text-lg font-semibold text-gray-800">Remark</h2>
                 </div>
                 <textarea
                   className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow h-28 resize-none shadow-sm"
@@ -603,56 +562,7 @@ export default function AddPurchaseOrderPage() {
             </div>
 
             {/* Right Sidebar (Summary Card) */}
-            <div className="lg:col-span-4">
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-                <div className="bg-gray-800 p-6 text-white shadow-inner">
-              <h2 className="text-lg font-bold tracking-wide flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5 opacity-70" /> Order Summary
-              </h2>
-              <p className="text-gray-400 text-xs mt-1.5 font-medium uppercase tracking-wider">Live Calculation</p>
-            </div>
 
-            <div className="p-6 space-y-4">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500 font-medium">Subtotal</span>
-                <span className="font-semibold text-gray-800 tabular-nums">₹{formatAmt(subtotal)}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500 font-medium">Total Tax</span>
-                <span className="font-semibold text-gray-800 tabular-nums">₹{formatAmt(totalTax)}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500 font-medium">Discount</span>
-                <span className="font-semibold text-gray-400 tabular-nums">- ₹0.00</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500 font-medium">Round Off</span>
-                <span className="font-semibold text-gray-400 tabular-nums">₹0.00</span>
-              </div>
-
-              <div className="border-t border-gray-200 pt-5 mt-3 border-dashed">
-                <div className="flex justify-between items-end">
-                  <span className="text-gray-800 font-bold uppercase tracking-wider text-sm">Grand Total</span>
-                  <span className="text-[28px] leading-none font-black text-blue-700 tracking-tight tabular-nums">₹{formatAmt(grandTotal)}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 bg-gray-50 border-t border-gray-200">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-3.5 h-[52px] bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 focus:ring-2 focus:ring-offset-2 focus:ring-blue-600"
-              >
-                {isSubmitting ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</>
-                ) : (
-                  <><Save className="w-5 h-5" /> Save Purchase Order</>
-                )}
-              </button>
-            </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -776,7 +686,17 @@ export default function AddPurchaseOrderPage() {
           </div>
         </div>
       )}
-    </form>
+
+<div className="legacy-form-footer"><div className="flex items-center gap-3">
+          <button type="button" onClick={() => router.back()} className="px-4 py-2 h-[42px] bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm flex items-center justify-center gap-2 focus:ring-2 focus:ring-offset-1 focus:ring-gray-200">
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+          <button type="submit" disabled={isSubmitting} className="px-5 py-2 h-[42px] bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed focus:ring-2 focus:ring-offset-1 focus:ring-blue-600">
+            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Submit
+          </button>
+        </div></div>
+</form>
   );
 }
 

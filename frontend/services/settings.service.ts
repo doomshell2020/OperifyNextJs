@@ -141,6 +141,10 @@ export const settingsService = {
     const res = await apiClient.get('/settings/suppliers', { params });
     return res.data.data;
   },
+  async createPurchaseOrderSupplier(data: Partial<Supplier>): Promise<void> {
+    await apiClient.post('/settings/suppliers/from-purchase-order', data);
+  },
+
   async createSupplier(data: Partial<Supplier>): Promise<void> {
     await apiClient.post('/settings/suppliers', data);
   },

@@ -116,7 +116,7 @@ export default function EditProductPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="legacy-form-page max-w-5xl mx-auto space-y-6">
       <LegacyPageHeader title="Edit Item Master"/>
 
       {errorMsg && (
@@ -134,7 +134,7 @@ export default function EditProductPage() {
       </div>}
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form className="legacy-form legacy-form-product" onSubmit={handleSubmit(onSubmit)}>
           <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
 
             <div>

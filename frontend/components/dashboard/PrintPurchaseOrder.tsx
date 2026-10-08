@@ -2,13 +2,15 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import purchaseOrderService from '../../services/purchaseOrder.service';
+import purchaseOrderService, { PurchaseOrderDetailsData } from '../../services/purchaseOrder.service';
 import { Loader } from 'lucide-react';
 import { API_ASSET_URL } from '../../services/apiConfig';
 
 interface PrintPurchaseOrderProps {
   poId: number;
   onClose: () => void;
+  documentData?: PurchaseOrderDetailsData;
+  printMode?: 'current' | 'revised' | 'delivery';
 }
 
 function numberToWords(num: number): string {
@@ -37,12 +39,16 @@ function formatCurrency(amount: number | string | null | undefined) {
   return val.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export function PrintPurchaseOrder({ poId }: PrintPurchaseOrderProps) {
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['purchase-order-details', poId],
-    queryFn: () => purchaseOrderService.getDetails(poId),
-    enabled: !!poId,
+export function PrintPurchaseOrder({ poId, documentData, printMode = 'current' }: PrintPurchaseOrderProps) {
+  const query = useQuery({
+    queryKey: ['purchase-order-print', poId, printMode],
+    queryFn: async () => (await purchaseOrderService.getPrintData(poId, printMode))[0],
+    enabled: !!poId && !documentData,
   });
+
+  const data = documentData ?? query.data;
+  const isLoading = !documentData && query.isLoading;
+  const isError = !documentData && query.isError;
 
   if (!poId) return null;
 
@@ -163,7 +169,7 @@ export function PrintPurchaseOrder({ poId }: PrintPurchaseOrderProps) {
           <div className="print-content legacy-po-print text-black font-sans bg-white" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
             
             {/* PAGE 1: Purchase Order */}
-            <div style={{ border: '1px solid #000', marginBottom: '20px' }} className="legacy-po-page first print:mb-0">
+            <div style={{ border: '1px solid #000', marginBottom: '20px', display: printMode === 'delivery' ? 'none' : undefined }} className={`legacy-po-page ${printMode === 'current' ? 'first' : ''} print:mb-0`}>
               <table width="100%" cellPadding="0" cellSpacing="0">
                 <tbody>
                   <tr>
@@ -558,7 +564,7 @@ export function PrintPurchaseOrder({ poId }: PrintPurchaseOrderProps) {
             </div>
 
             {/* PAGE 2: Delivery Schedule */}
-            <div style={{ border: '1px solid #000' }} className="legacy-po-page">
+            <div style={{ border: '1px solid #000', display: printMode === 'revised' ? 'none' : undefined }} className="legacy-po-page">
               <table width="100%" cellPadding="0" cellSpacing="0">
                 <tbody>
                   <tr>

@@ -1,5 +1,6 @@
 'use client';
 
+import {useLegacyActionAccess} from '@/components/ui/useLegacyActionAccess';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -168,6 +169,7 @@ function DetailModal({ id, onClose }: { id: number; onClose: () => void }) {
 }
 
 export default function EmdPage() {
+  const canAction=useLegacyActionAccess();
   const [filters, setFilters] = useState<EmdFilters>({ status: 'N' });
   const [applied, setApplied] = useState<EmdFilters>({ status: 'N' });
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -182,16 +184,11 @@ export default function EmdPage() {
 
   return (
     <div className="space-y-6">
+<LegacyPageHeader title="EMD Manager"/>
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <LegacyPageHeader title="EMD Manager"/>
-          <p className="text-sm text-slate-500 mt-0.5">Manage Earnest Money Deposits and Bank Guarantee records</p>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-slate-500">
+      <div className="legacy-page-actions"><div className="flex items-center gap-2 text-sm text-slate-500">
           <span className="bg-slate-100 px-3 py-1.5 rounded-lg font-medium">{data?.length ?? 0} records</span>
-        </div>
-      </div>
+        </div></div>
 
       {/* Filters Card */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
@@ -319,12 +316,12 @@ export default function EmdPage() {
                     <td className="px-4 py-3 text-sm text-slate-600">{formatDate(row.claim_upto)}</td>
                     <td className="px-4 py-3"><StatusBadge status={row.status} /></td>
                     <td className="px-4 py-3">
-                      <button
+                      {canAction('emd','index') && <button
                         onClick={() => setSelectedId(row.id)}
                         className="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
                       >
                         View
-                      </button>
+                      </button>}
                     </td>
                   </tr>
                 ))

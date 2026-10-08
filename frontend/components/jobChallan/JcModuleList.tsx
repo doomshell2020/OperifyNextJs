@@ -1,4 +1,5 @@
 'use client';
+import {DatePicker} from '@/components/ui/DatePicker';
 import {useState} from 'react';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import {useListLocation} from '@/components/ui/useListLocation';
@@ -26,8 +27,8 @@ export default function JcModuleList({module}:{module:'receive'|'gatepass'}) {
     <div className="bg-white border"><div className="legacy-list-heading"><h2>{gate?'Gate Pass List':'Job Challan Receives'}</h2>{can(controller,gate?'add':'receiveadd') && <Link className="legacy-button" href={`/dashboard/${path}/create`}>{gate?'Add Gate Pass':'+ Add New Receive'}</Link>}</div>
     {gate && <form className="legacy-filter-row" onSubmit={e=>{e.preventDefault();setFilters({...draft});setPage(1);}}>
       <label>Company<select className={inputClass} value={draft.sub_contractor_id} onChange={e=>setDraft({...draft,sub_contractor_id:e.target.value})}><option value="">All Companies</option>{vendors.data?.map(v=><option value={v.id} key={v.id}>{v.name}</option>)}</select></label>
-      <label>From Date<input type="date" className={inputClass} value={draft.from_date} onChange={e=>setDraft({...draft,from_date:e.target.value})}/></label>
-      <label>To Date<input type="date" className={inputClass} value={draft.to_date} onChange={e=>setDraft({...draft,to_date:e.target.value})}/></label>
+      <label>From Date<DatePicker  className={inputClass} value={draft.from_date} onChange={e=>setDraft({...draft,from_date:e.target.value})}/></label>
+      <label>To Date<DatePicker  className={inputClass} value={draft.to_date} onChange={e=>setDraft({...draft,to_date:e.target.value})}/></label>
       <label>Limit<select className={inputClass} value={draft.limit} onChange={e=>setDraft({...draft,limit:e.target.value})}>{[20,50,100,500].map(n=><option key={n}>{n}</option>)}</select></label><button className="legacy-button">Search</button>
     </form>}
     {query.isError && <p role="alert" className="text-red-600">{errorMessage(query.error)}</p>}

@@ -1,5 +1,7 @@
 'use client';
 
+import {usePermission} from '@/contexts/PermissionContext';
+import {useLegacyActionAccess} from '@/components/ui/useLegacyActionAccess';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -26,6 +28,9 @@ const emptyForm: Partial<Supplier> = { name: '', address: '', contact_no: '', em
 type ModalMode = { type: 'add' } | { type: 'edit'; item: Supplier } | null;
 
 export default function SuppliersPage() {
+  const {hasPermission} = usePermission();
+  const canAction = useLegacyActionAccess();
+  const canEdit = hasPermission('legacy:admin/vendors/add');
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('Y');
@@ -116,15 +121,10 @@ export default function SuppliersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <LegacyPageHeader title="Vendor Manager"/>
-          <p className="text-sm text-slate-500 mt-0.5">Manage supplier and vendor master records</p>
-        </div>
-        <button onClick={openAdd} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+<LegacyPageHeader title="Vendor Manager"/>
+      <div className="legacy-page-actions">{canEdit && <button onClick={openAdd} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
           <Plus className="w-4 h-4" /> Add Supplier
-        </button>
-      </div>
+        </button>}</div>
 
       {/* Filters */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex flex-wrap items-center gap-3">
@@ -171,7 +171,7 @@ export default function SuppliersPage() {
                   <td className="px-4 py-2.5 text-sm font-mono text-slate-600">{row.gst_number || '—'}</td>
                   <td className="px-4 py-2.5"><span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">{row.type}</span></td>
                   <td className="px-4 py-2.5">
-                    <button onClick={() => toggle.mutate({ id: row.id, status: row.status === 'Y' ? 'N' : 'Y' })} className="flex items-center gap-1.5 text-xs font-medium">
+                    <button disabled={!canAction('vendors','status')} onClick={() => toggle.mutate({ id: row.id, status: row.status === 'Y' ? 'N' : 'Y' })} className="flex items-center gap-1.5 text-xs font-medium">
                       {row.status === 'Y'
                         ? <><ToggleRight className="w-5 h-5 text-emerald-500" /><span className="text-emerald-600">Active</span></>
                         : <><ToggleLeft className="w-5 h-5 text-slate-400" /><span className="text-slate-400">Inactive</span></>
@@ -179,7 +179,7 @@ export default function SuppliersPage() {
                     </button>
                   </td>
                   <td className="px-4 py-2.5">
-                    <button onClick={() => openEdit(row)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
+                    {canEdit && <button onClick={() => openEdit(row)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Pencil className="w-3.5 h-3.5" /></button>}
                   </td>
                 </tr>
               ))}

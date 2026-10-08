@@ -275,22 +275,17 @@ export default function NewIndentPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">
+<LegacyPageHeader title="Purchase Requisition Manager"/>
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link
+      <div className="legacy-page-actions"><Link
           href="/dashboard/purchase/indents"
           className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <div className="h-9 w-9 rounded-lg bg-cyan-600 flex items-center justify-center shadow-sm">
+<div className="h-9 w-9 rounded-lg bg-cyan-600 flex items-center justify-center shadow-sm">
           <ListTodo className="w-5 h-5 text-white" />
-        </div>
-        <div>
-          <LegacyPageHeader title="Purchase Requisition Manager"/>
-          <p className="text-xs text-slate-500 mt-0.5">Purchase Requisition</p>
-        </div>
-      </div>
+        </div></div>
 
       {/* Add Item Form */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">

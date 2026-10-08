@@ -1,5 +1,6 @@
 'use client';
 
+import { DatePicker } from '@/components/ui/DatePicker';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -26,6 +27,7 @@ const formSchema = z.object({
   items: z.array(z.object({
     item_id: z.coerce.number(),
     item_name: z.string(),
+    order_qty: z.number().optional(),
     received_qty: z.coerce.number().min(0, "Quantity cannot be negative"),
     rate: z.coerce.number(),
     tax_rate: z.coerce.number(),
@@ -103,6 +105,7 @@ export default function AddGrnPage() {
           const newItems = details.items.map((i: any) => ({
             item_id: i.item_id,
             item_name: i.item_name,
+            order_qty: Number(i.quantity) || 0,
             received_qty: Number(i.quantity) || 0,
             rate: Number(i.rate) || 0,
             tax_rate: Number(i.item_tax || 0),
@@ -151,31 +154,10 @@ export default function AddGrnPage() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <div className="flex items-center gap-4">
-          <button type="button" onClick={() => router.back()} className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-full transition cursor-pointer">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <LegacyPageHeader title="Goods Received Note"/>
-            <p className="text-sm text-slate-500 font-medium">Generate a new Goods Received Note from Inspection</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={() => router.back()} className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-md text-sm font-medium transition cursor-pointer shadow-sm">
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={mutation.isPending}
-            className="flex items-center gap-2 px-6 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition cursor-pointer shadow-md disabled:opacity-70"
-          >
-            {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {mutation.isPending ? 'Saving...' : 'Submit GRN'}
-          </button>
-        </div>
-      </div>
+    <form onSubmit={handleSubmit(onSubmit)} className="legacy-form legacy-form-grn max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
+<LegacyPageHeader title="Goods Received Note"/>
+<div className="legacy-box-heading">Generate G.R.N.</div>
+
 
       {Object.keys(errors).length > 0 && (
         <div className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-start gap-3">
@@ -226,7 +208,7 @@ export default function AddGrnPage() {
 
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-slate-700">Inward Date <span className="text-red-500">*</span></label>
-                <input type="date" readOnly {...register('inwarddate')} className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white shadow-sm ${errors.inwarddate ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'}`} />
+                <DatePicker readOnly {...register('inwarddate')} value={watch('inwarddate')} className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white shadow-sm ${errors.inwarddate ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'}`} />
               </div>
 
               <div className="space-y-1.5">
@@ -236,7 +218,7 @@ export default function AddGrnPage() {
 
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-slate-700">Bill Date <span className="text-red-500">*</span></label>
-                <input type="date" readOnly {...register('bill_date')} className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white shadow-sm ${errors.bill_date ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'}`} />
+                <DatePicker readOnly {...register('bill_date')} value={watch('bill_date')} className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white shadow-sm ${errors.bill_date ? 'border-red-500 focus:ring-red-500' : 'border-slate-300'}`} />
               </div>
             </div>
           </div>
@@ -251,12 +233,15 @@ export default function AddGrnPage() {
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
                   <tr className="bg-slate-50 text-slate-600 border-b border-slate-200">
-                    <th className="p-3 font-semibold uppercase text-xs tracking-wider">Item</th>
+                    <th className="p-3 font-semibold uppercase text-xs tracking-wider" colSpan={2}>Item</th>
+                    <th className="p-3">Qty</th>
                     <th className="p-3 font-semibold uppercase text-xs tracking-wider w-32">Received Qty</th>
                     <th className="p-3 font-semibold uppercase text-xs tracking-wider w-24">UOM</th>
                     <th className="p-3 font-semibold uppercase text-xs tracking-wider w-28 text-right">Unit Price</th>
-                    <th className="p-3 font-semibold uppercase text-xs tracking-wider w-24 text-right">Tax (%)</th>
-                    <th className="p-3 font-semibold uppercase text-xs tracking-wider w-32 text-right">Total</th>
+                    <th className="p-3 text-right">Total Price</th>
+                    <th className="p-3 font-semibold uppercase text-xs tracking-wider w-24 text-right">Tax Rate</th>
+                    <th className="p-3 text-right">Tax Amount</th>
+                    <th className="p-3 font-semibold uppercase text-xs tracking-wider w-32 text-right">Total Amount</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -268,9 +253,10 @@ export default function AddGrnPage() {
 
                     return (
                       <tr key={field.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                        <td className="p-3">
+                        <td className="p-3" colSpan={2}>
                           <input type="text" readOnly {...register(`items.${index}.item_name`)} className="w-full border-none bg-transparent focus:outline-none text-slate-800 text-sm font-medium" />
                         </td>
+                        <td className="p-3">{formatQty(items[index]?.order_qty)}</td>
                         <td className="p-3">
                           <input type="number" readOnly min="0" step="any" {...register(`items.${index}.received_qty`)} className="w-full h-8 border border-slate-300 rounded px-2 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500" />
                         </td>
@@ -280,9 +266,11 @@ export default function AddGrnPage() {
                         <td className="p-3 text-right text-slate-600">
                           {formatAmt(rate)}
                         </td>
+                        <td className="p-3 text-right">{formatAmt(items[index]?.cost_price)}</td>
                         <td className="p-3 text-right text-slate-600">
                           {taxRate}
                         </td>
+                        <td className="p-3 text-right">{formatAmt(items[index]?.tax)}</td>
                         <td className="p-3 text-right font-medium text-slate-800">
                           {formatAmt(total)}
                         </td>
@@ -290,12 +278,13 @@ export default function AddGrnPage() {
                     )
                   }) : (
                     <tr>
-                      <td colSpan={6} className="p-8 text-center text-slate-500">
+                      <td colSpan={10} className="p-8 text-center text-slate-500">
                         Select an Inspection ID to load items
                       </td>
                     </tr>
                   )}
                 </tbody>
+                <tfoot><tr><td colSpan={6} className="text-right">Net Amount (₹)</td><td className="text-right">{formatAmt(totalAmountPreTax)}</td><td></td><td className="text-right">{formatAmt(totalTax)}</td><td className="text-right">{formatAmt(totalAmountPostTax)}</td></tr></tfoot>
               </table>
             </div>
           </div>
@@ -315,42 +304,23 @@ export default function AddGrnPage() {
           </div>
         </div>
 
-        <div className="lg:col-span-1">
-          <div className="bg-slate-50 rounded-xl border border-slate-200 shadow-sm overflow-hidden sticky top-6">
-            <div className="p-4 border-b border-slate-200 bg-white">
-              <h3 className="font-semibold text-slate-800">GRN Summary</h3>
-            </div>
 
-            <div className="p-5 space-y-4">
-              <div className="flex justify-between items-center py-2 border-b border-slate-200/50">
-                <span className="text-sm text-slate-500">Vendor</span>
-                <span className="text-sm font-medium text-slate-800 text-right">{watch('vendor_name') || '-'}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-slate-200/50">
-                <span className="text-sm text-slate-500">Total Items</span>
-                <span className="text-sm font-medium text-slate-800">{items.filter(i => Number(i.received_qty) > 0).length}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-slate-200/50">
-                <span className="text-sm text-slate-500">Total Qty</span>
-                <span className="text-sm font-medium text-slate-800">{formatQty(totalQty)}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-slate-200/50">
-                <span className="text-sm text-slate-500">Amount (Pre-Tax)</span>
-                <span className="text-sm font-medium text-slate-800">₹ {formatAmt(totalAmountPreTax)}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-slate-200/50">
-                <span className="text-sm text-slate-500">Total Tax</span>
-                <span className="text-sm font-medium text-slate-800">₹ {formatAmt(totalTax)}</span>
-              </div>
-              <div className="flex justify-between items-center pt-2">
-                <span className="font-bold text-slate-700">Net Amount</span>
-                <span className="text-lg font-extrabold text-cyan-600">₹ {formatAmt(totalAmountPostTax)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
-    </form>
+
+<div className="legacy-form-footer"><div className="flex items-center gap-3">
+          <button type="button" onClick={() => router.back()} className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-md text-sm font-medium transition cursor-pointer shadow-sm">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={mutation.isPending}
+            className="flex items-center gap-2 px-6 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition cursor-pointer shadow-md disabled:opacity-70"
+          >
+            {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {mutation.isPending ? 'Saving...' : 'Submit'}
+          </button>
+        </div></div>
+</form>
   );
 }
 

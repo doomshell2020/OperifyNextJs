@@ -1,4 +1,5 @@
 'use client';
+import {DatePicker} from '@/components/ui/DatePicker';
 
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import {useListLocation} from '@/components/ui/useListLocation';
@@ -94,12 +95,12 @@ export default function JobChallanList() {
       <div className="legacy-filter-row">
         <div>
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">From Date</label>
-          <input type="date" name="fromDate" value={filters.fromDate} onChange={handleFilterChange}
+          <DatePicker  name="fromDate" value={filters.fromDate} onChange={handleFilterChange}
             className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition" />
         </div>
         <div>
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">To Date</label>
-          <input type="date" name="toDate" value={filters.toDate} onChange={handleFilterChange}
+          <DatePicker  name="toDate" value={filters.toDate} onChange={handleFilterChange}
             className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition" />
         </div>
         <div>

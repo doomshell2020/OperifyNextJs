@@ -1,3 +1,4 @@
+const permission=require('../jobChallan/legacyPermission');
 const express = require('express');
 const router = express.Router();
 const quotationController = require('./quotation.controller');
@@ -7,8 +8,8 @@ const tenantMiddleware = require('../../middleware/tenant');
 router.use(authenticate);
 router.use(tenantMiddleware);
 
-router.get('/', (req, res, next) => quotationController.getQuotationsList(req, res, next));
+router.get('/', permission('quotation','index'), (req, res, next) => quotationController.getQuotationsList(req, res, next));
 router.get('/vendors', (req, res, next) => quotationController.getVendors(req, res, next));
-router.get('/:id/details', (req, res, next) => quotationController.getQuotationDetail(req, res, next));
+router.get('/:id/details', permission('quotation','viewquotationdetail'), (req, res, next) => quotationController.getQuotationDetail(req, res, next));
 
 module.exports = router;

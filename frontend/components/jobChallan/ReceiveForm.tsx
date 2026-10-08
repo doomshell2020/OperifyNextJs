@@ -1,4 +1,5 @@
 'use client';
+import {DatePicker} from '@/components/ui/DatePicker';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import {useState} from 'react';
 import {useRouter,useSearchParams} from 'next/navigation';
@@ -30,7 +31,7 @@ export default function ReceiveForm({returnId}:{returnId?:string}) {
   const allowed=can('jobchallan',returnId?'itemreceived':'receiveadd');
   if(loading) return <p className="p-6">Loading permissions...</p>;
   if(!allowed) return <p className="p-6" role="alert">You do not have permission to receive this JC.</p>;
-  return <main className="max-w-7xl mx-auto px-6 py-8 space-y-5"><LegacyPageHeader title="JC Receive"/><form className="space-y-5" onSubmit={async e=>{
+  return <main className="max-w-7xl mx-auto px-6 py-8 space-y-5"><LegacyPageHeader title="JC Receive"/><form className="legacy-form space-y-5" onSubmit={async e=>{
     e.preventDefault();if(busy || loadingItems || loadError)return;
     const selected=items.filter(item=>item.item_id && Number(item.receive_qty)>0);
     if(!selected.length){toast.error('Enter a receive quantity for at least one item.');return;}
@@ -44,11 +45,11 @@ export default function ReceiveForm({returnId}:{returnId?:string}) {
         <label className="text-sm">JC Type<select className={inputClass} value={form.manual_jc_type} onChange={e=>update('manual_jc_type',e.target.value)}><option>In JC</option><option>Others</option></select></label>
         <label className="text-sm">Challan No.<input required className={inputClass} value={form.challan_no || ''} onChange={e=>update('challan_no',e.target.value)}/></label>
         <label className="text-sm">Reference JC No. (optional)<input className={inputClass} value={form.reference_jc_no || ''} onChange={e=>update('reference_jc_no',e.target.value)}/></label>
-        <label className="text-sm">Challan Date<input required type="date" className={inputClass} value={form.challan_date} onChange={e=>update('challan_date',e.target.value)}/></label>
+        <label className="text-sm">Challan Date<DatePicker required  className={inputClass} value={form.challan_date} onChange={e=>update('challan_date',e.target.value)}/></label>
         {form.manual_jc_type==='In JC'?<div><label className="text-sm">From Company<select required className={inputClass} value={form.from_company || ''} onChange={e=>update('from_company',e.target.value)}><option value="">Select Company</option>{options.data?.vendors.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}</select></label><SubcontractorModal onAdded={v=>{void options.refetch();update('from_company',String(v.id));}}/></div>:<label className="text-sm">Company/Party Name<input required className={inputClass} value={form.other_company_name || ''} onChange={e=>update('other_company_name',e.target.value)}/></label>}
         <label className="text-sm">GST No.<input readOnly className={inputClass+' bg-slate-50'} value={options.data?.vendors.find(v=>String(v.id)===form.from_company)?.gst_no || ''}/></label>
       </>}
-      {returnId && <label className="text-sm">Receive Date<input required type="date" className={inputClass} value={form.receive_date} onChange={e=>update('receive_date',e.target.value)}/></label>}
+      {returnId && <label className="text-sm">Receive Date<DatePicker required  className={inputClass} value={form.receive_date} onChange={e=>update('receive_date',e.target.value)}/></label>}
       <label className="text-sm">Vehicle No.<input className={inputClass} value={form.vehicle_no || ''} onChange={e=>update('vehicle_no',e.target.value)}/></label></div>
     </section>
     {(loadError || options.isError) && <p role="alert" className="text-red-600">{loadError || errorMessage(options.error)}</p>}

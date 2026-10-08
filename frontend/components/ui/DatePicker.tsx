@@ -41,6 +41,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
           name={props.name}
           aria-label={props['aria-label'] || props.placeholder || props.name || 'Choose date'}
           required={props.required}
+          readOnly={props.readOnly}
           disabled={props.disabled}
           min={props.min}
           max={props.max}
@@ -50,7 +51,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
           onBlur={onBlur}
           onClick={(e) => {
             try {
-              if ('showPicker' in HTMLInputElement.prototype) {
+              if (!props.readOnly && !props.disabled && 'showPicker' in HTMLInputElement.prototype) {
                 (e.target as HTMLInputElement).showPicker();
               }
             } catch {

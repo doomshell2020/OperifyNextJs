@@ -81,23 +81,10 @@ export default function DailyStockPage() {
 
   return (
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
-      <div className="bg-white border border-slate-200/80 rounded-xl p-8 shadow-sm flex flex-col space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-cyan-50 text-cyan-600 rounded-lg">
-            <Layers className="w-6 h-6" />
-          </div>
-          <div>
-            <LegacyPageHeader title="Stock Report"/>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">
-              View daily opening, received, issued, reversed, returned, and closing stock balances.
-            </p>
-          </div>
-        </div>
-
-        <div className="h-px bg-slate-100"></div>
-
-        {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4">
+<LegacyPageHeader title="Stock Report"/>
+      <div className="legacy-page-actions"><div className="h-px bg-slate-100"></div>
+{/* Filters */}
+<div className="flex flex-col md:flex-row gap-4">
           <div className="flex flex-col gap-1.5 w-full md:w-1/3">
             <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Date</label>
             <DatePicker  
@@ -141,9 +128,8 @@ export default function DailyStockPage() {
             </button>
           </div>
         </div>
-
-        {/* Table */}
-        <div className="border border-slate-200 rounded-lg overflow-x-auto">
+{/* Table */}
+<div className="border border-slate-200 rounded-lg overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600">
             <thead className="bg-slate-50 text-slate-800 text-xs uppercase font-semibold border-b border-slate-200">
               <tr>
@@ -182,8 +168,7 @@ export default function DailyStockPage() {
               )}
             </tbody>
           </table>
-        </div>
-      </div>
+        </div></div>
     </main>
   );
 }

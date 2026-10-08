@@ -1,4 +1,5 @@
 'use client';
+import { LegacyAutocompleteInput } from '@/components/ui/LegacyAutocompleteInput';
 
 import { LegacyPageHeader } from '@/components/ui/LegacyPageHeader';
 import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
@@ -67,7 +68,7 @@ export default function GrnInspectionPage() {
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">PO ID</label>
           <input type="text" name="po_id" value={filters.po_id} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none transition" placeholder="Enter PO ID" />
         </div>
-        <label>Vendor<input list="inspection-vendor-options" placeholder="Enter Vendor Name" value={filters.vendor_name} onChange={e=>setFilters({...filters,vendor_name:e.target.value,vendor_id:''})}/><datalist id="inspection-vendor-options">{vendors.map(row=><option key={row.id} value={row.name}/>)}</datalist></label>
+        <label>Vendor<LegacyAutocompleteInput list="inspection-vendor-options" placeholder="Enter Vendor Name" value={filters.vendor_name} onChange={e=>setFilters({...filters,vendor_name:e.target.value,vendor_id:''})}/><datalist id="inspection-vendor-options">{vendors.map(row=><option key={row.id} value={row.name}/>)}</datalist></label>
         <div className="legacy-filter-field"><label className="block text-xs font-semibold text-slate-500 mb-1">Date From</label><DatePicker name="from_date" value={filters.from_date} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm" /></div>
         <div className="legacy-filter-field"><label className="block text-xs font-semibold text-slate-500 mb-1">Date To</label><DatePicker name="to_date" value={filters.to_date} onChange={handleFilterChange} className="w-full border border-slate-200 rounded-md p-2 text-sm" /></div>
         <div className="legacy-filter-actions">

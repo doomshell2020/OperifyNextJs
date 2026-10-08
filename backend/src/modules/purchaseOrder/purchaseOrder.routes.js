@@ -15,9 +15,12 @@ router.get('/', permission('purchaseorder','index'), purchaseOrderController.lis
 router.get('/export/excel', (req,res,next)=>permission('purchaseorder',req.query.type==='deli'?'deliveryreport':req.query.type==='comp'?'productcomparisonreport':'posummaryreport')(req,res,next),async(req,res,next)=>{try{const book=await require('./purchaseOrder.export').workbook(req.dbPool,req.query);res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');res.setHeader('Content-Disposition','attachment; filename=Purchase_Order_Report.xlsx');res.send(Buffer.from(await book.xlsx.writeBuffer()));}catch(error){next(error);}});
 router.post('/', requirePermission('purchaseorder:add'), purchaseOrderController.createPurchaseOrder);
 router.get('/next-id', purchaseOrderController.getNextPoNumber);
-router.get('/item/:itemId/history', purchaseOrderController.getItemHistory);
+router.get('/item/:itemId/last-price', permission('purchaseorder','getitemdetail'), purchaseOrderController.getLastItemPrice);
+router.get('/item/:itemId/history', permission('purchaseorder','viewitemdetail'), purchaseOrderController.getItemHistory);
 router.get('/:id', permission('purchaseorder','viewpodetail'), purchaseOrderController.getDetails); // Alias for consistency with new API standard
-router.get('/:id/pdf', permission('purchaseorder','view'), purchaseOrderController.generatePdf);
+const printPermission = (req,res,next) => permission('purchaseorder',req.query.mode==='revised'?'printallpo':req.query.mode==='delivery'?'printdeliveryschedule':'view')(req,res,next);
+router.get('/:id/print-data', printPermission, purchaseOrderController.getPrintData);
+router.get('/:id/pdf', printPermission, purchaseOrderController.generatePdf);
 router.get('/:id/hover', permission('purchaseorder','viewpodetail'), purchaseOrderController.getHoverDetails);
 // Form reads require the same action permission as their corresponding writes.
 router.get('/:id/revision-data', requireAnyPermission(['purchaseorder:revise', 'legacy:admin/purchaseorder/revised']), purchaseOrderController.getDetails);

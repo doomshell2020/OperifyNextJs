@@ -204,19 +204,8 @@ export default function CreateIndentPoPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard/purchase/indentpo">
-            <button className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-          </Link>
-          <div>
-            <LegacyPageHeader title="Indent Manager"/>
-
-          </div>
-        </div>
-        <button
+<LegacyPageHeader title="Indent Manager"/>
+      <div className="legacy-page-actions"><button
           onClick={handleSubmit}
           disabled={isSubmitting}
           className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none"
@@ -227,8 +216,7 @@ export default function CreateIndentPoPage() {
             <Save className="w-4 h-4 mr-2" />
           )}
           Submit
-        </button>
-      </div>
+        </button></div>
 
       {error && (
         <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200 text-sm">

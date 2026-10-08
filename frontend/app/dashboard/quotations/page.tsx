@@ -1,5 +1,6 @@
 'use client';
 
+import {useLegacyActionAccess} from '@/components/ui/useLegacyActionAccess';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -156,6 +157,7 @@ function DetailModal({ id, onClose }: { id: number; onClose: () => void }) {
 }
 
 export default function QuotationsPage() {
+  const canAction=useLegacyActionAccess();
   const [filters, setFilters] = useState<QuotationFilters>({});
   const [applied, setApplied] = useState<QuotationFilters>({});
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -175,14 +177,9 @@ export default function QuotationsPage() {
 
   return (
     <div className="space-y-6">
+<LegacyPageHeader title="Quotations"/>
       {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <LegacyPageHeader title="Quotations"/>
-          <p className="text-sm text-slate-500 mt-0.5">Manage vendor quotations and purchase proposals</p>
-        </div>
-        <span className="bg-slate-100 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500">{data?.length ?? 0} records</span>
-      </div>
+
 
       {/* Filters */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
@@ -279,9 +276,9 @@ export default function QuotationsPage() {
                     <td className="px-4 py-3"><AwardBadge is_award={row.is_award} /></td>
                     <td className="px-4 py-3"><StatusBadge status={row.status} postatus={row.postatus} /></td>
                     <td className="px-4 py-3">
-                      <button onClick={() => setSelectedId(row.id)} className="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors">
+                      {canAction('quotation','viewquotationdetail') && <button onClick={() => setSelectedId(row.id)} className="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors">
                         View
-                      </button>
+                      </button>}
                     </td>
                   </tr>
                 ))

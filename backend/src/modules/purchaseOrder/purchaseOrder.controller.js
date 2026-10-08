@@ -29,6 +29,13 @@ class PurchaseOrderController {
     }
   }
 
+  async getLastItemPrice(req, res, next) {
+    try {
+      const history = await purchaseOrderService.getItemHistory(req.dbPool, req.params.itemId);
+      res.json({ success: true, data: { price: history[0]?.price ?? null } });
+    } catch (error) { next(error); }
+  }
+
   async getItemHistory(req, res, next) {
     try {
       const { itemId } = req.params;
@@ -98,6 +105,23 @@ class PurchaseOrderController {
     }
   }
 
+  async getPrintData(req, res, next) {
+    try {
+      const data = await purchaseOrderService.getDetails(req.dbPool, req.params.id);
+      let documents = [data];
+      if (req.query.mode === 'revised') {
+        // PHP printallpo includes every revision, latest first, without pagination.
+        const { QueryTypes } = require('sequelize');
+        const revisions = await req.dbPool.query('SELECT id FROM st_purchaseorder WHERE purchaseorder_id=:number ORDER BY id DESC', {
+          replacements: { number: data.po.po_number }, type: QueryTypes.SELECT
+        });
+        documents = [];
+        for (const revision of revisions) documents.push(await purchaseOrderService.getDetails(req.dbPool, revision.id));
+      }
+      res.json({ success: true, data: documents });
+    } catch (error) { next(error); }
+  }
+
   async generatePdf(req, res, next) {
     let browser;
     try {
@@ -119,6 +143,7 @@ class PurchaseOrderController {
         throw error;
       }
       url.searchParams.set('token', token);
+      url.searchParams.set('mode', req.query.mode === 'revised' ? 'revised' : req.query.mode === 'delivery' ? 'delivery' : 'current');
       
       browser = await launchPdfBrowser();
       const page = await browser.newPage();
@@ -134,11 +159,11 @@ class PurchaseOrderController {
       }
       if (response && !response.ok()) throw new Error(`Purchase order print page returned HTTP ${response.status()}`);
       try {
-        await page.waitForFunction(() => document.querySelector('[data-pdf-ready="true"], [data-pdf-error="true"]'), { timeout: 30000 });
+        await page.waitForFunction(() => document.querySelector('[data-po-print-ready="true"], [data-po-print-error="true"]'), { timeout: 30000 });
       } catch {
         throw new Error('Purchase order content did not load. Check the frontend API configuration and authentication.');
       }
-      if (await page.$('[data-pdf-error="true"]')) {
+      if (await page.$('[data-po-print-error="true"]')) {
         throw new Error('Unable to load purchase order details for the PDF.');
       }
       // Allow fonts and logos to settle without blocking forever on a missing asset.

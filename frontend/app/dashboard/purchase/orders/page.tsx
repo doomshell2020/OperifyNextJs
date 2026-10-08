@@ -1,4 +1,5 @@
 'use client';
+import { LegacyAutocompleteInput } from '@/components/ui/LegacyAutocompleteInput';
 
 import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import { LegacyPageHeader } from '@/components/ui/LegacyPageHeader';
@@ -117,8 +118,8 @@ export default function PurchaseOrdersPage() {
       <form className="legacy-filter-row" onSubmit={e=>{e.preventDefault();applyFilters();}}>
         <label>Type<select name="type" value={filters.type} onChange={e=>setFilters({...filters,type:e.target.value,po_number:'',item_id:'',item_name:'',status:''})}><option value="po">PO</option><option value="deli">Delivery Schedule</option><option value="comp">PO Comparison</option></select></label>
         {filters.type==='po' && <label>PO ID<input name="po_number" value={filters.po_number} onChange={handleFilterChange} placeholder="Enter Purchase Order ID"/></label>}
-        <label>Vendor<input name="vendor_name" list="po-vendor-options" value={filters.vendor_name} onChange={handleFilterChange} placeholder="Enter Vendor Name"/><datalist id="po-vendor-options">{vendorSuggestions.map(row=><option key={row.id} value={row.name}/>)}</datalist></label>
-        {filters.type==='po' && <label>Product Name<input name="item_name" list="po-product-options" value={filters.item_name} onChange={handleFilterChange} placeholder="Enter Product Name"/><datalist id="po-product-options">{productSuggestions.map(item=><option key={item.id} value={productLabel(item)}/>)}</datalist></label>}
+        <label>Vendor<LegacyAutocompleteInput name="vendor_name" list="po-vendor-options" value={filters.vendor_name} onChange={handleFilterChange} placeholder="Enter Vendor Name"/><datalist id="po-vendor-options">{vendorSuggestions.map(row=><option key={row.id} value={row.name}/>)}</datalist></label>
+        {filters.type==='po' && <label>Product Name<LegacyAutocompleteInput name="item_name" list="po-product-options" value={filters.item_name} onChange={handleFilterChange} placeholder="Enter Product Name"/><datalist id="po-product-options">{productSuggestions.map(item=><option key={item.id} value={productLabel(item)}/>)}</datalist></label>}
         <label>Date From<DatePicker name="datefrom" value={filters.datefrom} onChange={handleFilterChange} placeholder="Date From"/></label>
         <label>Date To<DatePicker name="dateto" value={filters.dateto} onChange={handleFilterChange} placeholder="Date To"/></label>
         {filters.type==='po' && <label>Status<select name="status" value={filters.status} onChange={handleFilterChange}><option value="">All</option><option value="O">Open</option><option value="C">Close</option></select></label>}
@@ -208,18 +209,9 @@ export default function PurchaseOrdersPage() {
                               {Number(po.delivery_notes_count || 0) > 0 ? 'Edit Delivery Note' : 'Add Delivery Note'}
                             </button>
                           )}
-                          {canPrint && (
-                            <>
-                              <button onClick={() => { void openPurchaseOrderPdf(po.id).catch(() => toast.error('Unable to open purchase order PDF. Please retry and allow popups.')); setOpenDropdownId(null); }} className="w-full text-left px-4 py-1.5 text-sm font-bold text-blue-700 hover:bg-blue-50">
-                                Print PO {po.display_po_number || po.po_number}
-                              </button>
-                              {po.amendment_no > 0 && (
-                                <button onClick={() => { void openPurchaseOrderPdf(po.id).catch(() => toast.error('Unable to open purchase order PDF. Please retry and allow popups.')); setOpenDropdownId(null); }} className="w-full text-left px-4 py-1.5 text-sm font-bold text-blue-700 hover:bg-blue-50">
-                                  Print Revised PO
-                                </button>
-                              )}
-                            </>
-                          )}
+                          {canPrint && <button onClick={() => { void openPurchaseOrderPdf(po.id).catch(() => toast.error('Unable to open purchase order PDF.')); setOpenDropdownId(null); }} className="w-full text-left px-4 py-1.5 text-sm text-blue-700 hover:bg-blue-50">Print PO {po.display_po_number || po.po_number}</button>}
+                          {po.amendment_no > 0 && canAction('purchaseorder','printallpo') && <button onClick={() => { void openPurchaseOrderPdf(po.id, 'revised').catch(() => toast.error('Unable to open revised purchase orders PDF.')); setOpenDropdownId(null); }} className="w-full text-left px-4 py-1.5 text-sm text-blue-700 hover:bg-blue-50">Print Revised PO</button>}
+                          {Number(po.delivery_notes_count || 0) > 0 && canAction('purchaseorder','printdeliveryschedule') && <button onClick={() => { void openPurchaseOrderPdf(po.id, 'delivery').catch(() => toast.error('Unable to open delivery schedule PDF.')); setOpenDropdownId(null); }} className="w-full text-left px-4 py-1.5 text-sm text-blue-700 hover:bg-blue-50">Print Delivery Schedule</button>}
                         </div>, document.body
                       )}
                     </td>

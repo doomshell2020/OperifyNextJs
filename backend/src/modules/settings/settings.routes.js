@@ -1,5 +1,6 @@
 const permission = require('../jobChallan/legacyPermission');
 const express = require('express');
+const { requirePermission } = require('../../middleware/permission');
 const router = express.Router();
 const ctrl = require('./settings.controller');
 const authenticate = require('../../middleware/auth');
@@ -95,9 +96,10 @@ router.get('/taxes', (req, res, next) => ctrl.listTaxes(req, res, next));
 // Suppliers
 router.get('/suppliers', (req, res, next) => ctrl.listSuppliers(req, res, next));
 router.get('/suppliers/:id', (req, res, next) => ctrl.getSupplier(req, res, next));
-router.post('/suppliers', (req, res, next) => ctrl.createSupplier(req, res, next));
-router.put('/suppliers/:id', (req, res, next) => ctrl.updateSupplier(req, res, next));
-router.patch('/suppliers/:id/status', (req, res, next) => ctrl.toggleSupplierStatus(req, res, next));
+router.post('/suppliers/from-purchase-order', permission('purchaseorder','addsupplier'), (req,res,next)=>ctrl.createSupplier(req,res,next));
+router.post('/suppliers', requirePermission('legacy:admin/vendors/add'), (req, res, next) => ctrl.createSupplier(req, res, next));
+router.put('/suppliers/:id', requirePermission('legacy:admin/vendors/add'), (req, res, next) => ctrl.updateSupplier(req, res, next));
+router.patch('/suppliers/:id/status', permission('vendors','status'), (req, res, next) => ctrl.toggleSupplierStatus(req, res, next));
 
 // Roles
 router.get('/roles', (req, res, next) => ctrl.listRoles(req, res, next));

@@ -2,7 +2,8 @@ OPERIFY PHP PARITY AUDIT - 8 OCTOBER 2026
 
 Status: source-based corrections implemented and verified locally. This is NOT
 certification that the complete application now has visual and workflow parity.
-Authenticated, full-page comparisons and live deployment remain outstanding.
+Authenticated, populated full-page comparisons remain outstanding. The user
+will manually pull and rebuild the live environment after this Git push.
 No database records, schema, permission records, or test data were changed.
 
 1. MODULES CHECKED
@@ -180,13 +181,8 @@ modals and full-page old/new comparisons were NOT visually certified.
 9. REMAINING DIFFERENCES / BLOCKERS
 - Full authenticated old/new screenshots at desktop/mobile widths, every form
   from top to bottom, modal dimensions and action menus remain to be verified.
-  Some form section grouping/subtitles still differs; shared styling/headings
-  alone do not certify exact layout parity.
-- Individual names/IDs still use native datalist suggestions in several filters
-  instead of the old jQuery autocomplete widget. This preserves API selection
-  but is not an exact widget appearance match.
-- Revised-PO batch printing and delivery-schedule PDF actions still need a
-  separate source-driven parity review. Current PO PDF behavior was preserved.
+  Shared styling, source form grouping and empty-state previews do not
+  certify complete populated workflow parity.
 - The complete Contract expenditure helper rawindentitemqty is missing from
   the supplied PHP source; its full expenditure result cannot be certified.
 - Previously recorded missing UOM/category links, category-group conflicts and
@@ -196,11 +192,9 @@ modals and full-page old/new comparisons were NOT visually certified.
   pass only standardizes their shared UI and source page headings.
 - Actual live read/write workflows were not executed. No production writes or
   test-data insertion were used to validate this work.
-- GitHub validation success is not a deployment. Recent deployment jobs were
-  skipped: AWS_DEPLOY_ENABLED and server variables/SSH secrets are absent.
-  Server access or deployment configuration is required to update live and
-  compare the running build. Do not describe this release as live until that
-  deployment and browser verification have actually succeeded.
+- Live environment update is intentionally left to the user's manual pull,
+  production rebuild and restart. GitHub checks validate code; they do not
+  confirm that the running server has loaded this release.
 
 CONTINUATION: FORM AND MODAL CORRECTIONS (8 OCTOBER 2026)
 - Item Master add/edit: removed visible Tax, Size, Location and Company selectors
@@ -238,3 +232,35 @@ Additional changed files:
 Validation of this continuation: 89 backend regression checks and 4 frontend
 checks passed; TypeScript and the shipping production build must pass before
 pushing. Tests remain local under the existing repository ignore policy.
+
+CONTINUATION: COMPACT FORMS, AUTOCOMPLETE AND PO PRINTING (8 OCTOBER 2026)
+- Restored full-width headings, source form grouping, footer Submit/Back controls
+  and compact field grids across the phase-1 forms and existing manager headers.
+- PO form restores Total Price, Tax Amount and Net Amount columns. Removed its
+  extra summary sidebar and corrected inclusive-tax subtotal display without
+  changing saved valuation logic. GRN restores the source valuation columns,
+  removes the summary sidebar and displays read-only dates as DD-MM-YYYY.
+- Existing datalist-backed searches now use a plain suggestion menu with
+  keyboard selection and asynchronously refreshed options. Search API mappings
+  remain unchanged. Shared date controls retain required/min/max behavior.
+- PO PDF modes now distinguish current PO, all revisions in latest-first order
+  and delivery schedule. Print data and PDF routes use their own action checks.
+  PDF generation waits for the entire document set before taking the output.
+- PO automatic last-price lookup and item-history view use distinct source
+  permissions. PO Add Supplier uses its own route/permission; Vendor add/edit
+  and status actions, and EMD/Payment/Quotation details, match source checks.
+- Design Sheet contract-details click checks production/viewcontractdetail.
+- Local checks: 92 backend in-memory regression checks and 4 frontend control
+  checks passed, along with TypeScript and whitespace validation. The shipping
+  workflow repeats backend syntax and the complete frontend production build.
+- Rendered 26 real page components with empty in-memory state and checked
+  desktop/mobile layout bounds. Fixed mobile PO page overflow by containing
+  the item table. These previews have no database or authenticated populated
+  records and are not end-to-end workflow verification.
+- No database writes, record changes, schema migrations or permission record
+  edits were performed. Local tests remain ignored by existing repository policy.
+- All changed production paths in this continuation are included in the Git
+  commit; earlier section 8 lists the initial parity pass. Use git show --stat
+  for the exact continuation file list.
+- Remaining: authenticated old/new populated screens and full business actions,
+  the missing PHP helper/assets and data-owner review items in section 9.

@@ -1,4 +1,5 @@
 'use client';
+import { LegacyAutocompleteInput } from '@/components/ui/LegacyAutocompleteInput';
 
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useEffect, useState } from 'react';
@@ -158,10 +159,9 @@ export default function EditContractPage() {
   }
 
   return (
-    <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
-      <div>
-        <LegacyPageHeader title="Edit Contract"/>
-      </div>
+    <main className="legacy-form-page max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
+      <LegacyPageHeader title="Edit Contract"/>
+
 
       <div className="bg-white border-t-[3px] border-t-[#00bcd4] border-x border-b border-slate-200 shadow-sm overflow-hidden">
         <div className="bg-white px-4 py-3 border-b border-slate-200 flex items-center gap-2 font-bold text-slate-700 text-sm">
@@ -169,11 +169,11 @@ export default function EditContractPage() {
           Edit Contract
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 bg-white">
+        <form onSubmit={handleSubmit} className="legacy-form legacy-form-contract p-6 space-y-6 bg-white">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div>
               <label className="text-[11px] font-bold text-slate-600 block mb-1">Supplier Name <span className="text-red-500">*</span></label>
-              <input type="text" list="suppliers-list" value={supplierName} onChange={e => setSupplierName(e.target.value)} placeholder="Enter Supplier Name" className="w-full px-3 py-1.5 border border-slate-300 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition text-sm text-slate-800" required />
+              <LegacyAutocompleteInput type="text" list="suppliers-list" value={supplierName} onChange={e => setSupplierName(e.target.value)} placeholder="Enter Supplier Name" className="w-full px-3 py-1.5 border border-slate-300 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition text-sm text-slate-800" required />
               <datalist id="suppliers-list">
                 {formData?.vendors.map(v => <option key={v.id} value={v.name} />)}
               </datalist>
@@ -226,7 +226,7 @@ export default function EditContractPage() {
                 {products.map((product, idx) => (
                   <tr key={idx} className="border-b border-slate-200">
                     <td className="px-2 py-2">
-                      <input type="text" list="items-list" placeholder="Enter Item Name" value={product.itemName} readOnly={product.existing} onChange={e => handleProductChange(idx, 'itemName', e.target.value)} className="w-full px-2 py-1.5 border border-yellow-400 focus:border-cyan-500 outline-none text-sm" />
+                      <LegacyAutocompleteInput type="text" list="items-list" placeholder="Enter Item Name" value={product.itemName} readOnly={product.existing} onChange={e => handleProductChange(idx, 'itemName', e.target.value)} className="w-full px-2 py-1.5 border border-yellow-400 focus:border-cyan-500 outline-none text-sm" />
                     </td>
                     <td className="px-2 py-2">
                       <input type="number" placeholder="Qty" value={product.quantity} readOnly={product.existing} onChange={e => handleProductChange(idx, 'quantity', e.target.value)} className="w-full px-2 py-1.5 border border-slate-300 focus:border-cyan-500 outline-none text-sm" />

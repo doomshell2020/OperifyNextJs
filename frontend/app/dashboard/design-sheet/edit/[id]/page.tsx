@@ -257,15 +257,13 @@ export default function EditDesignSheetPage() {
   };
 
   return (
-    <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard/design-sheet" className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600 transition">
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <LegacyPageHeader title="Edit Design Sheet"/>
-      </div>
+    <main className="legacy-form-page max-w-7xl w-full mx-auto px-6 py-8 space-y-6">
+      <LegacyPageHeader title="Edit Design Sheet"/>
 
-      <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-xl p-6 space-y-6 shadow-sm">
+
+      <form onSubmit={handleSubmit} className="legacy-form legacy-form-design bg-white border border-slate-200 rounded-xl p-6 space-y-6 shadow-sm">
+<div className="legacy-box-heading">Edit Design Sheet</div>
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             <div>
               <label className="text-xs font-bold text-slate-500 block mb-2">Design Sheet No<span className="text-rose-500">*</span></label>

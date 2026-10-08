@@ -197,28 +197,11 @@ export default function AddGrnInspectionPage() {
   };
 
   return (
-    <main suppressHydrationWarning className="max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 space-y-6">
-      <form onSubmit={handleSubmit(onSubmit)}>
+    <main suppressHydrationWarning className="legacy-form-page max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <LegacyPageHeader title="GRN Inspection"/>
+      <form onSubmit={handleSubmit(onSubmit)} className="legacy-form legacy-form-inspection">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-5 rounded-xl border border-slate-200 shadow-sm gap-4">
-          <div className="flex items-center gap-3">
-            <button type="button" onClick={() => router.back()} className="p-2 hover:bg-slate-100 rounded-full transition">
-              <ArrowLeft className="w-5 h-5 text-slate-600" />
-            </button>
-            <div>
-              <LegacyPageHeader title="GRN Inspection"/>
-              <p className="text-sm text-slate-500">Create a new Goods Received Note Inspection</p>
-            </div>
-          </div>
-          <button
-            type="submit"
-            disabled={submitMutation.isPending || isPoLoading}
-            className="flex items-center justify-center gap-2 px-6 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-medium shadow-sm transition disabled:opacity-50 w-full sm:w-auto"
-          >
-            {submitMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save Inspection
-          </button>
-        </div>
+
 
         {/* Global form errors */}
         {errors.items?.root && (
@@ -424,7 +407,16 @@ export default function AddGrnInspectionPage() {
             {errors.remark && <p className="text-xs text-red-600 absolute bottom-1">{errors.remark.message}</p>}
           </div>
         </div>
-      </form>
+
+<div className="legacy-form-footer"><button
+            type="submit"
+            disabled={submitMutation.isPending || isPoLoading}
+            className="flex items-center justify-center gap-2 px-6 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-medium shadow-sm transition disabled:opacity-50 w-full sm:w-auto"
+          >
+            {submitMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Submit
+          </button></div>
+</form>
     </main>
   );
 }
