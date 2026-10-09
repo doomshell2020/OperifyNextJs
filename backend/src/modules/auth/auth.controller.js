@@ -42,7 +42,8 @@ class AuthController {
         success: true,
         message: 'Access token refreshed successfully',
         data: {
-          accessToken: result.accessToken
+          accessToken: result.accessToken,
+          user: result.user
         }
       });
     } catch (error) {
@@ -55,23 +56,12 @@ class AuthController {
    */
   async me(req, res, next) {
     try {
-      // req.user was attached by the authenticate middleware
-      // We also need to fetch assigned companies to preserve them on page refresh
-      const authRepository = require('./auth.repository');
-      const centralUser = await authRepository.findCentralUserByMobile(req.user.mobile || '');
-      let companies = [];
-      if (centralUser) {
-        companies = await authRepository.getAssignedCompanies(centralUser);
-      }
 
       return res.status(200).json({
         success: true,
         message: 'User profile retrieved successfully',
         data: {
-          user: {
-            ...req.user,
-            companies
-          }
+          user: req.user
         }
       });
     } catch (error) {

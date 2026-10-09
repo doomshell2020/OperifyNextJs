@@ -6,7 +6,7 @@ import apiClient from '@/services/apiClient';
 export function useJcAccess() {
   const {user,loading:authLoading}=useAuth();
   const {hasPermission}=usePermission();
-  const query=useQuery<{configured:string[]}>({queryKey:['jcActionPermissions',user?.db,user?.id],enabled:!!user,queryFn:async()=>(await apiClient.get('/job-challan/permissions')).data.data});
+  const query=useQuery<{configured:string[]}>({queryKey:['jcActionPermissions',user?.db,user?.id],enabled:!!user && !authLoading,queryFn:async()=>(await apiClient.get('/job-challan/permissions')).data.data});
   return {loading:authLoading || (!!user && query.isPending),permissionError:query.isError && !query.data, retryPermissions:query.refetch,can:(controller:string,action:string)=>{
     if (!user) return false;
     if (Number(user.role_id)===101) return true;

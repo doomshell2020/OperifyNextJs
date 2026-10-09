@@ -51,23 +51,26 @@ class AuthRepository {
   }
 
   /**
-   * Retrieves assigned companies for a user based on role and c_id.
+   * Legacy getfranchise() reads central users grouped by db, not schools.
+   * Keep the existing active-school access boundary, then intersect it with
+   * that registry list. A school alone must not create a dropdown option.
    */
   async getAssignedCompanies(user) {
     const { Op } = require('sequelize');
-    const role = user.role_id;
+    const role = Number(user.role_id);
     const cid = user.c_id || 0;
 
+    let schools;
     if (role === 101) {
       // SuperAdmin: all companies
-      return await centralModels.schools.findAll({
+      schools = await centralModels.schools.findAll({
         where: { status: 'Y' },
         attributes: ['id', 'school_name', 'school_database'],
         raw: true
       });
     } else if (role === 105) {
       // ErpHead: parent and all franchises
-      return await centralModels.schools.findAll({
+      schools = await centralModels.schools.findAll({
         where: {
           status: 'Y',
           [Op.or]: [
@@ -80,7 +83,7 @@ class AuthRepository {
       });
     } else {
       // Normal user: just their own company
-      return await centralModels.schools.findAll({
+      schools = await centralModels.schools.findAll({
         where: {
           status: 'Y',
           school_database: user.db
@@ -89,6 +92,27 @@ class AuthRepository {
         raw: true
       });
     }
+
+    const { fn, col } = require('sequelize');
+    const prefix = String(user.db || '').split('_')[0];
+    if (!prefix) return [];
+    const registry = await centralModels.users.findAll({
+      attributes: [[fn('MIN', col('id')), 'id'], 'db'],
+      where: role === 105
+        ? { db: { [Op.like]: `${prefix.replace(/[\\%_]/g, '\\$&')}%` } }
+        : role === 101 ? {} : { db: user.db },
+      group: ['db'],
+      order: [[fn('MIN', col('id')), 'ASC']],
+      raw: true
+    });
+    const allowed = new Map(schools.map(school => [school.school_database, school]));
+    return registry.filter(row => allowed.has(row.db)).map(row => ({
+      ...allowed.get(row.db),
+      // headernew.ctp uses ucfirst(explode('_', db)[1]).
+      school_name: row.db.includes('_')
+        ? row.db.split('_')[1].replace(/^./, character => character.toUpperCase())
+        : allowed.get(row.db).school_name
+    }));
   }
 
   /**

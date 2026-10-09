@@ -67,164 +67,104 @@ class AuthService {
       }
     }
 
-    // 5. Token Generation (Access & Refresh)
-    const tokenPayload = {
-      id: tenantUser.id,
-      user_name: tenantUser.user_name || tenantUser.email,
-      email: tenantUser.email,
-      mobile: tenantUser.mobile,
-      db: tenantDbName,
-      role_id: tenantUser.role_id,
-      tech_id: tenantUser.tech_id || null,
-      c_id: tenantUser.c_id || null,
-      board: tenantUser.board || null
-    };
-
-    // Get assigned companies and permissions
-    const assignedCompanies = await authRepository.getAssignedCompanies(centralUser);
-    const permissions = await authRepository.getUserPermissions(tenantUser.role_id);
-
-    // Add permissions to token payload
-    tokenPayload.permissions = permissions;
-
-    const accessToken = jwt.sign(
-      tokenPayload,
-      process.env.JWT_SECRET || 'super_secret_key',
-      { expiresIn: '2h' }
-    );
-
-    const refreshToken = jwt.sign(
-      { id: tenantUser.id, db: tenantDbName, mobile: centralUser.mobile },
-      process.env.JWT_REFRESH_SECRET || 'super_secret_refresh_key',
-      { expiresIn: '7d' }
-    );
-
-    return {
-      user: {
-        id: tenantUser.id,
-        user_name: tenantUser.user_name,
-        email: tenantUser.email,
-        mobile: tenantUser.mobile,
-        role_id: tenantUser.role_id,
-        db: tenantDbName,
-        companies: assignedCompanies,
-        permissions
-      },
-      accessToken,
-      refreshToken
-    };
+    return this._issueTokens(await this.getSession(mobile, tenantDbName, centralUser, tenantUser));
   }
 
   /**
-   * Refreshes JWT access token using a valid refresh token.
-   * 
-   * @param {string} refreshToken 
-   * @returns {Promise<Object>} New access token
+   * Keep identity and permissions in the authenticated user's home database.
+   * The selected database controls data routing only; it never impersonates
+   * the first administrator in another company (as PHP erpLogin did).
    */
-  async refreshAccessToken(refreshToken) {
-    try {
-      const decoded = jwt.verify(
-        refreshToken,
-        process.env.JWT_REFRESH_SECRET || 'super_secret_refresh_key'
-      );
-      
-      const centralUser = await authRepository.findCentralUserByMobile(decoded.mobile || '');
-      if (!centralUser) {
-        throw new Error('User not found');
-      }
+  async getSession(mobile, selectedDb, centralUser, homeUser) {
+    centralUser = centralUser || await authRepository.findCentralUserByMobile(mobile);
+    if (!centralUser || centralUser.is_status === 'N' || !centralUser.db) {
+      throw this._createAuthError('Your account is unavailable. Please log in again.');
+    }
+    homeUser = homeUser || await authRepository.findTenantUserByMobile(mobile, centralUser.db);
+    if (!homeUser || homeUser.is_status === 'N') {
+      throw this._createAuthError('Your account is inactive or unavailable.');
+    }
 
-      const tokenPayload = {
-        id: centralUser.id,
-        user_name: centralUser.user_name,
-        email: centralUser.email,
-        mobile: centralUser.mobile,
-        db: decoded.db, // Use the DB from the decoded refresh token
-        role_id: centralUser.role_id,
-        tech_id: centralUser.tech_id || null,
-        c_id: centralUser.c_id || null,
-        board: centralUser.board || null
-      };
-
-      // Get assigned companies and permissions
-      const assignedCompanies = await authRepository.getAssignedCompanies(centralUser);
-      const permissions = await authRepository.getUserPermissions(centralUser.role_id);
-
-      tokenPayload.permissions = permissions;
-
-      const newAccessToken = jwt.sign(
-        tokenPayload,
-        process.env.JWT_SECRET || 'super_secret_key',
-        { expiresIn: '2h' }
-      );
-
-      return { 
-        accessToken: newAccessToken,
-        user: {
-          ...tokenPayload,
-          companies: assignedCompanies,
-          permissions
-        }
-      };
-    } catch (err) {
-      const error = new Error('Invalid or expired refresh token');
-      error.status = 401;
-      error.code = 'UNAUTHORIZED';
+    // The authenticated tenant role is authoritative; central c_id supplies
+    // the existing parent/franchise relationship used for access checks.
+    const companies = await authRepository.getAssignedCompanies({
+      ...centralUser, role_id: homeUser.role_id
+    });
+    const db = selectedDb || centralUser.db;
+    if (typeof db !== 'string' || !/^[a-zA-Z0-9_]+$/.test(db)) {
+      throw this._createAuthError('Invalid company database');
+    }
+    if (db !== centralUser.db && !companies.some(company => company.school_database === db)) {
+      const error = this._createAuthError('You do not have permission to access this company');
+      error.status = 403;
+      error.code = 'FORBIDDEN';
       throw error;
     }
+    const permissions = await authRepository.getUserPermissions(homeUser.role_id);
+    return {
+      id: homeUser.id,
+      user_name: homeUser.user_name || homeUser.email,
+      email: homeUser.email,
+      mobile: centralUser.mobile,
+      db,
+      home_db: centralUser.db,
+      role_id: Number(homeUser.role_id),
+      tech_id: homeUser.tech_id || null,
+      c_id: homeUser.c_id || null,
+      board: homeUser.board || null,
+      companies,
+      permissions
+    };
   }
 
-  /**
-   * Switch the active company/database.
-   */
-  async switchCompany(mobile, currentDb, newDb) {
-    const centralUser = await authRepository.findCentralUserByMobile(mobile);
-    if (!centralUser) {
-      throw this._createAuthError('User not found');
-    }
-
-    const assignedCompanies = await authRepository.getAssignedCompanies(centralUser);
-    const hasAccess = assignedCompanies.some(c => c.school_database === newDb);
-    if (!hasAccess) {
-      throw this._createAuthError('You do not have permission to access this company');
-    }
-
-    // New token payload with the new db
-    const tokenPayload = {
-      id: centralUser.id,
-      user_name: centralUser.user_name || centralUser.email,
-      email: centralUser.email,
-      mobile: centralUser.mobile,
-      db: newDb,
-      role_id: centralUser.role_id,
-      tech_id: centralUser.tech_id || null,
-      c_id: centralUser.c_id || null,
-      board: centralUser.board || null
-    };
-
-    const permissions = await authRepository.getUserPermissions(centralUser.role_id);
-    tokenPayload.permissions = permissions;
-
-    const accessToken = jwt.sign(
-      tokenPayload,
-      process.env.JWT_SECRET || 'super_secret_key',
-      { expiresIn: '2h' }
-    );
-
-    const refreshToken = jwt.sign(
-      { id: centralUser.id, db: newDb, mobile: centralUser.mobile }, // ensure mobile is here for refresh
-      process.env.JWT_REFRESH_SECRET || 'super_secret_refresh_key',
-      { expiresIn: '7d' }
-    );
-
+  _issueTokens(user) {
+    const { companies, ...claims } = user;
     return {
-      user: {
-        ...tokenPayload,
-        companies: assignedCompanies,
-        permissions
-      },
-      accessToken,
-      refreshToken
+      user,
+      accessToken: jwt.sign(claims, process.env.JWT_SECRET || 'super_secret_key', { expiresIn: '2h' }),
+      refreshToken: jwt.sign(
+        { id: user.id, db: user.db, mobile: user.mobile, home_db: user.home_db },
+        process.env.JWT_REFRESH_SECRET || 'super_secret_refresh_key',
+        { expiresIn: '7d' }
+      )
     };
+  }
+
+  async refreshAccessToken(refreshToken) {
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || 'super_secret_refresh_key');
+    } catch {
+      throw this._createAuthError('Invalid or expired refresh token');
+    }
+    const user = await this.getSession(decoded.mobile || '', decoded.db);
+    const { companies, ...claims } = user;
+    return {
+      accessToken: jwt.sign(claims, process.env.JWT_SECRET || 'super_secret_key', { expiresIn: '2h' }),
+      user
+    };
+  }
+
+  async switchCompany(mobile, currentDb, newDb) {
+    if (typeof newDb !== 'string' || !newDb) {
+      const error = new Error('Select a company database');
+      error.status = 400;
+      error.code = 'INVALID_COMPANY';
+      throw error;
+    }
+    const user = await this.getSession(mobile, newDb);
+    // Do not commit a company switch when the registry references a database
+    // that is unavailable; the browser can safely keep its current session.
+    try {
+      const { getTenantSequelize } = require('../../config/sequelize');
+      await (await getTenantSequelize(user.db)).authenticate();
+    } catch {
+      const error = new Error('This company database is unavailable. Please contact the administrator.');
+      error.status = 503;
+      error.code = 'COMPANY_UNAVAILABLE';
+      throw error;
+    }
+    return this._issueTokens(user);
   }
 
 

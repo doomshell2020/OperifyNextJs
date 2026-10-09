@@ -1,7 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { isCancel } from 'axios';
 import apiClient from '../services/apiClient';
 
 interface Company {
@@ -35,11 +37,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const switching = useRef(false);
 
   // Load user on mount
   useEffect(() => {
     const bootstrapAuth = async () => {
       const token = localStorage.getItem('accessToken');
+      const session = localStorage.getItem('refreshToken');
       if (!token) {
         setLoading(false);
         return;
@@ -51,6 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(response.data.data.user);
         }
       } catch (err) {
+        if (isCancel(err) || session !== localStorage.getItem('refreshToken')) return;
         console.error('Session restoration failed:', err);
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
@@ -60,6 +66,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     bootstrapAuth();
+    // Another page/tab may switch company or log out using the shared tokens.
+    const syncSession = (event: StorageEvent) => {
+      if (event.key === 'refreshToken') window.location.reload();
+    };
+    window.addEventListener('storage', syncSession);
+    return () => window.removeEventListener('storage', syncSession);
   }, []);
 
   const login = async (mobile: string, password: string) => {
@@ -70,6 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { user, accessToken, refreshToken } = response.data.data;
         localStorage.setItem('accessToken', accessToken);
         localStorage.setItem('refreshToken', refreshToken);
+        queryClient.clear();
         setUser(user);
         
         // Redirect to admin dashboards base on role ID
@@ -88,14 +101,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const switchCompany = async (newDb: string) => {
+    if (switching.current || newDb === user?.db) return;
+    switching.current = true;
     setLoading(true);
+    let switched = false;
     try {
+      await queryClient.cancelQueries();
       const response = await apiClient.post('/auth/switch-company', { newDb });
       if (response.data.success) {
         const { user, accessToken, refreshToken } = response.data.data;
         localStorage.setItem('accessToken', accessToken);
         localStorage.setItem('refreshToken', refreshToken);
+        queryClient.clear();
         setUser(user);
+        switched = true;
         // Refresh page so everything re-fetches using new DB
         window.location.reload();
       }
@@ -103,7 +122,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Company switch failed', err);
       throw err.response?.data?.error?.message || 'Company switch failed.';
     } finally {
-      setLoading(false);
+      // Keep module pages unmounted until reload completes after a switch.
+      if (!switched) setLoading(false);
+      switching.current = false;
     }
   };
 
@@ -116,6 +137,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
+      await queryClient.cancelQueries();
+      queryClient.clear();
       setUser(null);
       setLoading(false);
       router.push('/login');

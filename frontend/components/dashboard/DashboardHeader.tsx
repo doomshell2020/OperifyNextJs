@@ -19,11 +19,12 @@ export const DashboardSidebar: React.FC<{ collapsed?: boolean }> = () => null;
 
 export const DashboardTopbar: React.FC = () => {
   const pathname = usePathname();
-  const { user, logout, switchCompany } = useAuth();
+  const { user, loading, logout, switchCompany } = useAuth();
   const { hasPermission } = usePermission();
   const { can: canJc } = useJcAccess();
   const [profileOpen, setProfileOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
+  const [companyError, setCompanyError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -216,15 +217,20 @@ export const DashboardTopbar: React.FC = () => {
           </div>
         )}
 
-        {user?.companies && user.companies.length > 1 ? (
+        {user?.companies && (user.companies.length > 1 || (user.role_id === 105 && user.companies.length === 1)) ? (
           <select
+            aria-label="Company"
             value={user.db}
-            onChange={(e) => switchCompany(e.target.value)}
+            disabled={loading}
+            onChange={(e) => {
+              setCompanyError(null);
+              void switchCompany(e.target.value).catch(error => setCompanyError(String(error)));
+            }}
             className="flex items-center bg-white border border-[#ccc] rounded-[2px] px-1 py-1 text-[10px] text-[#222] outline-none cursor-pointer hover:border-[#999] h-[26px] w-[140px]"
           >
             {user.companies.map(c => (
-              <option key={c.id} value={c.school_database}>
-                {c.school_name.toUpperCase()}
+              <option key={c.school_database} value={c.school_database}>
+                {c.school_name}
               </option>
             ))}
           </select>
@@ -234,6 +240,7 @@ export const DashboardTopbar: React.FC = () => {
             <span className="truncate">{formatTenant(user?.db)}</span>
           </div>
         )}
+        {companyError && <span role="alert" className="text-red-700 text-xs">{companyError}</span>}
 
         {/* Profile */}
         <div className="relative">

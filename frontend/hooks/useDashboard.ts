@@ -1,45 +1,56 @@
 import { useQuery } from '@tanstack/react-query';
 import dashboardService from '../services/dashboard.service';
+import { useAuth } from '../contexts/AuthContext';
 
 export function useDashboard() {
+  const { user, loading } = useAuth();
+  const scope = [user?.db, user?.id];
+  const enabled = !!user && !loading;
   const summaryQuery = useQuery({
-    queryKey: ['dashboard', 'summary'],
+    queryKey: ['dashboard', ...scope, 'summary'],
+    enabled,
     queryFn: () => dashboardService.getSummary(),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   const chartsQuery = useQuery({
-    queryKey: ['dashboard', 'charts'],
+    queryKey: ['dashboard', ...scope, 'charts'],
+    enabled,
     queryFn: () => dashboardService.getCharts(),
     staleTime: 5 * 60 * 1000,
   });
 
   const poQuery = useQuery({
-    queryKey: ['dashboard', 'latest-po'],
+    queryKey: ['dashboard', ...scope, 'latest-po'],
+    enabled,
     queryFn: () => dashboardService.getLatestPurchaseOrders(),
     staleTime: 2 * 60 * 1000,
   });
 
   const productionQuery = useQuery({
-    queryKey: ['dashboard', 'latest-production'],
+    queryKey: ['dashboard', ...scope, 'latest-production'],
+    enabled,
     queryFn: () => dashboardService.getLatestProduction(),
     staleTime: 2 * 60 * 1000,
   });
 
   const maintenanceQuery = useQuery({
-    queryKey: ['dashboard', 'latest-maintenance'],
+    queryKey: ['dashboard', ...scope, 'latest-maintenance'],
+    enabled,
     queryFn: () => dashboardService.getLatestMaintenance(),
     staleTime: 2 * 60 * 1000,
   });
 
   const inspectionQuery = useQuery({
-    queryKey: ['dashboard', 'latest-inspection'],
+    queryKey: ['dashboard', ...scope, 'latest-inspection'],
+    enabled,
     queryFn: () => dashboardService.getLatestInspection(),
     staleTime: 2 * 60 * 1000,
   });
 
   const grnQuery = useQuery({
-    queryKey: ['dashboard', 'latest-grn'],
+    queryKey: ['dashboard', ...scope, 'latest-grn'],
+    enabled,
     queryFn: () => dashboardService.getLatestGrn(),
     staleTime: 2 * 60 * 1000,
   });
