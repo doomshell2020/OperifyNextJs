@@ -8,8 +8,8 @@ const router = express.Router();
 router.use(authenticate);
 router.use(tenantMiddleware);
 
-// Read-only action catalog lets buttons follow the same configured-label policy
-// as legacyPermission, including PHP actions without an explicit label.
+// Read-only compatibility catalog. Access is determined by session grants,
+// never by whether a label is present or absent in this catalog.
 router.get('/action-labels', async (req, res, next) => {
   try {
     const { centralSequelize } = require('../../config/sequelize');

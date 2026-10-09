@@ -78,9 +78,6 @@ export const RecentPurchaseTable: React.FC<RecentPurchaseTableProps> = ({ data =
                     <StatusBadge status={record.postatus || record.status} />
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="p-1.5 text-slate-400 hover:text-cyan-600 bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-lg transition cursor-pointer">
-                      <Eye className="w-3.5 h-3.5" />
-                    </button>
                   </td>
                 </tr>
               ))

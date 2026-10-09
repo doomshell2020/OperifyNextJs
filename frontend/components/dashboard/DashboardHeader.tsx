@@ -120,7 +120,7 @@ export const DashboardTopbar: React.FC = () => {
             if(item.title==="GRN") return hasPermission("grn:view") || hasPermission("legacy:admin/goodsreceived/index");
             if(item.title==="Indents") return hasPermission("legacy:admin/indentpo/index");
             if(item.title==="Reverse") return hasPermission("legacy:admin/reverseindent/index");
-            if(item.title==="Production") return hasPermission("production:view") || hasPermission("legacy:admin/production/productionorders");
+            if(item.title==="Production") return hasPermission("legacy:admin/production/productionorders");
             if(item.title==="Daily Sheet") return hasPermission("legacy:admin/production/index");
             if(item.title==="Maintenance") return hasPermission("legacy:admin/maintenance/index");
             if(item.title==="Stock") return hasPermission("stock:view") || hasPermission("legacy:admin/stockregister/index");

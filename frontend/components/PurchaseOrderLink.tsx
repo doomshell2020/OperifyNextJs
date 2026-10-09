@@ -1,5 +1,6 @@
 'use client';
 
+import { useLegacyActionAccess } from './ui/useLegacyActionAccess';
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { usePurchaseOrderHover } from '../hooks/usePurchaseOrderHover';
@@ -12,6 +13,7 @@ interface PurchaseOrderLinkProps {
 }
 
 export const PurchaseOrderLink: React.FC<PurchaseOrderLinkProps> = ({ id, poNumber }) => {
+  const canAction = useLegacyActionAccess();
   const [isHovered, setIsHovered] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -24,7 +26,7 @@ export const PurchaseOrderLink: React.FC<PurchaseOrderLinkProps> = ({ id, poNumb
   const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Trigger query hook only when hovered or open
-  const { data, isLoading, isError } = usePurchaseOrderHover(id, isHovered || isOpen);
+  const { data, isLoading, isError } = usePurchaseOrderHover(id, canAction('purchaseorder','viewpodetail') && (isHovered || isOpen));
 
   // Calculate coordinates & placement on open
   const calculatePosition = () => {
@@ -118,6 +120,7 @@ export const PurchaseOrderLink: React.FC<PurchaseOrderLinkProps> = ({ id, poNumb
     };
   }, []);
 
+  if (!canAction('purchaseorder','viewpodetail')) return <span>{poNumber}</span>;
   return (
     <>
       <button

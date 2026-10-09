@@ -218,7 +218,7 @@ export default function StockRegisterPage() {
                     <td className="p-3 font-semibold text-slate-700">{r.date_range}</td>
                     <td className="p-3 font-medium text-cyan-600">{r.opening_stock}</td>
                     <td className="p-3 text-green-600">
-                      {parseFloat(r.received_stock.toString()) > 0 ? (
+                      {parseFloat(r.received_stock.toString()) > 0 && canAction('stockregister','receivedstock') ? (
                         <button
                           onClick={() => openModal('received', r.date_range, r.item_id, r.item_name)}
                           className="hover:underline text-left"
@@ -230,7 +230,7 @@ export default function StockRegisterPage() {
                       )}
                     </td>
                     <td className="p-3 text-amber-600">
-                      {parseFloat(r.dispatched_stock.toString()) > 0 ? (
+                      {parseFloat(r.dispatched_stock.toString()) > 0 && canAction('stockregister','dispatchedstock') ? (
                         <button
                           onClick={() => openModal('dispatched', r.date_range, r.item_id, r.item_name)}
                           className="hover:underline text-left"

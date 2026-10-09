@@ -1,4 +1,5 @@
 const express = require('express');
+const permission = require('../jobChallan/legacyPermission');
 const dashboardController = require('./dashboard.controller');
 const authenticate = require('../../middleware/auth');
 const tenantMiddleware = require('../../middleware/tenant');
@@ -11,10 +12,10 @@ router.use(tenantMiddleware);
 
 router.get('/summary', dashboardController.getSummary);
 router.get('/charts', dashboardController.getCharts);
-router.get('/latest-purchase-orders', dashboardController.getLatestPurchaseOrders);
-router.get('/latest-production', dashboardController.getLatestProduction);
-router.get('/latest-maintenance', dashboardController.getLatestMaintenance);
-router.get('/latest-inspection', dashboardController.getLatestInspection);
-router.get('/latest-grn', dashboardController.getLatestGrn);
+router.get('/latest-purchase-orders', permission('purchaseorder','index'), dashboardController.getLatestPurchaseOrders);
+router.get('/latest-production', permission('production','productionorders'), dashboardController.getLatestProduction);
+router.get('/latest-maintenance', permission('maintenance','index'), dashboardController.getLatestMaintenance);
+router.get('/latest-inspection', permission('goodsreceived','grninspection'), dashboardController.getLatestInspection);
+router.get('/latest-grn', permission('goodsreceived','index'), dashboardController.getLatestGrn);
 
 module.exports = router;

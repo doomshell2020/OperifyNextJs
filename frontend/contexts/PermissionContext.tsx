@@ -17,9 +17,6 @@ export const PermissionProvider = ({ children }: { children: ReactNode }) => {
   const permissions = user?.permissions || [];
 
   const hasPermission = (permissionKey: string) => {
-    // If role is superadmin, bypass checks
-    if (user?.role_id == 101) return true;
-    
     return permissions.includes(permissionKey);
   };
 

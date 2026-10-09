@@ -1,5 +1,6 @@
 'use client';
 
+import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsService, AppUser } from '@/services/settings.service';
@@ -8,6 +9,7 @@ import { formatDate } from '../../../../utils/dateFormatter';
 import toast from 'react-hot-toast';
 
 export default function UsersPage() {
+  const canAction = useLegacyActionAccess();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -113,12 +115,12 @@ export default function UsersPage() {
           <h1 className="text-2xl font-bold text-slate-800">User Management</h1>
           <p className="text-sm text-slate-500 mt-0.5">Manage roles and users in the system</p>
         </div>
-        <button 
+        {canAction('roles','add') && <button
           onClick={() => setIsModalOpen(true)}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
         >
           <Plus className="w-4 h-4" /> Add User
-        </button>
+        </button>}
       </div>
 
       {/* Filters */}
@@ -177,21 +179,21 @@ export default function UsersPage() {
                   </td>
                   <td className="px-4 py-2.5 text-xs text-slate-500">{formatDate(row.created)}</td>
                   <td className="px-4 py-2.5">
-                    <button onClick={() => toggle.mutate({ id: row.id, status: row.is_status === 'Y' ? 'N' : 'Y' })} className="flex items-center gap-1.5 text-xs font-medium">
+                    {canAction('roles','status') && <button onClick={() => toggle.mutate({ id: row.id, status: row.is_status === 'Y' ? 'N' : 'Y' })} className="flex items-center gap-1.5 text-xs font-medium">
                       {row.is_status === 'Y'
                         ? <><ToggleRight className="w-5 h-5 text-emerald-500" /><span className="text-emerald-600">Active</span></>
                         : <><ToggleLeft className="w-5 h-5 text-slate-400" /><span className="text-slate-400">Inactive</span></>
                       }
-                    </button>
+                    </button>}
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-2">
-                      <button onClick={() => handleEdit(row)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Edit">
+                      {canAction('roles','add') && <button onClick={() => handleEdit(row)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Edit">
                         <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => { if(confirm('Are you sure you want to delete this user?')) deleteUser.mutate(row.id); }} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Delete">
+                      </button>}
+                      {canAction('roles','delete') && <button onClick={() => { if(confirm('Are you sure you want to delete this user?')) deleteUser.mutate(row.id); }} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Delete">
                         <Trash2 className="w-4 h-4" />
-                      </button>
+                      </button>}
                     </div>
                   </td>
                 </tr>

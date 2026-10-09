@@ -1,5 +1,6 @@
 'use client';
 
+import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import React, { useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -28,6 +29,7 @@ const PRINT_STYLE = `
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function IndentDetailPage() {
+  const canAction = useLegacyActionAccess();
   const params = useParams();
   const searchParams = useSearchParams();
   const isPreview = searchParams.get('preview') === '1';
@@ -100,13 +102,13 @@ export default function IndentDetailPage() {
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">Purchase Requisition</p>
         </div>
-        <button
+        {canAction('indent','view') && <button
           onClick={() => { void openModulePdf(`/indents/${encodeURIComponent(indent_id)}/pdf`); }}
           className="flex items-center gap-2 h-9 px-4 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm"
         >
           <Printer className="w-3.5 h-3.5" />
           Print
-        </button>
+        </button>}
       </div>
 
       {/* ── Printable Area ─────────────────────────────────────────────────── */}

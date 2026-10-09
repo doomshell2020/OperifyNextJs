@@ -4,6 +4,7 @@ const indentpoController = require('./indentpo.controller');
 const auth = require('../../middleware/auth');
 const tenant = require('../../middleware/tenant');
 const permission=require('../jobChallan/legacyPermission');
+const { requireCurrentIndent } = require('../../middleware/legacyActionDate');
 
 // All routes require authentication and tenant db connection
 router.use(auth);
@@ -18,9 +19,9 @@ router.get('/designsheet', indentpoController.getDesignSheetDetails);
 
 // CRUD
 router.get('/export',permission('indentpo','indentpoexcel'),async(req,res,next)=>{try{await require('./indentpo.export')(req.dbPool,req.query,res);}catch(error){next(error);}});
-router.get('/:indent_id/edit-data',permission('indentpo','edit'),async(req,res,next)=>{try{const data=await require('./indentpo.repository').getIndentpoDetail(req.dbPool,req.params.indent_id);if(!data)return res.status(404).json({message:'Indent not found'});res.json(data);}catch(error){next(error);}});
-router.put('/:indent_id',permission('indentpo','edit'),async(req,res,next)=>{try{res.json(await require('./indentpo.mutations').update(req.dbPool,req.params.indent_id,req.body,req.user.id));}catch(error){next(error);}});
-router.delete('/:indent_id',permission('indentpo','delete'),async(req,res,next)=>{try{await require('./indentpo.mutations').remove(req.dbPool,req.params.indent_id);res.json({success:true});}catch(error){next(error);}});
+router.get('/:indent_id/edit-data',permission('indentpo','edit'),requireCurrentIndent,async(req,res,next)=>{try{const data=await require('./indentpo.repository').getIndentpoDetail(req.dbPool,req.params.indent_id);if(!data)return res.status(404).json({message:'Indent not found'});res.json(data);}catch(error){next(error);}});
+router.put('/:indent_id',permission('indentpo','edit'),requireCurrentIndent,async(req,res,next)=>{try{res.json(await require('./indentpo.mutations').update(req.dbPool,req.params.indent_id,req.body,req.user.id));}catch(error){next(error);}});
+router.delete('/:indent_id',permission('indentpo','delete'),requireCurrentIndent,async(req,res,next)=>{try{await require('./indentpo.mutations').remove(req.dbPool,req.params.indent_id);res.json({success:true});}catch(error){next(error);}});
 router.post('/', permission('indentpo','add'), indentpoController.saveIndentpo);
 router.get('/', permission('indentpo','index'), indentpoController.listIndentpo);
 router.get('/:indent_id/pdf', permission('indentpo','viewindentpopdf'), indentpoController.downloadPdf);

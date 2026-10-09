@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { isCancel } from 'axios';
 import apiClient from '../services/apiClient';
 
@@ -37,11 +37,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
+  const pathname = usePathname();
   const queryClient = useQueryClient();
   const switching = useRef(false);
 
-  // Load user on mount
+  // PHP reloads role grants on each page. Refresh on navigation/focus so SPA
+  // controls do not keep advertising permissions revoked after login.
   useEffect(() => {
+    let active = true;
     const bootstrapAuth = async () => {
       const token = localStorage.getItem('accessToken');
       const session = localStorage.getItem('refreshToken');
@@ -52,27 +55,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       try {
         const response = await apiClient.get('/auth/me');
+        if (!active || session !== localStorage.getItem('refreshToken')) return;
         if (response.data.success) {
           setUser(response.data.data.user);
         }
       } catch (err) {
-        if (isCancel(err) || session !== localStorage.getItem('refreshToken')) return;
+        if (!active || isCancel(err) || session !== localStorage.getItem('refreshToken')) return;
         console.error('Session restoration failed:', err);
+        // A temporary network/server failure during focus refresh must not
+        // discard an otherwise valid signed-in session.
+        const status = (err as { response?: { status?: number } }).response?.status;
+        if (status !== 401 && status !== 403) return;
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
+        setUser(null);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
     bootstrapAuth();
+    const refreshSession = () => { if (!switching.current) void bootstrapAuth(); };
+    window.addEventListener('focus', refreshSession);
     // Another page/tab may switch company or log out using the shared tokens.
     const syncSession = (event: StorageEvent) => {
       if (event.key === 'refreshToken') window.location.reload();
     };
     window.addEventListener('storage', syncSession);
-    return () => window.removeEventListener('storage', syncSession);
-  }, []);
+    return () => {
+      active = false;
+      window.removeEventListener('storage', syncSession);
+      window.removeEventListener('focus', refreshSession);
+    };
+  }, [pathname]);
 
   const login = async (mobile: string, password: string) => {
     setLoading(true);

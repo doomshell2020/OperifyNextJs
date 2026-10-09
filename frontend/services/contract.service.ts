@@ -135,6 +135,11 @@ class ContractService {
     return response.data;
   }
 
+  async getEditDetails(id: number | string): Promise<ContractDetailsData> {
+    const response = await apiClient.get(`/contracts/${id}/edit-data`);
+    return response.data.data;
+  }
+
   async getDetails(id: number | string): Promise<ContractDetailsData> {
     const response = await apiClient.get(`/contracts/${id}/details`);
     return response.data.data;

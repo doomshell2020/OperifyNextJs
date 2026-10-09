@@ -38,10 +38,6 @@ export default function ViewGrnInspectionPage() {
     );
   }
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   return (
     <main className="max-w-5xl w-full mx-auto px-6 py-8 space-y-6 print:py-0 print:px-0 print:space-y-4">
       {/* Header - Hidden on Print */}
@@ -55,9 +51,7 @@ export default function ViewGrnInspectionPage() {
             <p className="text-sm text-slate-500">View GRN Inspection Details</p>
           </div>
         </div>
-        <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-md font-medium shadow-sm transition">
-          <Printer className="w-4 h-4" /> Print Document
-        </button>
+
       </div>
 
       {/* Print Document Container */}

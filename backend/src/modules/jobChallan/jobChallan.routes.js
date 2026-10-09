@@ -5,17 +5,19 @@ const tenantMiddleware = require('../../middleware/tenant');
 
 const router = express.Router();
 const permission = require('./legacyPermission');
+const { requireAnyPermission } = require('../../middleware/permission');
+const formAccess = requireAnyPermission(['legacy:admin/jobchallan/add','legacy:admin/jobchallan/itemreceived']);
 
 router.use(authenticate);
 router.use(tenantMiddleware);
 
 // Lookup / helper endpoints
-router.get('/vendors', permission('jobchallan','getvendorgst'), jobChallanController.listVendors.bind(jobChallanController));
+router.get('/vendors', requireAnyPermission(['legacy:admin/jobchallan/add','legacy:admin/jobchallan/itemreceived','legacy:admin/jobchallan/index','legacy:admin/jobchallan/receiveindex','legacy:admin/jobchallan/receiveadd','legacy:admin/gatepasses/index','legacy:admin/gatepasses/add','legacy:admin/gatepasses/edit']), jobChallanController.listVendors.bind(jobChallanController));
 router.post('/vendors', permission('jobchallan','ajaxaddsubcontractor'), jobChallanController.addVendor.bind(jobChallanController));
 router.get('/tax-master', (req,res,next)=>permission('jobchallan',req.query.context==='receive'?'itemreceived':'add')(req,res,next), jobChallanController.listTaxMaster.bind(jobChallanController));
-router.get('/search-items', permission('jobchallan','getitemname'), jobChallanController.searchItems.bind(jobChallanController));
-router.get('/item-stock', permission('jobchallan','getiteminhandstock'), jobChallanController.getItemStock.bind(jobChallanController));
-router.get('/vendor-gst', permission('jobchallan','getvendorgst'), jobChallanController.getVendorGst.bind(jobChallanController));
+router.get('/search-items', formAccess, jobChallanController.searchItems.bind(jobChallanController));
+router.get('/item-stock', formAccess, jobChallanController.getItemStock.bind(jobChallanController));
+router.get('/vendor-gst', formAccess, jobChallanController.getVendorGst.bind(jobChallanController));
 router.get('/permissions', async (req, res, next) => {
   try {
     const { select } = require('./legacyStore');

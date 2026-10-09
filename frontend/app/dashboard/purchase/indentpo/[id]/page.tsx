@@ -1,5 +1,6 @@
 "use client";
 
+import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { indentpoService } from "../../../../../services/indentpo.service";
@@ -10,6 +11,7 @@ import { format } from "date-fns";
 import {  formatDate , formatContractDate } from '../../../../../utils/dateFormatter';
 
 export default function IndentPoDetailPage() {
+  const canAction = useLegacyActionAccess();
   const params = useParams();
   const router = useRouter();
   const indentId = params.id as string;
@@ -75,13 +77,13 @@ export default function IndentPoDetailPage() {
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Indent PO Details</h1>
           </div>
         </div>
-        <button
+        {canAction('indentpo','viewindentpopdf') && <button
           onClick={handlePrint}
           className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-800"
         >
           <Printer className="w-4 h-4 mr-2" />
           Print / PDF
-        </button>
+        </button>}
       </div>
 
       {/* Printable Area */}

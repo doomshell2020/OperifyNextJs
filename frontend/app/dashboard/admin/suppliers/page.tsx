@@ -171,12 +171,12 @@ export default function SuppliersPage() {
                   <td className="px-4 py-2.5 text-sm font-mono text-slate-600">{row.gst_number || '—'}</td>
                   <td className="px-4 py-2.5"><span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">{row.type}</span></td>
                   <td className="px-4 py-2.5">
-                    <button disabled={!canAction('vendors','status')} onClick={() => toggle.mutate({ id: row.id, status: row.status === 'Y' ? 'N' : 'Y' })} className="flex items-center gap-1.5 text-xs font-medium">
+                    {canAction('vendors','status') && <button disabled={!canAction('vendors','status')} onClick={() => toggle.mutate({ id: row.id, status: row.status === 'Y' ? 'N' : 'Y' })} className="flex items-center gap-1.5 text-xs font-medium">
                       {row.status === 'Y'
                         ? <><ToggleRight className="w-5 h-5 text-emerald-500" /><span className="text-emerald-600">Active</span></>
                         : <><ToggleLeft className="w-5 h-5 text-slate-400" /><span className="text-slate-400">Inactive</span></>
                       }
-                    </button>
+                    </button>}
                   </td>
                   <td className="px-4 py-2.5">
                     {canEdit && <button onClick={() => openEdit(row)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Pencil className="w-3.5 h-3.5" /></button>}

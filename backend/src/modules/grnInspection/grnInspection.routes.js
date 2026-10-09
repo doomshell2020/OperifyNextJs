@@ -10,7 +10,7 @@ router.use(authenticate);
 router.use(tenantMiddleware);
 
 router.get('/', permission('goodsreceived','grninspection'), grnInspectionController.listInspections);
-router.post('/', permission('goodsreceived','add_inspection_grn'), grnInspectionController.createInspection);
+router.post('/', permission('goodsreceived','add'), permission('goodsreceived','add_inspection_grn'), grnInspectionController.createInspection);
 router.get('/next-id', grnInspectionController.getNextInspectionNumber);
 router.get('/export/excel', permission('goodsreceived','grninspectionexcel'), grnInspectionController.exportInspections);
 router.get('/po/:po_id', grnInspectionController.getPoDetails);

@@ -1,5 +1,6 @@
 'use client';
 
+import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
@@ -10,6 +11,7 @@ import { formatQty, formatAmt } from '@/utils/formatters';
 import { formatContractDate } from '@/utils/dateFormatter';
 
 export default function ViewGrnPage({ params }: { params: Promise<{ id: string }> }) {
+  const canAction = useLegacyActionAccess();
   const router = useRouter();
   const { id } = React.use(params);
 
@@ -63,9 +65,9 @@ export default function ViewGrnPage({ params }: { params: Promise<{ id: string }
             <p className="text-sm text-slate-500 font-medium">Goods Received Note details and items</p>
           </div>
         </div>
-        <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition cursor-pointer shadow-sm">
+        {canAction('goodsreceived','view') && <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition cursor-pointer shadow-sm">
           <Printer className="w-4 h-4" /> Print / PDF
-        </button>
+        </button>}
       </div>
 
       {/* Printable Area */}

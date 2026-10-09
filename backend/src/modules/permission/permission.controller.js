@@ -1,4 +1,5 @@
 const permissionService = require('./permission.service');
+const { centralSequelize } = require('../../config/sequelize');
 
 class PermissionController {
   
@@ -13,7 +14,7 @@ class PermissionController {
   getManagers = async (req, res, next) => {
     try {
       this._checkSuperadmin(req);
-      const data = await permissionService.getManagers(req.dbPool);
+      const data = await permissionService.getManagers(centralSequelize);
       return res.status(200).json({ success: true, data });
     } catch (error) {
       next(error);
@@ -23,7 +24,7 @@ class PermissionController {
   addManager = async (req, res, next) => {
     try {
       this._checkSuperadmin(req);
-      await permissionService.addManager(req.dbPool, req.body.name);
+      await permissionService.addManager(centralSequelize, req.body.name);
       return res.status(200).json({ success: true, message: 'Manager added successfully' });
     } catch (error) {
       next(error);
@@ -33,7 +34,7 @@ class PermissionController {
   addLabel = async (req, res, next) => {
     try {
       this._checkSuperadmin(req);
-      await permissionService.addLabel(req.dbPool, req.body);
+      await permissionService.addLabel(centralSequelize, req.body);
       return res.status(200).json({ success: true, message: 'Url added successfully.' });
     } catch (error) {
       next(error);
@@ -43,7 +44,7 @@ class PermissionController {
   getRoles = async (req, res, next) => {
     try {
       this._checkSuperadmin(req);
-      const data = await permissionService.getRoles(req.dbPool);
+      const data = await permissionService.getRoles(centralSequelize);
       return res.status(200).json({ success: true, data });
     } catch (error) {
       next(error);
@@ -55,7 +56,7 @@ class PermissionController {
       this._checkSuperadmin(req);
       const { role_id } = req.query;
       if (!role_id) throw new Error('role_id is required');
-      const data = await permissionService.getAccess(req.dbPool, role_id);
+      const data = await permissionService.getAccess(centralSequelize, role_id);
       return res.status(200).json({ success: true, data });
     } catch (error) {
       next(error);
@@ -65,7 +66,7 @@ class PermissionController {
   updateAccess = async (req, res, next) => {
     try {
       this._checkSuperadmin(req);
-      await permissionService.updateAccess(req.dbPool, req.body);
+      await permissionService.updateAccess(centralSequelize, req.body);
       return res.status(200).json({ success: true, message: 'Permissions updated successfully.' });
     } catch (error) {
       next(error);

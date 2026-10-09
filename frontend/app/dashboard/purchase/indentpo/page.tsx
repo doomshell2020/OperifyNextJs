@@ -13,6 +13,7 @@ import { DatePicker } from '@/components/ui/DatePicker';
 import { usePermission } from '@/contexts/PermissionContext';
 import { useListLocation } from '@/components/ui/useListLocation';
 import styles from './page.module.css';
+import { isLegacyToday } from '@/utils/legacyActionDate';
 
 const emptyFilters = { contract_name: '', product_name: '', machine_name: '', date_from: '', date_to: '' };
 const filterKeys = Object.keys(emptyFilters);
@@ -147,12 +148,11 @@ export default function IndentPoListPage() {
                   <td>{indent.issued_name}</td>
                   <td className="whitespace-nowrap">{formatContractDate(indent.issue_date)}</td>
                   <td><div className="flex items-center gap-2 whitespace-nowrap">
-                    {hasPermission('legacy:admin/indentpo/edit') && <Link href={`/dashboard/purchase/indentpo/${indent.indent_id}/edit`} className="text-blue-600 hover:underline">Edit</Link>}
-                    {hasPermission('legacy:admin/indentpo/delete') && <button type="button" className="text-red-600 hover:underline" onClick={async () => {
+                    {isLegacyToday(indent.issue_date) && hasPermission('legacy:admin/indentpo/edit') && <Link href={`/dashboard/purchase/indentpo/${indent.indent_id}/edit`} className="text-blue-600 hover:underline">Edit</Link>}
+                    {isLegacyToday(indent.issue_date) && hasPermission('legacy:admin/indentpo/delete') && <button type="button" className="text-red-600 hover:underline" onClick={async () => {
                       if (!window.confirm(`Delete indent ${indent.indent_id}?`)) return;
                       try { await indentpoService.remove(String(indent.indent_id)); fetchIndents(); } catch { alert('Unable to delete indent'); }
                     }}>Delete</button>}
-                    {canAction('indentpo','viewindentpopdf') && <button type="button" onClick={()=>openModulePdf(`/indentpo/${encodeURIComponent(indent.indent_id)}/pdf`)} aria-label={`Print indent ${indent.indent_id}`} title="Print" className="text-blue-500"><Printer className="h-4 w-4"/></button>}
 
                   </div></td>
                 </tr>)}
@@ -221,7 +221,7 @@ function IndentDetailsModal({ id, onClose }: { id: number, onClose: () => void }
                   <Printer className="w-4 h-4 mr-2" />
                   Print
                 </Button>}
-                <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full">✕</button>
+                <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full">âœ•</button>
               </div>
             </div>
 

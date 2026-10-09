@@ -29,7 +29,7 @@ export default function EditContractPage() {
 
   const { data: details, isLoading: detailsLoading } = useQuery({
     queryKey: ['contract-details', id],
-    queryFn: () => contractService.getDetails(id),
+    queryFn: () => contractService.getEditDetails(id),
     enabled: !!id
   });
 

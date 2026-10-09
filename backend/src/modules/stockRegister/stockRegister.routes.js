@@ -13,7 +13,7 @@ router.get('/daily', permission('stockregister','dailystock'), stockRegisterCont
 router.get('/daily/export', permission('stockregister','dailystockexcel'), stockRegisterController.exportDailyStockExcel);
 router.get('/', permission('stockregister','index'), stockRegisterController.getStockRegister);
 router.get('/export', permission('stockregister','summaryexcel'), stockRegisterController.exportExcel);
-router.get('/details/received', stockRegisterController.getReceivedStockDetails);
-router.get('/details/dispatched', stockRegisterController.getDispatchedStockDetails);
+router.get('/details/received', permission('stockregister','receivedstock'), stockRegisterController.getReceivedStockDetails);
+router.get('/details/dispatched', permission('stockregister','dispatchedstock'), stockRegisterController.getDispatchedStockDetails);
 
 module.exports = router;

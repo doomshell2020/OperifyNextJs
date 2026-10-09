@@ -153,30 +153,27 @@ class AuthRepository {
         if (!url) return;
 
         // Basic mapping logic
-        if (url.includes('contracts/index')) permissions.push('contracts:view');
-        if (url.includes('contracts/edit')) permissions.push('contracts:edit');
-        if (url.includes('contracts/delete')) permissions.push('contracts:delete');
-        if (url.includes('contracts/add')) permissions.push('contracts:add');
+        if (url === 'admin/contracts/index') permissions.push('contracts:view');
+        if (url === 'admin/contracts/edit') permissions.push('contracts:edit');
+        if (url === 'admin/contracts/delete') permissions.push('contracts:delete');
+        if (url === 'admin/contracts/add') permissions.push('contracts:add');
 
-        if (url.includes('purchaseorder/index')) permissions.push('purchaseorder:view');
-        if (url.includes('purchaseorder/add')) permissions.push('purchaseorder:add');
-        if (url.includes('purchaseorder/viewpodetailspdf')) permissions.push('purchaseorder:pdf');
-        if (url === 'admin/purchaseorder/view') permissions.push('purchaseorder:pdf');
-        if (url.includes('purchaseorder/printallpo')) permissions.push('purchaseorder:pdf');
-        if (url.includes('purchaseorder/revised')) permissions.push('purchaseorder:revise');
-        if (url.includes('purchaseorder/delete')) permissions.push('purchaseorder:delete');
-        if (url.includes('purchaseorder/deliverynote')) permissions.push('purchaseorder:deliverynote');
+        if (url === 'admin/purchaseorder/index') permissions.push('purchaseorder:view');
+        if (url === 'admin/purchaseorder/add') permissions.push('purchaseorder:add');
+        if (url === 'admin/purchaseorder/revised') permissions.push('purchaseorder:revise');
+        if (url === 'admin/purchaseorder/delete') permissions.push('purchaseorder:delete');
+        if (url === 'admin/purchaseorder/deliverynote') permissions.push('purchaseorder:deliverynote');
 
-        if (url.includes('designsheet/index')) permissions.push('designsheet:view');
-        if (url.includes('designsheet/add')) permissions.push('designsheet:add');
-        if (url.includes('designsheet/edit')) permissions.push('designsheet:edit');
-        if (url.includes('designsheet/delete')) permissions.push('designsheet:delete');
-        if (url.includes('designsheet/viewdesignsheet')) permissions.push('designsheet:viewdetails');
+        if (url === 'admin/designsheet/index') permissions.push('designsheet:view');
+        if (url === 'admin/designsheet/add') permissions.push('designsheet:add');
+        if (url === 'admin/designsheet/edit') permissions.push('designsheet:edit');
+        if (url === 'admin/designsheet/delete') permissions.push('designsheet:delete');
+        if (url === 'admin/designsheet/viewdesignsheet') permissions.push('designsheet:viewdetails');
 
-        if (url.includes('production/index')) permissions.push('production:view');
-        if (url.includes('stockregister/index')) permissions.push('stock:view');
-        if (url.includes('jobchallan/index')) permissions.push('jobchallan:view');
-        if (url.includes('goodsreceived/index')) permissions.push('grn:view');
+        if (url === 'admin/production/productionorders') permissions.push('production:view');
+        if (url === 'admin/stockregister/index') permissions.push('stock:view');
+        if (url === 'admin/jobchallan/index') permissions.push('jobchallan:view');
+        if (url === 'admin/goodsreceived/index') permissions.push('grn:view');
 
         // Add the raw url as well, to be safe during migration
         permissions.push(`legacy:${url}`);

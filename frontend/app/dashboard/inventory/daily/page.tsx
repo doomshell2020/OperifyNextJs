@@ -1,5 +1,6 @@
 'use client';
 
+import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../../contexts/AuthContext';
@@ -9,6 +10,7 @@ import toast from 'react-hot-toast';
 import { DatePicker } from '../../../../components/ui/DatePicker';
 
 export default function DailyStockPage() {
+  const canAction = useLegacyActionAccess();
   const { user } = useAuth();
   
   const [categories, setCategories] = useState<{id: number, category_name: string}[]>([]);
@@ -118,14 +120,14 @@ export default function DailyStockPage() {
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
               Search
             </button>
-            <button 
+            {canAction('stockregister','dailystockexcel') && <button
               onClick={handleExport}
               disabled={exporting}
               className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50"
             >
               {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               Export Excel
-            </button>
+            </button>}
           </div>
         </div>
 {/* Table */}

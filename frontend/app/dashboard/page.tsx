@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import Link from 'next/link';
 import { useDashboard } from '../../hooks/useDashboard';
 import { openPurchaseOrderPdf } from '../../services/purchaseOrderPdf.service';
@@ -56,6 +57,7 @@ function Pie({ title, data, colors }: { title: string; data: ChartItem[]; colors
 }
 
 export default function DashboardPage() {
+  const canAction = useLegacyActionAccess();
   const { summary, charts, latestPo, latestProduction, latestMaintenance, latestInspection, latestGrn, isLoading, isError, refetchAll } = useDashboard();
   if (isLoading) return <div className={styles.loading} role="status">Loading overview…</div>;
   if (isError) return <div className={styles.loading} role="alert">Unable to load the overview. <button onClick={refetchAll}>Retry</button></div>;
@@ -76,7 +78,7 @@ export default function DashboardPage() {
       </section>)}</div>
       <div className={styles.wideRow}>
         <Table title="Last Five Purchase Order Request" headers={['PO Id', 'Generated Date', 'Vendor', 'Contact/Email', 'Quantity', 'Total Amount (INR)', 'Delivery Date']} rows={(latestPo || []).map(r => [
-          <button key={r.id} onClick={() => openPdf(r.id)} aria-label={`Open purchase order PDF ${r.po_no}`}>{r.po_no}{Number(r.is_revised) > 0 ? ` R-${r.is_revised}` : ''}</button>, date(r.date), r.vendor_name,
+          canAction('purchaseorder','view') ? <button key={r.id} onClick={() => openPdf(r.id)} aria-label={`Open purchase order PDF ${r.po_no}`}>{r.po_no}{Number(r.is_revised) > 0 ? ` R-${r.is_revised}` : ''}</button> : text(r.po_no), date(r.date), r.vendor_name,
           <React.Fragment key="contact">{text(r.contact_no)}<br />{r.email}</React.Fragment>, text(r.total_qty), amount(r.amount), date(r.delivery_date)
         ])} />
         <Pie title="Total Purchase Orders" data={charts?.purchaseOrder || []} colors={['#198754', '#2c5796', '#e52e46']} />

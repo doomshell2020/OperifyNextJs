@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useLegacyActionAccess } from './ui/useLegacyActionAccess';
 import { PurchaseOrderHoverData } from '../services/purchaseOrder.service';
 import { StatusBadge } from './dashboard/StatusBadge';
 import { Eye, Edit3, Printer, Download, Copy, Check, Loader, Phone, Mail, User, AlertCircle } from 'lucide-react';
@@ -23,6 +24,7 @@ export const PurchaseOrderHoverCard: React.FC<PurchaseOrderHoverCardProps> = ({
   onCopy,
   onViewDetails
 }) => {
+  const canAction = useLegacyActionAccess();
   if (isLoading) {
     return (
       <div className="w-80 p-5 bg-white border border-slate-200 shadow-xl rounded-xl space-y-4 animate-pulse select-none">
@@ -126,37 +128,25 @@ export const PurchaseOrderHoverCard: React.FC<PurchaseOrderHoverCardProps> = ({
 
       {/* Quick Action Buttons Grid */}
       <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-50">
-        <button
+        {canAction('purchaseorder','viewpodetail') && <button
           onClick={onViewDetails}
           className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 hover:text-slate-900 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider"
         >
           <Eye className="w-3.5 h-3.5" />
           View
-        </button>
+        </button>}
 
-        <button
-          onClick={() => alert(`Editing PO: ${data.po_number}`)}
-          className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 hover:text-slate-900 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider"
-        >
-          <Edit3 className="w-3.5 h-3.5" />
-          Edit
-        </button>
 
-        <button
-          onClick={() => alert(`Printing PO: ${data.po_number}`)}
-          className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 hover:text-slate-900 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider"
-        >
-          <Printer className="w-3.5 h-3.5" />
-          Print
-        </button>
 
-        <button
+
+
+        {canAction('purchaseorder','view') && <button
           onClick={() => window.open(`/purchase-orders/${data.id}/pdf`, '_blank')}
           className="flex items-center justify-center gap-1.5 px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 hover:text-slate-900 transition cursor-pointer text-[10px] font-bold uppercase tracking-wider"
         >
           <Download className="w-3.5 h-3.5" />
           PDF
-        </button>
+        </button>}
 
         <button
           onClick={() => onCopy(data.po_number)}

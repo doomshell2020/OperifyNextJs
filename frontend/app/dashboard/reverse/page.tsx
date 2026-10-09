@@ -1,5 +1,6 @@
 "use client";
 
+import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
@@ -14,6 +15,7 @@ import { DatePicker } from "../../../components/ui/DatePicker";
 import { API_URL } from '../../../services/apiConfig';
 
 export default function ReverseIndentListPage() {
+  const canAction = useLegacyActionAccess();
   const [indents, setIndents] = useState<ReverseIndent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIndentId, setSelectedIndentId] = useState<string | null>(null);
@@ -113,12 +115,12 @@ export default function ReverseIndentListPage() {
     <div className="space-y-6">
 <LegacyPageHeader title="Reverse Manager"/>
       <div className="legacy-page-actions"><div className="flex gap-3">
-          <Link href="/dashboard/reverse/add">
+          {canAction('reverseindent','add') && <Link href="/dashboard/reverse/add">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
               Add
             </Button>
-          </Link>
+          </Link>}
         </div></div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
@@ -232,13 +234,13 @@ export default function ReverseIndentListPage() {
                 indents.map((indent, idx) => (
                   <tr key={indent.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-4 py-3 text-slate-600">{idx + 1}</td>
-                    <td className="px-4 py-3 font-medium text-blue-600 cursor-pointer hover:underline" onClick={() => setSelectedIndentId(indent.reverse_id)}>
+                    <td className="px-4 py-3 font-medium text-blue-600 cursor-pointer hover:underline" onClick={() => { if(canAction('reverseindent','viewreverseindent')) setSelectedIndentId(indent.reverse_id); }}>
                       {indent.reverse_id}
                     </td>
                     <td className="px-4 py-3">
                       <div 
                         className="text-blue-600 font-medium cursor-pointer hover:underline uppercase"
-                        onClick={() => setSelectedContractId(indent.contract_id)}
+                        onClick={() => { if(canAction('production','viewcontractdetail')) setSelectedContractId(indent.contract_id); }}
                       >
                         {indent.contract_name}({indent.workorder})
                       </div>
@@ -250,11 +252,11 @@ export default function ReverseIndentListPage() {
                       {formatContractDate(indent.issue_date)}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Link href={`/dashboard/reverse/${indent.reverse_id}`}>
+                      {canAction('reverseindent','viewreverseindent') && <Link href={`/dashboard/reverse/${indent.reverse_id}`}>
                         <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View / Print">
                           <Printer className="h-4 w-4" />
                         </button>
-                      </Link>
+                      </Link>}
                     </td>
                   </tr>
                 ))
@@ -302,6 +304,7 @@ function Button({ children, onClick, variant = 'primary', disabled, className = 
 }
 
 function ReverseDetailsModal({ id, onClose }: { id: string, onClose: () => void }) {
+  const canAction = useLegacyActionAccess();
   const [details, setDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -323,7 +326,7 @@ function ReverseDetailsModal({ id, onClose }: { id: string, onClose: () => void 
         <div className="p-4 border-b border-slate-200 flex justify-between items-center">
           <h2 className="text-xl font-bold">Reverse Indent {details?.reverse_id}</h2>
           <div className="flex items-center gap-4">
-            <button
+            {canAction('reverseindent','viewreverseindentpdf') && <button
               onClick={() => {
                 window.open(`${API_URL}/reverse-indent/${id}/pdf?token=${localStorage.getItem('accessToken')}`, '_blank');
               }}
@@ -331,7 +334,7 @@ function ReverseDetailsModal({ id, onClose }: { id: string, onClose: () => void 
             >
               <Printer className="w-4 h-4" />
               Print
-            </button>
+            </button>}
             <button onClick={onClose} className="text-slate-500 hover:text-slate-700">&times;</button>
           </div>
         </div>

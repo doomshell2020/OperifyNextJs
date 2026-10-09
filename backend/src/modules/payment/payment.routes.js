@@ -9,8 +9,8 @@ router.use(authenticate);
 router.use(tenantMiddleware);
 
 router.get('/', permission('paymentmanager','index'), (req, res, next) => paymentController.getPaymentsList(req, res, next));
-router.get('/vendors', (req, res, next) => paymentController.getVendors(req, res, next));
-router.get('/particular', (req, res, next) => paymentController.getParticularPayments(req, res, next));
+router.get('/vendors', permission('paymentmanager','index'), (req, res, next) => paymentController.getVendors(req, res, next));
+router.get('/particular', permission('paymentmanager','viewamount'), (req, res, next) => paymentController.getParticularPayments(req, res, next));
 router.get('/:id/details', permission('paymentmanager','viewamount'), (req, res, next) => paymentController.getPaymentDetail(req, res, next));
 
 module.exports = router;

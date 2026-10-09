@@ -12,6 +12,7 @@ router.use(tenantMiddleware);
 router.get('/', permission('contracts','index'), contractController.getContracts);
 router.post('/', permission('contracts','add'), contractController.createContract);
 router.get('/form-data', contractController.getFormData);
+router.get('/:id/edit-data', permission('contracts','edit'), contractController.getDetails);
 router.get('/:id/details', permission('production','viewcontractdetail'), contractController.getDetails);
 router.get('/:id/reverse-cost', permission('contracts','viewreverse'), async (req,res,next) => {
   try {

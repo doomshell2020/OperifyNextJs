@@ -16,7 +16,7 @@ const emptyItem=():Item=>({item_id:'',quantity:'',unit:'',description:'',remarks
 export default function GatepassForm({id}:{id?:string}) {
   const {user}=useAuth(),{can,loading}=useJcAccess();
   const allowed=can('gatepasses',id?'edit':'add');
-  const detail=useQuery({queryKey:['gatepassEdit',user?.db,id],enabled:!!id && allowed,queryFn:async()=>(await apiClient.get('/gatepass/'+id)).data.data});
+  const detail=useQuery({queryKey:['gatepassEdit',user?.db,id],enabled:!!id && allowed,queryFn:async()=>(await apiClient.get('/gatepass/'+id+'/edit-data')).data.data});
   if(loading || (id && detail.isLoading))return <p className="p-6">Loading...</p>;
   if(!allowed)return <p className="p-6" role="alert">You do not have permission for this action.</p>;
   if(detail.isError)return <p className="p-6 text-red-600" role="alert">{errorMessage(detail.error)}</p>;

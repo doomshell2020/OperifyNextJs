@@ -2,6 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/set-state-in-effect */
 
+import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -116,6 +117,7 @@ function ItemAutocomplete({
 }
 
 export default function EditDesignSheetPage() {
+  const canAction = useLegacyActionAccess();
   const router = useRouter();
   const { id } = useParams() as { id: string };
   const [formData, setFormData] = useState({
@@ -341,7 +343,7 @@ export default function EditDesignSheetPage() {
                                <input type="text" readOnly value={row.uom} className="w-full p-2 border border-slate-200 rounded text-xs bg-slate-100 text-slate-500 outline-none cursor-not-allowed" />
                            </td>
                            <td className="p-2 text-center">
-                               {indentPoCount === 0 && (
+                              {indentPoCount === 0 && canAction('designsheet','deletedata') && (
                                  <button type="button" onClick={() => deleteExistingDetail(idx, row.id)} className="p-1.5 text-rose-500 hover:bg-rose-50 rounded transition"><Trash2 className="w-4 h-4 mx-auto" /></button>
                                )}
                            </td>

@@ -1,3 +1,4 @@
+const permission = require('../jobChallan/legacyPermission');
 const express = require('express');
 const router = express.Router();
 const reverseIndentController = require('./reverseIndent.controller');
@@ -7,11 +8,11 @@ const tenantMiddleware = require('../../middleware/tenant');
 router.use(authMiddleware);
 router.use(tenantMiddleware);
 
-router.get('/', reverseIndentController.getReverseIndents);
-router.get('/next-id', reverseIndentController.getNextReverseId);
-router.post('/', reverseIndentController.saveReverseIndent);
-router.get('/:id', reverseIndentController.getReverseIndentDetails);
-router.get('/:id/pdf', reverseIndentController.exportPDF);
-router.delete('/:id', reverseIndentController.deleteReverseIndent);
+router.get('/', permission('reverseindent','index'), reverseIndentController.getReverseIndents);
+router.get('/next-id', permission('reverseindent','add'), reverseIndentController.getNextReverseId);
+router.post('/', permission('reverseindent','add'), reverseIndentController.saveReverseIndent);
+router.get('/:id', permission('reverseindent','viewreverseindent'), reverseIndentController.getReverseIndentDetails);
+router.get('/:id/pdf', permission('reverseindent','viewreverseindentpdf'), reverseIndentController.exportPDF);
+router.delete('/:id', permission('reverseindent','delete'), reverseIndentController.deleteReverseIndent);
 
 module.exports = router;

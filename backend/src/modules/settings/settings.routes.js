@@ -105,11 +105,11 @@ router.patch('/suppliers/:id/status', permission('vendors','status'), (req, res,
 router.get('/roles', (req, res, next) => ctrl.listRoles(req, res, next));
 
 // Users
-router.get('/users', (req, res, next) => ctrl.listUsers(req, res, next));
-router.get('/users/:id', (req, res, next) => ctrl.getUser(req, res, next));
-router.post('/users', (req, res, next) => ctrl.createUser(req, res, next));
-router.put('/users/:id', (req, res, next) => ctrl.updateUser(req, res, next));
-router.delete('/users/:id', (req, res, next) => ctrl.deleteUser(req, res, next));
-router.patch('/users/:id/status', (req, res, next) => ctrl.toggleUserStatus(req, res, next));
+router.get('/users', permission('roles','index'), (req, res, next) => ctrl.listUsers(req, res, next));
+router.get('/users/:id', permission('roles','add'), (req, res, next) => ctrl.getUser(req, res, next));
+router.post('/users', permission('roles','add'), (req, res, next) => ctrl.createUser(req, res, next));
+router.put('/users/:id', permission('roles','add'), (req, res, next) => ctrl.updateUser(req, res, next));
+router.delete('/users/:id', permission('roles','delete'), (req, res, next) => ctrl.deleteUser(req, res, next));
+router.patch('/users/:id/status', permission('roles','status'), (req, res, next) => ctrl.toggleUserStatus(req, res, next));
 
 module.exports = router;

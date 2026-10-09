@@ -1,5 +1,6 @@
 "use client";
 
+import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { reverseIndentService } from "@/services/reverseIndent.service";
@@ -9,6 +10,7 @@ import Link from "next/link";
 import { formatDate, formatContractDate } from "@/utils/dateFormatter";
 
 export default function ViewReverseIndentPage() {
+  const canAction = useLegacyActionAccess();
   const { id } = useParams();
   const router = useRouter();
   const [details, setDetails] = useState<any>(null);
@@ -57,14 +59,14 @@ export default function ViewReverseIndentPage() {
               Back
             </button>
           </Link>
-          <button onClick={handlePrint} className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+          {canAction('reverseindent','viewreverseindentpdf') && <button onClick={handlePrint} className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
             <Printer className="w-4 h-4 mr-2" />
             Print
-          </button>
-          <button onClick={handleDelete} className="inline-flex items-center px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100">
+          </button>}
+          {canAction('reverseindent','delete') && <button onClick={handleDelete} className="inline-flex items-center px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100">
             <Trash2 className="w-4 h-4 mr-2" />
             Delete
-          </button>
+          </button>}
         </div>
       </div>
 

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import vendorService, { Vendor } from '../../services/vendor.service';
+import { useLegacyActionAccess } from '../ui/useLegacyActionAccess';
 import { Loader, AlertCircle, X, Edit, Save, Check } from 'lucide-react';
 
 interface VendorDetailsModalProps {
@@ -11,6 +12,7 @@ interface VendorDetailsModalProps {
 }
 
 export function VendorDetailsModal({ vendorId, onClose }: VendorDetailsModalProps) {
+  const canAction = useLegacyActionAccess();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<Vendor>>({});
@@ -55,7 +57,7 @@ export function VendorDetailsModal({ vendorId, onClose }: VendorDetailsModalProp
       <div className="bg-white border border-slate-200 shadow-2xl rounded-2xl max-w-2xl w-full p-6 flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]">
         
         <div className="absolute top-4 right-4 z-10 flex gap-2">
-          {!isEditing ? (
+          {canAction('vendors','add') && (!isEditing ? (
             <button
               onClick={handleEditClick}
               className="flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded font-bold shadow-sm transition cursor-pointer text-sm"
@@ -72,7 +74,7 @@ export function VendorDetailsModal({ vendorId, onClose }: VendorDetailsModalProp
               {updateMutation.isPending ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Save
             </button>
-          )}
+          ))}
           <button
             onClick={onClose}
             className="p-2 text-slate-400 hover:text-slate-700 bg-white border border-slate-200 rounded transition cursor-pointer shadow-sm"

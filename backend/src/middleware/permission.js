@@ -23,11 +23,6 @@ exports.requirePermission = (requiredPermission) => {
 
     const userPermissions = req.user.permissions;
 
-    // SuperAdmin role bypass (if you want superadmins to bypass permissions)
-    if (req.user.role_id == '101') {
-      return next(); 
-    }
-
     // Check if user has the specific permission
     if (!userPermissions.includes(requiredPermission)) {
       return res.status(403).json({
@@ -53,10 +48,6 @@ exports.requireAnyPermission = (requiredPermissions) => {
           message: 'Access Denied: Permission context missing.'
         }
       });
-    }
-
-    if (req.user.role_id == '101') {
-      return next();
     }
 
     const userPermissions = req.user.permissions;

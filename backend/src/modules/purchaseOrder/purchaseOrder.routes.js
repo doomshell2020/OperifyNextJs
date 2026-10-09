@@ -3,7 +3,6 @@ const express = require('express');
 const purchaseOrderController = require('./purchaseOrder.controller');
 const authenticate = require('../../middleware/auth');
 const tenantMiddleware = require('../../middleware/tenant');
-const { requirePermission, requireAnyPermission } = require('../../middleware/permission');
 
 const router = express.Router();
 
@@ -13,7 +12,7 @@ router.use(tenantMiddleware);
 
 router.get('/', permission('purchaseorder','index'), purchaseOrderController.listPurchaseOrders);
 router.get('/export/excel', (req,res,next)=>permission('purchaseorder',req.query.type==='deli'?'deliveryreport':req.query.type==='comp'?'productcomparisonreport':'posummaryreport')(req,res,next),async(req,res,next)=>{try{const book=await require('./purchaseOrder.export').workbook(req.dbPool,req.query);res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');res.setHeader('Content-Disposition','attachment; filename=Purchase_Order_Report.xlsx');res.send(Buffer.from(await book.xlsx.writeBuffer()));}catch(error){next(error);}});
-router.post('/', requirePermission('purchaseorder:add'), purchaseOrderController.createPurchaseOrder);
+router.post('/', permission('purchaseorder','add'), purchaseOrderController.createPurchaseOrder);
 router.get('/next-id', purchaseOrderController.getNextPoNumber);
 router.get('/item/:itemId/last-price', permission('purchaseorder','getitemdetail'), purchaseOrderController.getLastItemPrice);
 router.get('/item/:itemId/history', permission('purchaseorder','viewitemdetail'), purchaseOrderController.getItemHistory);
@@ -23,11 +22,11 @@ router.get('/:id/print-data', printPermission, purchaseOrderController.getPrintD
 router.get('/:id/pdf', printPermission, purchaseOrderController.generatePdf);
 router.get('/:id/hover', permission('purchaseorder','viewpodetail'), purchaseOrderController.getHoverDetails);
 // Form reads require the same action permission as their corresponding writes.
-router.get('/:id/revision-data', requireAnyPermission(['purchaseorder:revise', 'legacy:admin/purchaseorder/revised']), purchaseOrderController.getDetails);
-router.get('/:id/delivery-data', requireAnyPermission(['purchaseorder:deliverynote', 'legacy:admin/purchaseorder/deliverynote']), purchaseOrderController.getDetails);
+router.get('/:id/revision-data', permission('purchaseorder','revised'), purchaseOrderController.getDetails);
+router.get('/:id/delivery-data', permission('purchaseorder','deliverynote'), purchaseOrderController.getDetails);
 router.get('/:id/details', permission('purchaseorder','viewpodetail'), purchaseOrderController.getDetails);
-router.put('/:id', requireAnyPermission(['purchaseorder:revise', 'legacy:admin/purchaseorder/revised']), purchaseOrderController.revisePurchaseOrder);
-router.delete('/:id', requireAnyPermission(['purchaseorder:delete', 'legacy:admin/purchaseorder/delete']), purchaseOrderController.deletePurchaseOrder);
-router.post('/:id/delivery-note', requireAnyPermission(['purchaseorder:deliverynote', 'legacy:admin/purchaseorder/deliverynote']), purchaseOrderController.addDeliveryNote);
+router.put('/:id', permission('purchaseorder','revised'), purchaseOrderController.revisePurchaseOrder);
+router.delete('/:id', permission('purchaseorder','delete'), purchaseOrderController.deletePurchaseOrder);
+router.post('/:id/delivery-note', permission('purchaseorder','deliverynote'), purchaseOrderController.addDeliveryNote);
 
 module.exports = router;

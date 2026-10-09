@@ -183,7 +183,7 @@ export default function PurchaseOrdersPage() {
                     </td>
                     <td className="p-4 text-slate-600">{formatContractDate(po.delivery_date) || '-'}</td>
                     <td className="p-4 text-center relative">
-                      <button
+                      {((po.is_latest_revision === 1 && (canRevise || canDelete || canDeliveryNote)) || canPrint || (po.amendment_no > 0 && canAction('purchaseorder','printallpo')) || (Number(po.delivery_notes_count || 0) > 0 && canAction('purchaseorder','printdeliveryschedule'))) && <button
                         onClick={event => {
                           const rect = event.currentTarget.getBoundingClientRect();
                           setDropdownPosition({ top: Math.max(8, Math.min(rect.bottom + 4, window.innerHeight - 220)), left: Math.max(8, Math.min(rect.right - 224, window.innerWidth - 232)) });
@@ -192,7 +192,7 @@ export default function PurchaseOrdersPage() {
                         className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition text-xs font-bold inline-flex items-center gap-1"
                       >
                         Action <MoreVertical className="w-4 h-4" />
-                      </button>
+                      </button>}
 
                       {openDropdownId === po.id && createPortal(
                         <div style={dropdownPosition} className="fixed bg-white border border-slate-200 shadow-xl rounded-md py-2 w-56 z-50 animate-in fade-in zoom-in-95 duration-100">

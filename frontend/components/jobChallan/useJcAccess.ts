@@ -1,17 +1,13 @@
 'use client';
-import {useQuery} from '@tanstack/react-query';
 import {useAuth} from '@/contexts/AuthContext';
 import {usePermission} from '@/contexts/PermissionContext';
-import apiClient from '@/services/apiClient';
 export function useJcAccess() {
   const {user,loading:authLoading}=useAuth();
   const {hasPermission}=usePermission();
-  const query=useQuery<{configured:string[]}>({queryKey:['jcActionPermissions',user?.db,user?.id],enabled:!!user && !authLoading,queryFn:async()=>(await apiClient.get('/job-challan/permissions')).data.data});
-  return {loading:authLoading || (!!user && query.isPending),permissionError:query.isError && !query.data, retryPermissions:query.refetch,can:(controller:string,action:string)=>{
+  return {loading:authLoading,permissionError:false, retryPermissions:async()=>{},can:(controller:string,action:string)=>{
     if (!user) return false;
-    if (Number(user.role_id)===101) return true;
     const key=`legacy:admin/${controller}/${action}`.toLowerCase();
-    return !!query.data && (!query.data.configured.includes(key) || hasPermission(key));
+    return hasPermission(key);
   }};
 }
 export const inputClass='w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none';

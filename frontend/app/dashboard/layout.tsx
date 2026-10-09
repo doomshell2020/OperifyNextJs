@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { DashboardSidebar, DashboardTopbar } from '../../components/dashboard/DashboardHeader';
 import './legacy.css';
+import { LegacyRouteAccess } from '@/components/ui/LegacyRouteAccess';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function DashboardLayout({
@@ -24,7 +25,7 @@ export default function DashboardLayout({
         <main className="legacy-content flex-1 overflow-auto print:p-0 print:overflow-visible print:block">
           <div className="max-w-[100%] mx-auto bg-transparent">
              {loading ? <div role="status" className="p-4">Loading company…</div>
-               : user ? children : <div className="p-4"><a href="/login">Sign in to continue</a></div>}
+               : user ? <LegacyRouteAccess>{children}</LegacyRouteAccess> : <div className="p-4"><a href="/login">Sign in to continue</a></div>}
           </div>
         </main>
       </div>

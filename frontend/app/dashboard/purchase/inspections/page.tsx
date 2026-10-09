@@ -119,7 +119,7 @@ export default function GrnInspectionPage() {
                 data.data.map((grn: any) => (
                   <tr key={grn.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
                     <td className="p-4 font-medium text-slate-800">{grn.inspection_id}</td>
-                    <td className="p-4 font-medium text-cyan-700 cursor-pointer hover:underline" onClick={() => { setSelectedPoId(grn.po_id); setIsPoModalOpen(true); }}>{grn.po_id}</td>
+                    <td className="p-4 font-medium text-cyan-700 cursor-pointer hover:underline" onClick={() => { if(canAction('purchaseorder','viewpodetail')) {setSelectedPoId(grn.po_id); setIsPoModalOpen(true);} }}>{grn.po_id}</td>
                     <td className="p-4 text-slate-600">{formatContractDate(grn.inward_date)}</td>
                     <td className="p-4 text-slate-600">{grn.bill_no}</td>
                     <td className="p-4 text-slate-600">{formatContractDate(grn.bill_date)}</td>

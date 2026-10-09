@@ -1,8 +1,10 @@
+import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import { useQuery } from '@tanstack/react-query';
 import dashboardService from '../services/dashboard.service';
 import { useAuth } from '../contexts/AuthContext';
 
 export function useDashboard() {
+  const can = useLegacyActionAccess();
   const { user, loading } = useAuth();
   const scope = [user?.db, user?.id];
   const enabled = !!user && !loading;
@@ -22,35 +24,35 @@ export function useDashboard() {
 
   const poQuery = useQuery({
     queryKey: ['dashboard', ...scope, 'latest-po'],
-    enabled,
+    enabled: enabled && can('purchaseorder','index'),
     queryFn: () => dashboardService.getLatestPurchaseOrders(),
     staleTime: 2 * 60 * 1000,
   });
 
   const productionQuery = useQuery({
     queryKey: ['dashboard', ...scope, 'latest-production'],
-    enabled,
+    enabled: enabled && can('production','productionorders'),
     queryFn: () => dashboardService.getLatestProduction(),
     staleTime: 2 * 60 * 1000,
   });
 
   const maintenanceQuery = useQuery({
     queryKey: ['dashboard', ...scope, 'latest-maintenance'],
-    enabled,
+    enabled: enabled && can('maintenance','index'),
     queryFn: () => dashboardService.getLatestMaintenance(),
     staleTime: 2 * 60 * 1000,
   });
 
   const inspectionQuery = useQuery({
     queryKey: ['dashboard', ...scope, 'latest-inspection'],
-    enabled,
+    enabled: enabled && can('goodsreceived','grninspection'),
     queryFn: () => dashboardService.getLatestInspection(),
     staleTime: 2 * 60 * 1000,
   });
 
   const grnQuery = useQuery({
     queryKey: ['dashboard', ...scope, 'latest-grn'],
-    enabled,
+    enabled: enabled && can('goodsreceived','index'),
     queryFn: () => dashboardService.getLatestGrn(),
     staleTime: 2 * 60 * 1000,
   });
@@ -86,11 +88,11 @@ export function useDashboard() {
     refetchAll: () => {
       summaryQuery.refetch();
       chartsQuery.refetch();
-      poQuery.refetch();
-      productionQuery.refetch();
-      maintenanceQuery.refetch();
-      inspectionQuery.refetch();
-      grnQuery.refetch();
+      if (can('purchaseorder','index')) poQuery.refetch();
+      if (can('production','productionorders')) productionQuery.refetch();
+      if (can('maintenance','index')) maintenanceQuery.refetch();
+      if (can('goodsreceived','grninspection')) inspectionQuery.refetch();
+      if (can('goodsreceived','index')) grnQuery.refetch();
     }
   };
 }

@@ -10,6 +10,7 @@ router.get('/',permission('gatepasses','index'),handle(req=>service.list(req.dbN
 router.post('/',permission('gatepasses','add'),handle(req=>service.save(req.dbName,req.body)));
 router.get('/:id/pdf',permission('gatepasses','gatepasspdf'),async(req,res,next)=>{try{const data=await service.detail(req.dbName,req.params.id);const pdf=await require('./gatepass.pdf').generate(data);res.type('pdf').set('Content-Disposition',`inline; filename="GP-${req.params.id}.pdf"`).end(pdf);}catch(error){next(error);}});
 router.get('/:id',permission('gatepasses','view'),handle(req=>service.detail(req.dbName,req.params.id)));
+router.get('/:id/edit-data',permission('gatepasses','edit'),handle(req=>service.detail(req.dbName,req.params.id)));
 router.put('/:id',permission('gatepasses','edit'),handle(req=>service.save(req.dbName,req.body,req.params.id)));
 router.delete('/:id',permission('gatepasses','delete'),(req,res)=>res.status(409).json({success:false,message:'Once a Gate Pass is created, it cannot be deleted to maintain data integrity. Please use the edit option.'}));
 module.exports=router;

@@ -60,7 +60,6 @@ router.get('/view/:designsheetno/pdf', permission('designsheet','viewdesignsheet
 router.get('/contract-details/:contractId', tenantMiddleware, designsheetController.getContractDetails);
 router.get('/:id', permission('designsheet','edit'), designsheetController.getById);
 
-const { requirePermission } = require('../../middleware/permission');
 
 // Handle multiple fields for revisions
 const uploadFields = upload.fields([
@@ -72,9 +71,9 @@ const uploadFields = upload.fields([
   { name: 'r5', maxCount: 1 },
 ]);
 
-router.post('/', requirePermission('designsheet:add'), uploadFields, designsheetController.create);
-router.put('/:id', requirePermission('designsheet:edit'), uploadFields, designsheetController.update);
-router.delete('/details/:id', requirePermission('designsheet:delete'), designsheetController.deleteDetailData);
-router.delete('/:id', requirePermission('designsheet:delete'), designsheetController.deleteSheet);
+router.post('/', permission('designsheet','add'), uploadFields, designsheetController.create);
+router.put('/:id', permission('designsheet','edit'), uploadFields, designsheetController.update);
+router.delete('/details/:id', permission('designsheet','deletedata'), designsheetController.deleteDetailData);
+router.delete('/:id', permission('designsheet','delete'), designsheetController.deleteSheet);
 
 module.exports = router;

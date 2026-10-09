@@ -1,3 +1,4 @@
+const permission = require('../jobChallan/legacyPermission');
 const express = require('express');
 const vendorController = require('./vendor.controller');
 const authenticate = require('../../middleware/auth');
@@ -9,7 +10,7 @@ router.use(authenticate);
 router.use(tenantMiddleware);
 
 router.get('/search', vendorController.searchVendors);
-router.get('/:id', vendorController.getVendor);
-router.put('/:id', vendorController.updateVendor);
+router.get('/:id', permission('vendors','viewdetail'), vendorController.getVendor);
+router.put('/:id', permission('vendors','add'), vendorController.updateVendor);
 
 module.exports = router;

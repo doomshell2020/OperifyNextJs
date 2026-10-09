@@ -316,7 +316,7 @@ export default function EmdPage() {
                     <td className="px-4 py-3 text-sm text-slate-600">{formatDate(row.claim_upto)}</td>
                     <td className="px-4 py-3"><StatusBadge status={row.status} /></td>
                     <td className="px-4 py-3">
-                      {canAction('emd','index') && <button
+                      {canAction('emd','viewamount') && <button
                         onClick={() => setSelectedId(row.id)}
                         className="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
                       >
