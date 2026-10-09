@@ -46,7 +46,7 @@ function routerFor(module) {
 const routes = [
   ['contract','get','/','contracts','index'],['contract','post','/','contracts','add'],
   ['contract','put','/:id','contracts','edit'],['contract','delete','/:id','contracts','delete'],
-  ['contract','get','/:id/pdf','production','viewcontractdetailspdf'],['contract','get','/:id/edit-data','contracts','edit'],
+  ['contract','get','/:id/edit-data','contracts','edit'],
   ['designsheet','get','/','designsheet','index'],['designsheet','post','/','designsheet','add'],
   ['designsheet','put','/:id','designsheet','edit'],['designsheet','delete','/:id','designsheet','delete'],
   ['designsheet','delete','/details/:id','designsheet','deletedata'],['designsheet','get','/view/:designsheetno/pdf','designsheet','viewdesignsheet'],
@@ -99,6 +99,11 @@ async function backendTests() {
     assert.equal((await evaluate(route.stack[0].handle,{user:{permissions:[key('purchaseorder','view')]},query:{mode}})).code,403);
   }
   const indentPopup = routerFor('indentpo').stack.find(layer => layer.route?.path === '/view-details/:id').route;
+  const contractPdf = routerFor('contract').stack.find(layer => layer.route?.path === '/:id/pdf').route;
+  for (const permissions of [[],[key('contracts','edit')],[key('indentpo','index')],[key('production','viewcontractdetail')],[key('production','viewcontractdetailspdf')]]) {
+    const result = await evaluate(contractPdf.stack[0].handle, {user:{permissions}});
+    assert.equal(result.code, permissions.some(grant => [key('production','viewcontractdetail'),key('production','viewcontractdetailspdf')].includes(grant)) ? 200 : 403, 'Contract popup readers must be able to print');
+  }
   for (const [actions, expected] of [[[],403],[['edit'],403],[['index'],200],[['viewindentpodetail'],200]]) {
     const result = await evaluate(indentPopup.stack[0].handle, { user:{permissions:actions.map(action => key('indentpo',action))} });
     assert.equal(result.code, expected, 'Indent popup should accept list or detail access only');
@@ -143,6 +148,7 @@ const {renderToStaticMarkup}=frontendRequire('react-dom/server');
 const ts=frontendRequire('typescript');
 let grants=[], fixture={}, seededRows=[], currentPath='/dashboard';
 let hookStates=null, hookIndex=0;
+let openedPdfPaths=[];
 const noop=()=>{};
 const dummy=()=>null;
 const canPermission=p=>grants.includes(p);
@@ -165,6 +171,7 @@ function loadTS(filename) {
     if(name==='lucide-react')return new Proxy({},{get:(_,icon)=>()=>React.createElement('svg',{'data-icon':icon})});
     if(name.endsWith('.css'))return new Proxy({},{get:(_,prop)=>String(prop)});
     if(name.includes('dateFormatter'))return {formatContractDate:v=>v || '',formatDate:v=>v || ''};
+    if(name.endsWith('/pdf.service'))return {openModulePdf:url=>{openedPdfPaths.push(url);}};
     if(name.includes('ListPagination'))return {ListPagination:dummy,LEGACY_LIST_LIMIT:50};
     if(name.includes('apiConfig'))return {DEFAULT_LOGO_URL:'/logo.png',resolveApiAssetUrl:value=>value};
     return new Proxy({__esModule:true,default:dummy},{get:(obj,prop)=>prop in obj?obj[prop]:dummy});
@@ -178,6 +185,23 @@ function render(file,permissions,data,rows=[],props={},states=null) {
 }
 function actionCell(markup) { return [...markup.matchAll(/<tr[^>]*>(.*?)<\/tr>/gs)].at(-1)[1].match(/<td[^>]*>(.*?)<\/td>/gs).at(-1); }
 function frontendTests() {
+  hookStates=null;
+  fixture={'contract-details':{contract:{title:'Doom',workorder:'2026'},items:[]}};
+  const ContractPopup=loadTS(path.join(root,'frontend/components/dashboard/ContractDetailsModal.tsx')).ContractDetailsModal;
+  for (const permissions of [[],[key('contracts','edit')],[key('indentpo','index')],[key('production','viewcontractdetail')],[key('production','viewcontractdetailspdf')]]) {
+    grants=permissions;
+    const tree=ContractPopup({contractId:23,onClose:noop});
+    const html=renderToStaticMarkup(tree);
+    const canPrint=permissions.some(grant=>[key('production','viewcontractdetail'),key('production','viewcontractdetailspdf')].includes(grant));
+    assert.equal(html.includes('Print / PDF'),canPrint,'Contract detail permission must show Print / PDF');
+    if(canPrint) {
+      const flatten=element=>!element || typeof element!=='object' ? [] : [element,...React.Children.toArray(element.props?.children).flatMap(flatten)];
+      const button=flatten(tree).find(element=>element.type==='button' && React.Children.toArray(element.props.children).includes('Print / PDF'));
+      assert(button,'Contract popup print button must be present');
+      openedPdfPaths=[];button.props.onClick();
+      assert.deepEqual(openedPdfPaths,['/contracts/23/pdf'],'Contract print must request the selected contract PDF');
+    }
+  }
   grants=[]; fixture={}; seededRows=[]; currentPath='/dashboard';
   const Topbar=loadTS(path.join(root,'frontend/components/dashboard/DashboardHeader.tsx')).DashboardTopbar;
   const navigation=renderToStaticMarkup(React.createElement(Topbar));

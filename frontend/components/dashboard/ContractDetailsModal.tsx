@@ -32,18 +32,21 @@ export function ContractDetailsModal({ contractId, onClose }: ContractDetailsMod
         
         {/* Top Close Control */}
         <div className="absolute top-4 right-4 z-10 flex gap-2">
-          {details && canAction('production','viewcontractdetailspdf') && (
+          {details && (canAction('production','viewcontractdetail') || canAction('production','viewcontractdetailspdf')) && (
             <button
+              type="button"
               onClick={() => {
                 void openModulePdf(`/contracts/${contractId}/pdf`);
               }}
               className="flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded font-bold shadow-sm transition cursor-pointer print:hidden text-sm"
             >
               <Printer className="w-4 h-4" />
-              Print
+              Print / PDF
             </button>
           )}
           <button
+            type="button"
+            aria-label="Close contract details"
             onClick={onClose}
             className="p-2 text-slate-400 hover:text-slate-700 bg-white border border-slate-200 rounded transition cursor-pointer print:hidden shadow-sm"
           >

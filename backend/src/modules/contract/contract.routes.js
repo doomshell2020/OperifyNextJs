@@ -1,4 +1,5 @@
 const permission = require('../jobChallan/legacyPermission');
+const { requireAnyPermission } = require('../../middleware/permission');
 const express = require('express');
 const router = express.Router();
 const contractController = require('./contract.controller');
@@ -23,7 +24,11 @@ router.get('/:id/reverse-cost', permission('contracts','viewreverse'), async (re
     res.json({success:true,data:{contract,...await require('./contract.reverse-cost')(req.dbPool,id)}});
   } catch(error) { next(error); }
 });
-router.get('/:id/pdf', permission('production','viewcontractdetailspdf'), contractController.exportPDF);
+// Readers of the contract popup can also print the details shown there.
+router.get('/:id/pdf', requireAnyPermission([
+  'legacy:admin/production/viewcontractdetail',
+  'legacy:admin/production/viewcontractdetailspdf',
+]), contractController.exportPDF);
 router.put('/:id', permission('contracts','edit'), contractController.updateContract);
 router.delete('/:id', permission('contracts','delete'), contractController.deleteContract);
 
