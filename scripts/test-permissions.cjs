@@ -55,7 +55,7 @@ const routes = [
   ['purchaseOrder','get','/:id/pdf','purchaseorder','view'],
   ['indentpo','get','/','indentpo','index'],['indentpo','post','/','indentpo','add'],
   ['indentpo','put','/:indent_id','indentpo','edit'],['indentpo','delete','/:indent_id','indentpo','delete'],
-  ['indentpo','get','/:indent_id/pdf','indentpo','viewindentpopdf'],['indentpo','get','/export','indentpo','indentpoexcel'],
+  ['indentpo','get','/export','indentpo','indentpoexcel'],
   ['indent','post','/finalize','indent','add'],['indent','post','/temp','indent','add'],
   ['indent','delete','/temp/:id','indent','add'],['indent','get','/:indent_id/pdf','indent','view'],
   ['grn','post','/','goodsreceived','add'],['grn','get','/:id/pdf','goodsreceived','view'],['grn','get','/export','goodsreceived','grnexcel'],
@@ -103,6 +103,13 @@ async function backendTests() {
     const result = await evaluate(indentPopup.stack[0].handle, { user:{permissions:actions.map(action => key('indentpo',action))} });
     assert.equal(result.code, expected, 'Indent popup should accept list or detail access only');
   }
+  for (const url of ['/:indent_id/pdf', '/view-details/:id/pdf']) {
+    const pdfRoute = routerFor('indentpo').stack.find(layer => layer.route?.path === url).route;
+    for (const [actions, expected] of [[[],403],[['edit'],403],[['index'],200],[['viewindentpodetail'],200],[['viewindentpopdf'],200]]) {
+      const result = await evaluate(pdfRoute.stack[0].handle, { user:{permissions:actions.map(action => key('indentpo',action))} });
+      assert.equal(result.code, expected, 'Indent PDF must be available to permitted readers: ' + url);
+    }
+  }
   const req={user:{permissions:[]},params:{indent_id:'1'},dbPool:{query:async()=>[{issue_date:'2000-01-01'}]}};
   assert.equal((await evaluate(requireCurrentIndent,req)).code,403);
   req.dbPool.query=async()=>[{issue_date:today}]; assert.equal((await evaluate(requireCurrentIndent,req)).code,200);
@@ -135,6 +142,7 @@ const React=frontendRequire('react');
 const {renderToStaticMarkup}=frontendRequire('react-dom/server');
 const ts=frontendRequire('typescript');
 let grants=[], fixture={}, seededRows=[], currentPath='/dashboard';
+let hookStates=null, hookIndex=0;
 const noop=()=>{};
 const dummy=()=>null;
 const canPermission=p=>grants.includes(p);
@@ -142,7 +150,7 @@ function loadTS(filename) {
   const m={exports:{}};
   const source=ts.transpileModule(fs.readFileSync(filename,'utf8'),{compilerOptions:{jsx:ts.JsxEmit.ReactJSX,module:ts.ModuleKind.CommonJS,esModuleInterop:true}}).outputText;
   vm.runInNewContext(source,{module:m,exports:m.exports,Date,Intl,console,require(name){
-    if(name==='react')return {...React,useEffect:noop,useState:value=>[Array.isArray(value)&&value.length===0?seededRows:typeof value==='function'?value():value===true?false:value,noop]};
+    if(name==='react')return {...React,useEffect:noop,useState:value=>[hookStates && hookIndex<hookStates.length ? hookStates[hookIndex++] : Array.isArray(value)&&value.length===0?seededRows:typeof value==='function'?value():value===true?false:value,noop]};
     if(name==='react/jsx-runtime')return frontendRequire(name);
     if(name==='react-dom')return {createPortal:dummy};
     if(name.includes('PermissionContext'))return {usePermission:()=>({hasPermission:canPermission,permissions:grants})};
@@ -163,8 +171,9 @@ function loadTS(filename) {
   }});
   return m.exports;
 }
-function render(file,permissions,data,rows=[],props={}) {
+function render(file,permissions,data,rows=[],props={},states=null) {
   grants=permissions;fixture=data;seededRows=rows;
+  hookStates=states;hookIndex=0;
   return renderToStaticMarkup(React.createElement(loadTS(path.join(root,'frontend',file)).default,props));
 }
 function actionCell(markup) { return [...markup.matchAll(/<tr[^>]*>(.*?)<\/tr>/gs)].at(-1)[1].match(/<td[^>]*>(.*?)<\/td>/gs).at(-1); }
@@ -181,6 +190,13 @@ function frontendTests() {
     assert.equal(jcAccess.can(controller,action),false,'Visible navigation must not grant '+controller+'/'+action);
   }
   const row={id:1,indent_id:1,issue_date:today,contract_name:'Contract',product_name:'Product',machine_name:'Machine',indent_id:1};
+  const filters = {contract_name:'',product_name:'',machine_name:'',date_from:'',date_to:''};
+  for (const actions of [[],['edit'],['index'],['viewindentpodetail'],['viewindentpopdf']]) {
+    const html = render('app/dashboard/purchase/indentpo/page.tsx',actions.map(action => key('indentpo',action)),{},[],{},
+      [1,1,filters,filters,[row],false,'',0,1,null,{header:row,items:[]},false,'',0]);
+    assert(html.includes('role="dialog"'), 'Indent details popup should render');
+    assert.equal(html.includes('Print / PDF'), actions.some(action => ['index','viewindentpodetail','viewindentpopdf'].includes(action)), 'PDF option should appear for permitted indent readers');
+  }
   for (const actions of [[],['index'],['viewindentpodetail'],['edit']]) {
     const html = render('app/dashboard/purchase/indentpo/page.tsx',actions.map(action => key('indentpo',action)),{},[row]);
     const indentButton = [...html.matchAll(/<button\b[^>]*>1<\/button>/g)][0]?.[0];

@@ -178,6 +178,7 @@ function Button({ children, onClick, variant = 'primary', disabled, className = 
 
   return (
     <button
+      type="button"
       onClick={onClick}
       disabled={disabled}
       className={`${baseStyles} ${variants[variant as keyof typeof variants]} ${className}`}
@@ -221,9 +222,9 @@ function IndentDetailsModal({ id, onClose }: { id: number, onClose: () => void }
             <div className="flex justify-between items-center p-4 border-b">
               <h2 id="indent-details-title" className="text-xl font-bold">Indent Details</h2>
               <div className="flex gap-2">
-                {details && canAction('indentpo','viewindentpopdf') && <Button onClick={handlePrint} variant="primary">
+                {details && (canAction('indentpo','index') || canAction('indentpo','viewindentpodetail') || canAction('indentpo','viewindentpopdf')) && <Button onClick={handlePrint} variant="primary">
                   <Printer className="w-4 h-4 mr-2" />
-                  Print
+                  Print / PDF
                 </Button>}
                 <button type="button" onClick={onClose} aria-label="Close indent details" className="p-2 hover:bg-slate-100 rounded-full">×</button>
               </div>

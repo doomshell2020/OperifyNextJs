@@ -77,7 +77,7 @@ export default function IndentPoDetailPage() {
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">Indent PO Details</h1>
           </div>
         </div>
-        {canAction('indentpo','viewindentpopdf') && <button
+        {(canAction('indentpo','index') || canAction('indentpo','viewindentpodetail') || canAction('indentpo','viewindentpopdf')) && <button
           onClick={handlePrint}
           className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-slate-800"
         >
