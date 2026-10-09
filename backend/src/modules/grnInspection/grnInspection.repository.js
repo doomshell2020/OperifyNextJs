@@ -98,29 +98,55 @@ class GrnInspectionRepository {
   async getPoDetails(dbPool, po_id) {
     // Fetch PO main details
     const poQuery = `
-      SELECT po.id, po.purchaseorder_id, po.vendor_id, v.name as vendor_name
+      SELECT po.id, po.purchaseorder_id, po.vendor_id, po.postatus, po.delivery_date, v.name as vendor_name
       FROM st_purchaseorder po
       LEFT JOIN vendors v ON po.vendor_id = v.id
-      WHERE po.purchaseorder_id = :po_id AND po.postatus != 'C'
+      WHERE po.purchaseorder_id = :po_id AND po.status != 'N'
       ORDER BY po.id DESC LIMIT 1
     `;
     const poRows = await dbPool.query(poQuery, { replacements: { po_id }, type: QueryTypes.SELECT });
     if (!poRows.length) return null;
     const po = poRows[0];
+    if (po.postatus === 'C') return null;
 
     // Fetch PO items
     const itemsQuery = `
       SELECT
+        pod.id,
         pod.item_id,
-        i.item_name,
+        CASE WHEN i.size_id = 6 THEN i.item_name
+          ELSE CONCAT(i.item_name, '-', COALESCE(s.size_name, '')) END AS item_name,
         pod.item_qty as order_qty,
         pod.item_amt as rate,
-        pod.tax_percentage as tax_rate
+        COALESCE(t.tax, 0) as tax_rate,
+        pod.tax_id,
+        pod.item_base_price as order_base,
+        pod.item_tax_amt as order_tax,
+        pod.item_total_amount as order_amount,
+        COALESCE(pod.uom, '--') as uom,
+        COALESCE(receipts.received_qty, 0) as previously_received_qty,
+        pod.item_qty - COALESCE(receipts.received_qty, 0) as pending_qty,
+        COALESCE(schedule.item_qty, 0) as received_qty,
+        schedule.id as delivery_schedule_id
       FROM st_purchaseorderDetails pod
       JOIN st_additem i ON pod.item_id = i.id
-      WHERE pod.poprimary_id = :poprimary_id
+      LEFT JOIN st_sizemanager s ON i.size_id = s.id
+      LEFT JOIN st_taxmaster t ON pod.tax_id = t.id
+      LEFT JOIN (
+        SELECT item_id, ROUND(SUM(quantity), 2) as received_qty
+        FROM st_stock_register
+        WHERE po_id = :po_id AND status != 'N' AND store_type = '1'
+        GROUP BY item_id
+      ) receipts ON receipts.item_id = pod.item_id
+      LEFT JOIN po_delivery_note schedule ON schedule.id = (
+        SELECT dn.id FROM po_delivery_note dn
+        WHERE dn.po_id = :po_id AND dn.item_id = pod.item_id AND dn.status = 'Y'
+        ORDER BY dn.delivery_date ASC, dn.id ASC LIMIT 1
+      )
+      WHERE pod.poprimary_id = :poprimary_id AND pod.purchaseorder_id = :po_id
+      ORDER BY pod.id ASC
     `;
-    const items = await dbPool.query(itemsQuery, { replacements: { poprimary_id: po.id }, type: QueryTypes.SELECT });
+    const items = await dbPool.query(itemsQuery, { replacements: { poprimary_id: po.id, po_id }, type: QueryTypes.SELECT });
     return { po, items };
   }
 

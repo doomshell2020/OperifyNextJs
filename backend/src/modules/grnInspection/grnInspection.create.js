@@ -1,4 +1,5 @@
 const V = require('../../utils/receiptValidation');
+const amounts = require('./grnInspection.amounts');
 
 module.exports = async function create(db, inspection = {}, inputItems = []) {
   if (!inspection.po_id || !Array.isArray(inputItems) || !inputItems.length) throw V.invalid('Purchase Order and inspection items are required.');
@@ -18,11 +19,20 @@ module.exports = async function create(db, inspection = {}, inputItems = []) {
       if (!Number.isFinite(Number(inspectionId))) throw V.invalid('The last inspection number is invalid.', 409);
       const duplicates = await V.select(db, 'SELECT id FROM grn_inspection WHERE inspection_id=:inspectionId', { inspectionId }, transaction);
       if (duplicates.length) throw V.invalid('Inspection number already exists.', 409);
-      const orders = await V.select(db, 'SELECT * FROM st_purchaseorderDetails WHERE poprimary_id=:id ORDER BY id ASC', { id: po.id }, transaction);
+      const orders = await V.select(db, 'SELECT * FROM st_purchaseorderDetails WHERE poprimary_id=:id AND purchaseorder_id=:poNumber ORDER BY id ASC', { id: po.id, poNumber: po.purchaseorder_id }, transaction);
+      const taxes = await V.select(db, 'SELECT id,tax FROM st_taxmaster', {}, transaction);
       const prior = await V.select(db, "SELECT item_id,SUM(quantity) AS quantity FROM grn_inspection_details WHERE purchaseorder_id=:poNumber AND status!='N' GROUP BY item_id", { poNumber: po.purchaseorder_id }, transaction);
+      const receipts = await V.select(db, "SELECT item_id,ROUND(SUM(quantity),2) AS quantity FROM st_stock_register WHERE po_id=:poNumber AND store_type='1' AND status!='N' GROUP BY item_id", { poNumber: po.purchaseorder_id }, transaction);
       const budgets = new Map();
       for (const order of orders) budgets.set(String(order.item_id), (budgets.get(String(order.item_id)) || 0) + Number(order.item_qty));
+      const ordered = new Map(budgets);
       for (const row of prior) budgets.set(String(row.item_id), (budgets.get(String(row.item_id)) || 0) - Number(row.quantity));
+      // Retain the existing inspection reservation guard and also enforce PHP's
+      // stock-ledger maximum. Do not subtract received inspections twice.
+      for (const row of receipts) {
+        const key = String(row.item_id);
+        budgets.set(key, Math.min(budgets.get(key) || 0, (ordered.get(key) || 0) - Number(row.quantity)));
+      }
       const details = [], seen = new Set();
       for (const input of inputItems) {
         const quantity = V.number(input.quantity, 'Inspection quantity');
@@ -32,12 +42,12 @@ module.exports = async function create(db, inspection = {}, inputItems = []) {
         seen.add(key);
         const order = orders.find(row => String(row.item_id) === key);
         if (!order || quantity - (budgets.get(key) || 0) > 0.0001) throw V.invalid('Inspection quantity exceeds the pending PO quantity.', 409);
-        // PO base/tax/total already encode the selected included/excluded tax.
-        const ratio = quantity / V.number(order.item_qty, 'Order quantity', true);
-        const cost_price = V.round(V.number(order.item_base_price, 'PO base price') * ratio);
-        const tax = V.round(V.number(order.item_tax_amt ?? 0, 'PO tax') * ratio);
-        const amount = V.round(V.number(order.item_total_amount, 'PO amount') * ratio);
-        details.push({ item_id: order.item_id, quantity, rate: V.number(order.item_amt, 'PO rate'), cost_price, tax, amount, tax_id: order.tax_id ?? null, delivery_schedule_id: input.delivery_schedule_id || null });
+        V.number(order.item_qty, 'Order quantity', true);
+        V.number(order.item_amt, 'PO rate');
+        V.number(order.item_tax_amt ?? 0, 'PO tax');
+        const taxRate = V.number(taxes.find(row => String(row.id) === String(order.tax_id))?.tax ?? 0, 'PO tax rate');
+        const valuation = amounts(order, quantity, taxRate);
+        details.push({ item_id: order.item_id, quantity, ...valuation, tax_id: order.tax_id ?? null, delivery_schedule_id: input.delivery_schedule_id || null });
       }
       if (!details.length) throw V.invalid('At least one received quantity must be positive.');
       const header = { ...inspection, inspectionId, vendor: po.vendor_id,

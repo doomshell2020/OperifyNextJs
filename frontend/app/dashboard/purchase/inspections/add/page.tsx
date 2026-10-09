@@ -4,14 +4,14 @@ import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+import { Save, Loader2, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
-import grnInspectionService from '@/services/grnInspection.service';
-import purchaseOrderService from '@/services/purchaseOrder.service';
+import grnInspectionService, { type InspectionCreatePayload } from '@/services/grnInspection.service';
+import { inspectionAmounts } from '@/utils/grnInspectionAmounts';
 import { AsyncPoSearchSelect } from '@/components/AsyncPoSearchSelect';
 import { formatQty, formatAmt } from '@/utils/formatters';
 import { DatePicker } from '../../../../../components/ui/DatePicker';
@@ -37,12 +37,13 @@ const formSchema = z.object({
     order_tax: z.number(),
     order_amount: z.number(),
     tax_id: z.number().nullable(),
+    delivery_schedule_id: z.number().nullable(),
     uom: z.string()
   })).refine(items => items.some(i => i.received_qty > 0), {
     message: "At least one item must have a received quantity greater than 0"
   }).superRefine((items, ctx) => {
     items.forEach((item, index) => {
-      if (item.received_qty > item.pending_qty) {
+      if (item.received_qty > Math.max(0, item.pending_qty)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "Qty exceeds pending",
@@ -59,6 +60,9 @@ export default function AddGrnInspectionPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isPoLoading, setIsPoLoading] = useState(false);
+  const [loadedPo, setLoadedPo] = useState('');
+  const [poLoadError, setPoLoadError] = useState<string | null>(null);
+  const [poLoadAttempt, setPoLoadAttempt] = useState(0);
   const [deliveryDate, setDeliveryDate] = useState<string | null>(null);
 
   const {
@@ -66,7 +70,7 @@ export default function AddGrnInspectionPage() {
     control,
     handleSubmit,
     setValue,
-    watch,
+    clearErrors,
     formState: { errors }
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -87,7 +91,7 @@ export default function AddGrnInspectionPage() {
     name: "items"
   });
 
-  const po_id = watch('po_id');
+  const po_id = useWatch({ control, name: 'po_id' });
   const items = useWatch({ control, name: "items" });
 
   // Fetch next inspection ID on mount
@@ -99,11 +103,11 @@ export default function AddGrnInspectionPage() {
 
   // Handle PO Selection
   useEffect(() => {
+    replace([]);
+    clearErrors('items');
+    setValue('vendor_id', undefined);
+    setValue('vendor_name', undefined);
     if (!po_id) {
-      replace([]);
-      setValue('vendor_id', undefined);
-      setValue('vendor_name', undefined);
-      setDeliveryDate(null);
       return;
     }
 
@@ -111,31 +115,38 @@ export default function AddGrnInspectionPage() {
     const fetchPoDetails = async () => {
       setIsPoLoading(true);
       try {
-        const details = await purchaseOrderService.getDetails(po_id);
+        const details = await grnInspectionService.getPoDetails(po_id);
         if (isMounted && details && details.po) {
-          setValue('vendor_id', details.po.vendor_id);
+          setValue('vendor_id', Number(details.po.vendor_id));
           setValue('vendor_name', details.po.vendor_name);
           setDeliveryDate(details.po.delivery_date ? String(details.po.delivery_date).split('T')[0] : null);
 
           const newItems = details.items.map(i => ({
-            item_id: i.item_id,
+            item_id: Number(i.item_id),
             item_name: i.item_name,
             order_qty: Number(i.order_qty),
             pending_qty: Number(i.pending_qty),
-            received_qty: 0,
+            received_qty: Number(i.received_qty),
             rate: Number(i.rate),
-            tax_rate: Number(i.tax_percentage || 0),
-            order_base: Number(i.price),order_tax:Number(i.tax_amt || 0),order_amount:Number(i.amount),tax_id:i.tax_id ? Number(i.tax_id) : null,
-            uom: i.uom || ''
+            tax_rate: Number(i.tax_rate || 0),
+            order_base: Number(i.order_base), order_tax: Number(i.order_tax || 0), order_amount: Number(i.order_amount), tax_id: i.tax_id == null ? null : Number(i.tax_id),
+            delivery_schedule_id: i.delivery_schedule_id == null ? null : Number(i.delivery_schedule_id),
+            uom: i.uom
           }));
           replace(newItems);
+          clearErrors('items');
+          setLoadedPo(po_id);
         } else if (isMounted) {
           toast.error("PO not found or already closed");
+          setPoLoadError('PO not found or already closed. Please select an open PO.');
           replace([]);
         }
-      } catch (err) {
-        if (isMounted) toast.error("Failed to load PO details");
-        replace([]);
+      } catch {
+        if (isMounted) {
+          toast.error("Failed to load PO details");
+          setPoLoadError('Failed to load PO items. Please select the PO again.');
+          replace([]);
+        }
       } finally {
         if (isMounted) setIsPoLoading(false);
       }
@@ -143,17 +154,24 @@ export default function AddGrnInspectionPage() {
 
     fetchPoDetails();
     return () => { isMounted = false; };
-  }, [po_id, replace, setValue]);
+  }, [po_id, replace, setValue, clearErrors, poLoadAttempt]);
+
+  const resetPoDetails = () => {
+    setLoadedPo('');
+    setPoLoadError(null);
+    setIsPoLoading(false);
+    setDeliveryDate(null);
+    clearErrors('items');
+  };
 
   // Derived Totals
   const totalQty = (items || []).reduce((sum, item) => sum + (Number(item.received_qty) || 0), 0);
-  const portion = (item: FormValues['items'][number], value:number) => Math.round(value*item.received_qty/item.order_qty*100)/100 || 0;
-  const totalAmountPreTax=(items || []).reduce((sum,item)=>sum+portion(item,item.order_base),0);
-  const totalTax=(items || []).reduce((sum,item)=>sum+portion(item,item.order_tax),0);
-  const netAmount=(items || []).reduce((sum,item)=>sum+portion(item,item.order_amount),0);
+  const totalAmountPreTax=(items || []).reduce((sum,item)=>sum+inspectionAmounts(item).cost_price,0);
+  const totalTax=(items || []).reduce((sum,item)=>sum+inspectionAmounts(item).tax,0);
+  const netAmount=(items || []).reduce((sum,item)=>sum+inspectionAmounts(item).amount,0);
 
   const submitMutation = useMutation({
-    mutationFn: (payload: any) => grnInspectionService.createInspection(payload),
+    mutationFn: (payload: InspectionCreatePayload) => grnInspectionService.createInspection(payload),
     onSuccess: () => {
       toast.success('GRN Inspection created successfully');
       queryClient.invalidateQueries({ queryKey: ['grn-inspection'] });
@@ -164,16 +182,14 @@ export default function AddGrnInspectionPage() {
 
   const onSubmit = (data: FormValues) => {
     const validItems = data.items.filter(i => i.received_qty > 0).map(i => {
-      const amount = portion(i,i.order_amount);
-      const taxAmt = portion(i,i.order_tax);
+      const valuation = inspectionAmounts(i);
       return {
         item_id: i.item_id,
         quantity: i.received_qty,
         rate: i.rate,
         tax_id:i.tax_id,
-        cost_price:portion(i,i.order_base),
-        tax: taxAmt,
-        amount: amount
+        delivery_schedule_id: i.delivery_schedule_id,
+        ...valuation
       };
     });
 
@@ -199,15 +215,21 @@ export default function AddGrnInspectionPage() {
   return (
     <main suppressHydrationWarning className="legacy-form-page max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 space-y-6">
       <LegacyPageHeader title="GRN Inspection"/>
-      <form onSubmit={handleSubmit(onSubmit)} className="legacy-form legacy-form-inspection">
+      <form onSubmit={(event) => {
+        if (po_id && (isPoLoading || loadedPo !== po_id || poLoadError)) {
+          event.preventDefault();
+          return;
+        }
+        void handleSubmit(onSubmit)(event);
+      }} className="legacy-form legacy-form-inspection">
         {/* Header */}
 
 
         {/* Global form errors */}
-        {errors.items?.root && (
+        {!!po_id && loadedPo === po_id && !isPoLoading && (errors.items?.root || errors.items?.message) && (
           <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2">
             <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <span className="text-sm font-medium">{errors.items.root.message}</span>
+            <span className="text-sm font-medium">{errors.items?.root?.message || errors.items?.message}</span>
           </div>
         )}
 
@@ -223,7 +245,11 @@ export default function AddGrnInspectionPage() {
               <label className="block text-sm font-medium text-slate-700">Purchase Order <span className="text-red-500">*</span></label>
               <AsyncPoSearchSelect
                 value={po_id}
-                onChange={(v) => setValue('po_id', v, { shouldValidate: true })}
+                onChange={(v) => {
+                  resetPoDetails();
+                  if (v === po_id) setPoLoadAttempt(value => value + 1);
+                  setValue('po_id', v, { shouldDirty: true });
+                }}
                 error={errors.po_id?.message}
                 disabled={isPoLoading}
               />
@@ -320,7 +346,13 @@ export default function AddGrnInspectionPage() {
                 <tbody className="divide-y divide-slate-100">
                   {fields.length === 0 && !isPoLoading && (
                     <tr>
-                      <td colSpan={10} className="p-8 text-center text-slate-500 italic">No items found for this PO.</td>
+                      <td colSpan={10} className="p-8 text-center text-slate-500 italic">
+                        {poLoadError || 'No items found for this PO.'}
+                        {poLoadError && <button type="button" className="ml-3 text-cyan-700 underline" onClick={() => {
+                          resetPoDetails();
+                          setPoLoadAttempt(value => value + 1);
+                        }}>Retry loading items</button>}
+                      </td>
                     </tr>
                   )}
 
@@ -329,9 +361,10 @@ export default function AddGrnInspectionPage() {
                     const rate = Number(currentItem?.rate) || 0;
                     const taxRate = Number(currentItem?.tax_rate) || 0;
 
-                    const amt = currentItem ? portion(currentItem, currentItem.order_base) : 0;
-                    const taxAmt = currentItem ? portion(currentItem, currentItem.order_tax) : 0;
-                    const totalAmt = currentItem ? portion(currentItem, currentItem.order_amount) : 0;
+                    const valuation = currentItem ? inspectionAmounts(currentItem) : { cost_price: 0, tax: 0, amount: 0 };
+                    const amt = valuation.cost_price;
+                    const taxAmt = valuation.tax;
+                    const totalAmt = valuation.amount;
 
                     const hasError = !!errors.items?.[idx]?.received_qty;
 
@@ -339,7 +372,7 @@ export default function AddGrnInspectionPage() {
                       <tr key={field.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="p-3 font-medium text-slate-700">
                           {field.item_name}
-                          <input type="hidden" {...register(`items.${idx}.item_id` as const)} />
+                          <input type="hidden" {...register(`items.${idx}.item_id` as const, { valueAsNumber: true })} />
                           <input type="hidden" {...register(`items.${idx}.item_name` as const)} />
                           <input type="hidden" {...register(`items.${idx}.order_qty` as const, { valueAsNumber: true })} />
                           <input type="hidden" {...register(`items.${idx}.pending_qty` as const, { valueAsNumber: true })} />
@@ -353,12 +386,14 @@ export default function AddGrnInspectionPage() {
                           <input
                             type="number"
                             step="any"
-                            max={field.pending_qty}
+                            min={0}
+                            max={Math.max(0, field.pending_qty)}
+                            disabled={field.pending_qty <= 0}
                             {...register(`items.${idx}.received_qty` as const, { valueAsNumber: true })}
                             onBlur={(e) => {
                               const val = Number(e.target.value);
-                              if (val > field.pending_qty) {
-                                setValue(`items.${idx}.received_qty`, field.pending_qty, { shouldValidate: true });
+                              if (val > Math.max(0, field.pending_qty)) {
+                                setValue(`items.${idx}.received_qty`, Math.max(0, field.pending_qty), { shouldValidate: true });
                                 toast.error(`Quantity cannot exceed pending quantity (${field.pending_qty})`);
                               }
                             }}
@@ -410,7 +445,7 @@ export default function AddGrnInspectionPage() {
 
 <div className="legacy-form-footer"><button
             type="submit"
-            disabled={submitMutation.isPending || isPoLoading}
+            disabled={submitMutation.isPending || isPoLoading || (!!po_id && loadedPo !== po_id) || !!poLoadError}
             className="flex items-center justify-center gap-2 px-6 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-medium shadow-sm transition disabled:opacity-50 w-full sm:w-auto"
           >
             {submitMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
