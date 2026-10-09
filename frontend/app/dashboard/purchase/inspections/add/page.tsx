@@ -92,6 +92,8 @@ export default function AddGrnInspectionPage() {
   });
 
   const po_id = useWatch({ control, name: 'po_id' });
+  const inwarddate = useWatch({ control, name: 'inwarddate' });
+  const billDate = useWatch({ control, name: 'bill_date' });
   const items = useWatch({ control, name: "items" });
 
   // Fetch next inspection ID on mount
@@ -277,6 +279,7 @@ export default function AddGrnInspectionPage() {
               <label className="block text-sm font-medium text-slate-700">Inward Date <span className="text-red-500">*</span></label>
               <DatePicker dateFormat="dd-MM-yyyy"
                 {...register('inwarddate')}
+                value={inwarddate}
                 className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white ${errors.inwarddate ? 'border-red-500' : 'border-slate-300'}`}
               />
               {errors.inwarddate && <p className="text-xs text-red-600 absolute -bottom-5">{errors.inwarddate.message}</p>}
@@ -311,6 +314,7 @@ export default function AddGrnInspectionPage() {
               <label className="block text-sm font-medium text-slate-700">Bill Date <span className="text-red-500">*</span></label>
               <DatePicker dateFormat="dd-MM-yyyy"
                 {...register('bill_date')}
+                value={billDate}
                 className={`w-full h-10 border rounded-md px-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white ${errors.bill_date ? 'border-red-500' : 'border-slate-300'}`}
               />
               {errors.bill_date && <p className="text-xs text-red-600 absolute -bottom-5">{errors.bill_date.message}</p>}
