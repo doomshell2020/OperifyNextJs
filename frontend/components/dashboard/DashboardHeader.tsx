@@ -7,12 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { usePermission } from '../../contexts/PermissionContext';
 import { DEFAULT_LOGO_URL, resolveApiAssetUrl } from '../../services/apiConfig';
 import apiClient from '../../services/apiClient';
-import {
-  FolderClosed, CreditCard, FileText, Layers, FileSpreadsheet,
-  ShoppingBag, ClipboardCheck, Truck, RefreshCw, Factory,
-  Calendar, Wrench, Database, Archive, Receipt, Settings,
-  LogOut, LayoutDashboard, Bell, ChevronDown
-} from 'lucide-react';
+import { FileText, FileSpreadsheet, Database, Archive, Settings, LogOut, ChevronDown } from 'lucide-react';
 
 export const DashboardSidebar: React.FC<{ collapsed?: boolean }> = () => null;
 
@@ -46,8 +41,8 @@ export const DashboardTopbar: React.FC = () => {
   }, [user?.id, user?.db]);
 
   const navItems = [
-    { title: 'EMD', icon: <FolderClosed className="w-[18px] h-[18px]"/>, path: '/dashboard/emd' },
-    { title: 'Payments', icon: <img src="/legacy/headericons/inspectionindex.png" alt="" width={33} height={26}/>, path: '/dashboard/payments' },
+    { title: 'EMD', icon: <img src="/legacy/headericons/inspectionindex.png" alt="" width={33} height={26}/>, path: '/dashboard/emd' },
+    { title: 'Payments', icon: <img src="/legacy/headericons/purchaseorderindex.png" alt="" width={33} height={26}/>, path: '/dashboard/payments' },
     { title: 'Contract', icon: <img src="/legacy/headericons/contractsindex.png" alt="" width={33} height={26}/>, path: '/dashboard/contracts' },
     { title: 'Design Sheet', icon: <img src="/legacy/headericons/designsheetindex.png" alt="" width={33} height={26}/>, path: '/dashboard/design-sheet' },
     { title: 'Quotation', icon: <img src="/legacy/headericons/quotationindex.png" alt="" width={33} height={26}/>, path: '/dashboard/quotations' },
@@ -92,7 +87,7 @@ export const DashboardTopbar: React.FC = () => {
   };
 
   return (
-    <header className="bg-[#fff] border-b border-[#ddd] flex items-center justify-between px-1 select-none h-[58px] w-full shadow-[0_1px_2px_rgba(0,0,0,0.03)] z-50 relative">
+    <header className="legacy-header bg-[#fff] border-b border-[#ddd] flex items-center justify-between px-1 select-none h-[58px] w-full shadow-[0_1px_2px_rgba(0,0,0,0.03)] z-50 relative">
       {/* 2. Logo Section */}
       <Link href="/dashboard" className="flex items-center gap-1.5 shrink-0 justify-start w-[115px] cursor-pointer hover:opacity-80 transition-opacity [&>*]:pointer-events-none">
         <div className="h-[28px] w-[28px] flex items-center justify-center shrink-0">
@@ -104,7 +99,7 @@ export const DashboardTopbar: React.FC = () => {
       </Link>
 
       {/* 3. & 8. Main Navigation */}
-      <nav className="flex-1 min-w-0 flex items-center overflow-x-auto overflow-y-hidden no-scrollbar px-1 h-full">
+      <nav className="legacy-header-nav min-w-0 flex items-center overflow-x-auto overflow-y-hidden no-scrollbar px-1 h-full">
         {user?.role_id === 101 ? (
           <>
             <div className="flex-1"></div>
@@ -136,7 +131,7 @@ export const DashboardTopbar: React.FC = () => {
               <Link
                 key={item.title}
                 href={item.path}
-                className={`flex flex-col items-center justify-center px-[4px] h-[52px] gap-[3px] shrink-0 border-b-[2px] transition-colors [&>*]:pointer-events-none ${
+                className={`legacy-header-item shrink-0 border-b-[2px] transition-colors [&>*]:pointer-events-none ${
                   isActive ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'
                 }`}
               >
@@ -147,14 +142,14 @@ export const DashboardTopbar: React.FC = () => {
           })
         )}
         {user && user.role_id !== 101 && jobWorkItems.map(item => <Link key={item.path} href={item.path}
-          className={`flex flex-col items-center justify-center px-1 h-[52px] gap-[3px] shrink-0 border-b-2 ${pathname.startsWith(item.path) ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'}`}>
-          {item.title === "Gate Pass" ? <Receipt className="w-[22px] h-[22px]"/> : <img src={item.title === "JC Challan" ? "/legacy/headericons/cheque.png" : "/legacy/headericons/goodsreceivedindex.png"} alt="" width={33} height={26}/>}
+          className={`legacy-header-item shrink-0 border-b-2 ${pathname.startsWith(item.path) ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'}`}>
+          <img src={`/legacy/headericons/${item.title === 'Gate Pass' ? 'Gatepassindex.png' : item.title === 'JC Challan' ? 'cheque.png' : 'goodsreceivedindex.png'}`} alt="" width={33} height={26}/>
           <span className="text-[9px] whitespace-nowrap">{item.title}</span>
         </Link>)}
       </nav>
 
       {/* 7. Right Section */}
-      <div className="flex items-center gap-[6px] shrink-0 ml-auto justify-end h-full relative">
+      <div className="flex items-center gap-[6px] shrink-0 justify-end h-full relative">
         {/* Superadmin specific links or Settings */}
         {user?.role_id === 101 ? (
           <>
@@ -180,15 +175,17 @@ export const DashboardTopbar: React.FC = () => {
             </Link>
           </>
         ) : (
-          <div className="relative flex items-center h-full shrink-0 mr-2">
+          <div className="relative flex items-center h-full shrink-0">
             <button
               onClick={() => setSettingsOpen(!settingsOpen)}
-              className={`flex flex-col items-center justify-center px-[4px] h-[52px] gap-[3px] border-b-[2px] transition-colors [&>*]:pointer-events-none ${
+              aria-expanded={settingsOpen}
+              className={`legacy-header-item legacy-header-settings border-b-[2px] transition-colors [&>*]:pointer-events-none ${
                 pathname.includes('/admin/') ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'
               }`}
             >
-              <Settings className={`w-[18px] h-[18px] ${pathname.includes('/admin/') ? 'text-[#1683D8]' : 'text-[#555]'}`} />
-              <span className="text-[9px] font-normal text-center whitespace-nowrap leading-none">Settings</span>
+              <img src="/legacy/headericons/setting.png" alt="" width={33} height={26}/>
+              <span className="text-[9px] font-normal text-center whitespace-nowrap leading-none">Setting</span>
+              <ChevronDown className="legacy-header-settings-caret" aria-hidden="true" />
             </button>
 
             {settingsOpen && (
@@ -227,7 +224,7 @@ export const DashboardTopbar: React.FC = () => {
               setCompanyError(null);
               void switchCompany(e.target.value).catch(error => setCompanyError(String(error)));
             }}
-            className="flex items-center bg-white border border-[#ccc] rounded-[2px] px-1 py-1 text-[10px] text-[#222] outline-none cursor-pointer hover:border-[#999] h-[26px] w-[140px]"
+            className="legacy-header-company bg-white border border-[#ccc] text-[#222] outline-none cursor-pointer hover:border-[#999]"
           >
             {user.companies.map(c => (
               <option key={c.school_database} value={c.school_database}>
@@ -236,7 +233,7 @@ export const DashboardTopbar: React.FC = () => {
             ))}
           </select>
         ) : (
-          <div className="flex items-center gap-1 bg-white border border-[#ccc] rounded-[2px] px-1 py-1 text-[10px] text-[#222] h-[26px] w-[140px] overflow-hidden whitespace-nowrap text-ellipsis">
+          <div className="legacy-header-company flex items-center gap-1 bg-white border border-[#ccc] text-[#222] overflow-hidden whitespace-nowrap text-ellipsis">
             <Database className="w-[10px] h-[10px] text-[#555] shrink-0" />
             <span className="truncate">{formatTenant(user?.db)}</span>
           </div>

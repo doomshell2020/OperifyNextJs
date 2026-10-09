@@ -2,6 +2,21 @@
    Scoped to ERP screens so login and generated print/PDF templates keep their layout. */
 .legacy-erp { font-family: var(--font-legacy-font), Arial, sans-serif; background: #ecf0f5; color: #333; }
 .legacy-erp .font-sans { font-family: inherit; }
+/* PHP headernew.ctp: icons fit within 33 x 26px; all labels share a baseline. */
+.legacy-header-nav { flex: 0 1 auto; margin-left: auto; }
+.legacy-header .legacy-header-item {
+  display: grid; grid-template-rows: 26px 9px; justify-items: center;
+  align-content: center; gap: 2px; height: 52px; padding: 0 4px;
+}
+.legacy-header .legacy-header-item > img {
+  display: block; width: 33px; height: 26px; max-height: 26px; object-fit: contain;
+}
+.legacy-header .legacy-header-item > span { font-size: 9px; line-height: 9px; white-space: nowrap; }
+.legacy-header .legacy-header-settings { position: relative; }
+.legacy-header .legacy-header-settings-caret { position: absolute; bottom: 1px; width: 9px; height: 9px; }
+.legacy-erp .legacy-header .legacy-header-company {
+  width: 80px; height: 32px; padding: 4px; font-size: 12px; border-color: #999 !important;
+}
 .legacy-content { padding: 15px; }
 .legacy-content > div > :is(main, div)[class*="max-w-"],
 .legacy-content > div > :is(main, div)[class*="px-4"] {
