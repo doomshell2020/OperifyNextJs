@@ -33,7 +33,8 @@ app.use(helmet({
 }));
 app.use(cors({
   origin: CORS_ORIGINS,
-  credentials: true
+  credentials: true,
+  exposedHeaders: ['Content-Disposition']
 }));
 app.use(morgan('dev'));
 app.use(compression());
@@ -42,6 +43,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 // Static Files (for uploads like logos)
 const path = require('path');
+app.use('/public/designsheet', (req,res)=>res.status(404).json({message:'Use the authenticated Design Sheet download action.'}));
 app.use('/public', express.static(path.join(__dirname, '../public')));
 
 // API Routes

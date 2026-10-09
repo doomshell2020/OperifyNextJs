@@ -5,6 +5,7 @@ export interface Vendor {
   name: string;
   address: string;
   state_id: number | null;
+  state_name?: string | null;
   contact_no: string;
   email: string;
   vat_no: string | null;

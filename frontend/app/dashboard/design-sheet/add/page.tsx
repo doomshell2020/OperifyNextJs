@@ -6,6 +6,7 @@ import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { designsheetService } from '../../../../services/designsheet.service';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { Save, Plus, Trash2, ArrowLeft, Search, Loader2, Package, FileText } from 'lucide-react';
 import Link from 'next/link';
@@ -208,6 +209,7 @@ function ItemAutocomplete({
 
 export default function AddDesignSheetPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     contract_id: '',
     designsheetno: '',
@@ -337,6 +339,8 @@ export default function AddDesignSheetPage() {
 
           await designsheetService.createDesignSheet(form);
           toast.success('Design Sheet added successfully!');
+          await queryClient.invalidateQueries({queryKey: ['designsheets']});
+          await queryClient.invalidateQueries({queryKey: ['designsheet-details']});
           router.push('/dashboard/design-sheet');
       } catch (e: any) {
           toast.error(e.response?.data?.message || 'Error adding design sheet');

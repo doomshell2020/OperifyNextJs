@@ -100,6 +100,7 @@ export function VendorDetailsModal({ vendorId, onClose }: VendorDetailsModalProp
             <p className="font-semibold">Failed to load vendor</p>
           </div>
         )}
+        {!isLoading && !isError && !vendor && <p role="alert">Vendor not found.</p>}
 
         {vendor && !isLoading && !isError && (
           <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
@@ -128,6 +129,7 @@ export function VendorDetailsModal({ vendorId, onClose }: VendorDetailsModalProp
                   <p className="text-slate-700">{vendor.contact_person || 'N/A'}</p>
                 )}
               </div>
+              <div><label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">State</label><p>{vendor.state_name || 'N/A'}</p></div>
               <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Contact No</label>
                 {isEditing ? (

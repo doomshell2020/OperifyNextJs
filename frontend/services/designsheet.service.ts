@@ -10,6 +10,17 @@ export interface DesignSheetFilter {
 }
 
 export const designsheetService = {
+  downloadFile: async (id: string | number, field: string) => {
+    const response = await apiClient.get(`/designsheets/${id}/files/${field}`, {responseType:'blob'});
+    const disposition = response.headers['content-disposition'] || '';
+    const encoded = disposition.match(/filename\*=UTF-8''([^;]+)/i)?.[1];
+    const stored = encoded ? decodeURIComponent(encoded) : disposition.match(/filename="([^"]+)"/i)?.[1] || 'design-sheet';
+    const filename = stored.replace(/^[0-9a-f]{8}-[0-9a-f-]{27}-/i, '');
+    const url = URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = url; link.download = filename; link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  },
   getDesignSheets: async (filters?: DesignSheetFilter) => {
     const { data } = await apiClient.get('/designsheets', { params: filters });
     return data;
@@ -23,6 +34,9 @@ export const designsheetService = {
   getDesignSheetForView: async (designsheetno: string) => {
     const { data } = await apiClient.get(`/designsheets/view/${designsheetno}`);
     return data;
+  },
+  getDesignSheetDetailsById: async (id: string) => {
+    return (await apiClient.get(`/designsheets/records/${encodeURIComponent(id)}`)).data;
   },
 
   getContractDetails: async (contractId: string) => {

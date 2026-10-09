@@ -1,0 +1,140 @@
+Operify ERP testing issues — 9 October 2026
+
+Results
+
+1. Finished Product / Process Name
+   The Add form's FinishedProduct condition, process API and database mapping
+   already work in this checkout; the reported missing field was not reproduced
+   in the fresh production build. Existing logic was preserved. Edit now trims
+   whitespace in legacy comma-separated process IDs so checkboxes populate.
+   Browser selection/hiding and existing product reads passed. Live product
+   creation/update was not performed.
+
+2. Contract Details / Print PDF
+   The dedicated PDF grant does not exist in the supplied permission labels.
+   The index download and standalone preview were inconsistent with the popup's
+   existing detail-reader print access. These entry points now agree. The popup
+   also handles missing UOM values without throwing. Title navigation, visible
+   Print PDF and authenticated PDF generation passed; rendered output inspected.
+
+3. Design Sheet Details / PDF
+   There was only a popup, guarded by a detail grant absent from legacy labels.
+   Added a details page available to authorized list/detail readers, including
+   contract, product, quantities, raw materials and file/revision downloads.
+   Existing data contains duplicate sheet numbers: new details/PDF routes use
+   the unique record ID; raw material queries use that same record ID.
+   Selected-record navigation, missing-record handling and PDF generation passed.
+
+4. Design Sheet list after submission
+   The index caches results for five minutes; Add/Edit did not invalidate them.
+   Both forms now invalidate lists and details before redirecting. A regression
+   test executes the actual Add submit handler with a simulated successful API
+   response and a real QueryClient, checking all cached filter/page variants.
+   No live creation was performed; database persistence is not claimed tested.
+
+5. Design Sheet downloads
+   Uploads were written into the frontend public directory and linked as static
+   assets. Added authenticated, tenant-scoped record/field download routes with
+   filename/path containment checks and legacy-storage fallback. Index, Edit
+   and Details use the API. New uploads use private company directories with
+   unique readable filenames. CORS exposes download filenames; existing public
+   URLs are blocked. Existing filenames/extensions are retained where available.
+   File bytes, invalid fields, unauthenticated rejection and public blocking passed.
+   Seven attachment references resolve; 61 references point to files absent from
+   the supplied storage locations. Those downloads remain unresolved until the
+   original files are restored. Legacy hashed filenames cannot recover original
+   names that were never stored.
+
+6. Delivery Note dates
+   Replaced the locale-dependent native display with the existing DatePicker,
+   keeping native calendar selection and the PHP DD-MM-YYYY display/bounds.
+   Server validation now enforces unique dates, date bounds, valid items and
+   exact PO quantity totals. Completed schedules retain their status/quantity.
+   Browser date selection/display and simulated validation tests passed.
+   No live delivery note was saved.
+
+7. Print PO
+   The UI/API required a separate view grant absent from legacy labels, whereas
+   PHP exposes printing to authorized PO list readers. UI and API now use the
+   matching list-or-explicit-print grant. Existing PDF components/layout retained.
+   Action visibility and real authenticated current-PO PDF generation passed.
+
+8. Revised PO
+   A mixed numeric-ID/text-number SQL comparison could select the wrong record
+   through MySQL conversion. Lookups now separate record IDs from PO numbers.
+   Restored revision date, item add/remove, tax selection and payment/amendment
+   fields. Existing item prices remain read-only; added items can edit prices.
+   Backend recomputes line/header totals from quantities, rates and stored taxes,
+   retains the original supplier/date/number, inserts a new revision and preserves
+   the existing PHP delivery/stock relinking workflow. Print Revised PO continues
+   to include all revisions, newest first, with each document fetched by its ID.
+   Existing revision reads in both databases, HTTP PDF generation, and simulated
+   numbering/history/tax/quantity tests passed. No live revision was created.
+
+9. Vendor Details
+   The viewdetail grant is absent from legacy labels; PHP links vendor details
+   from authorized PO/vendor lists. Scoped read access now matches those links.
+   Added state mapping, validated IDs and explicit missing-record responses.
+   Fixed Edit's mysql2 transaction calls against a Sequelize connection, retaining
+   existing values for partial updates. Existing reads and HTTP 200/400/404 passed.
+   Vendor update was not executed against live records.
+
+API and database
+   New GET /api/designsheets/records/:id and /records/:id/pdf.
+   New GET /api/designsheets/:id/files/:field.
+   Existing number-based PDF route retained for compatibility.
+   Optional DESIGNSHEET_UPLOAD_DIR; default backend/storage/designsheet/<company>.
+   No schema changes, fake database rows, updates or deletions during verification.
+   Authentication and company assignment checks remain enforced.
+
+Verification
+   Backend syntax checks: passed.
+   Next.js production build and TypeScript: passed.
+   Permission checks: 1,260 original route/grant combinations plus contextual
+   Design Sheet/Vendor/print checks and frontend manager checks passed.
+   scripts/test-testing-issues.cjs: revision and delivery validation plus actual
+   Add handler cache invalidation passed, using simulated writes only.
+   Read-only existing-data checks: tirupati_tppl and tirupati_kcpl passed.
+   Browser controls/routes and authenticated download/PDF HTTP checks: passed.
+   Contract, Design Sheet and PO PDF page renderings visually inspected.
+   Frontend (3000) and backend (8080) local services restarted with the fixes.
+
+Remaining limits
+   Restore missing attachment files from original storage/backups.
+   Live Add/Edit/revision persistence and live post-save list display require
+   authorized real business submissions; they were not exercised because the
+   request prohibits altering existing data or inserting fake testing data.
+   Pixel-for-pixel equality against original PHP-generated PDFs was not tested;
+   templates and rendered fields/layout were compared with the PHP source.
+
+Modified files
+   .gitignore
+   backend/.env.example
+   backend/src/app.js
+   backend/src/modules/designsheet/designsheet.controller.js
+   backend/src/modules/designsheet/designsheet.files.js
+   backend/src/modules/designsheet/designsheet.routes.js
+   backend/src/modules/purchaseOrder/purchaseOrder.repository.js
+   backend/src/modules/purchaseOrder/purchaseOrder.routes.js
+   backend/src/modules/vendor/vendor.controller.js
+   backend/src/modules/vendor/vendor.repository.js
+   backend/src/modules/vendor/vendor.routes.js
+   frontend/app/dashboard/admin/products/edit/[id]/page.tsx
+   frontend/app/dashboard/contracts/page.tsx
+   frontend/app/dashboard/design-sheet/add/page.tsx
+   frontend/app/dashboard/design-sheet/edit/[id]/page.tsx
+   frontend/app/dashboard/design-sheet/page.tsx
+   frontend/app/dashboard/design-sheet/view/[id]/page.tsx
+   frontend/app/dashboard/purchase/orders/page.tsx
+   frontend/components/dashboard/ContractDetailsModal.tsx
+   frontend/components/dashboard/DeliveryNoteModal.tsx
+   frontend/components/dashboard/PurchaseOrderFormModal.tsx
+   frontend/components/dashboard/VendorDetailsModal.tsx
+   frontend/components/ui/LegacyRouteAccess.tsx
+   frontend/proxy.ts
+   frontend/services/designsheet.service.ts
+   frontend/services/purchaseOrder.service.ts
+   frontend/services/vendor.service.ts
+   scripts/test-permissions.cjs
+   scripts/test-testing-issues.cjs
+   TESTING_ISSUES_FIX_REPORT.txt

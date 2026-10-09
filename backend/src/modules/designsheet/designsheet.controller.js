@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const {paginationInput,paginationResult,listOrder} = require('../../utils/listPagination');
 
-const getUploadDir = () => path.join(__dirname, '../../../../frontend/public/designsheet');
+const {uploadDir} = require('./designsheet.files');
 
 exports.index = async (req, res, next) => {
   try {
@@ -236,7 +236,7 @@ exports.update = async (req, res, next) => {
     await req.dbPool.transaction(async transaction => {
     if (req.files && req.files['design_sheet']) {
        if (desheet.design_sheet) {
-           const oldFile = path.join(getUploadDir(), desheet.design_sheet);
+           const oldFile = path.join(uploadDir(req), desheet.design_sheet);
            obsoleteFiles.push(oldFile);
        }
        updateData.design_sheet = req.files['design_sheet'][0].filename;
@@ -246,7 +246,7 @@ exports.update = async (req, res, next) => {
     for (let i = 1; i <= 5; i++) {
         if (req.files && req.files[`r${i}`]) {
             if (desheet[`r${i}`]) {
-                const oldFile = path.join(getUploadDir(), desheet[`r${i}`]);
+                const oldFile = path.join(uploadDir(req), desheet[`r${i}`]);
                 obsoleteFiles.push(oldFile);
             }
             updateData[`r${i}`] = req.files[`r${i}`][0].filename;
@@ -293,7 +293,7 @@ exports.update = async (req, res, next) => {
     }
 
     });
-    for (const file of obsoleteFiles) if (path.dirname(file)===getUploadDir() && fs.existsSync(file)) fs.unlinkSync(file);
+    for (const file of obsoleteFiles) if (path.dirname(file)===uploadDir(req) && fs.existsSync(file)) fs.unlinkSync(file);
 
     res.json({ message: 'Design Sheet has been updated successfully.' });
   } catch (error) {
@@ -319,8 +319,8 @@ exports.deleteSheet = async (req, res, next) => {
     });
     for(const filename of files){
       if(!filename) continue;
-      const file=path.resolve(getUploadDir(),filename);
-      if(path.dirname(file)===path.resolve(getUploadDir()) && fs.existsSync(file)) fs.unlinkSync(file);
+      const file=path.resolve(uploadDir(req),filename);
+      if(path.dirname(file)===uploadDir(req) && fs.existsSync(file)) fs.unlinkSync(file);
     }
 
     res.json({ message: 'Production Sheet deleted successfully' });
@@ -427,16 +427,18 @@ exports.searchItems = async (req, res, next) => {
 exports.viewDesignSheet = async (req, res, next) => {
   try {
     const { designsheetno } = req.params;
-    const designsheet = await req.models.designsheet.findOne({ where: { designsheetno }, raw: true });
+    const where = req.params.id ? {id:req.params.id} : {designsheetno};
+    const designsheet = await req.models.designsheet.findOne({ where, raw: true });
+    if (!designsheet) return res.status(404).json({message:'Design sheet not found'});
 
     const designsheetdetails = await req.dbPool.query(`
         SELECT d.*, a.item_name, c.title, c.workorder
         FROM designsheetdetails d
         LEFT JOIN st_additem a ON d.item_id = a.id
         LEFT JOIN contracts c ON d.contract_id = c.id
-        WHERE d.designsheetno = :designsheetno
+        WHERE d.designsheet_id = :sheetId
         ORDER BY d.id ASC
-    `, { replacements: { designsheetno }, type: QueryTypes.SELECT });
+    `, { replacements: { sheetId: designsheet.id }, type: QueryTypes.SELECT });
 
     const sitesetting = await req.models.sitesettings.findOne({ raw: true });
     const site_details = await req.models.sitesettings_details.findOne({ where: { status: 'Y' }, raw: true });
@@ -453,7 +455,7 @@ exports.viewDesignSheet = async (req, res, next) => {
       const {generateDesignSheetPDF} = require('./designsheet.pdf');
       const pdf = await generateDesignSheetPDF({designsheet, designsheetdetails, sitesetting, site_details});
       res.setHeader('Content-Type','application/pdf');
-      res.setHeader('Content-Disposition',`inline; filename="Design_Sheet_${Number(designsheetno)}.pdf"`);
+      res.setHeader('Content-Disposition',`inline; filename="Design_Sheet_${Number(designsheet.designsheetno)}.pdf"`);
       return res.send(pdf);
     }
     res.json({ designsheet, designsheetdetails, sitesetting, site_details });

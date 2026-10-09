@@ -85,7 +85,7 @@ export default function EditProductPage() {
         min_order_qty: product.min_order_qty?.toString() || '',
         itemtype: product.itemtype || 'RawMaterial',
         finishedprocess_id: product.finishedprocess_id?.toString() || '',
-        productprocess_id: product.productprocess_id ? product.productprocess_id.split(',') : [],
+        productprocess_id: product.productprocess_id ? String(product.productprocess_id).split(',').map(value => value.trim()).filter(Boolean) : [],
       });
     }
   }, [product, reset]);

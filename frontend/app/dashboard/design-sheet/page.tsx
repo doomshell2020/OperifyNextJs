@@ -30,7 +30,6 @@ export default function DesignSheetsPage() {
   });
 
   const [activeFilters, setActiveFilters] = useState<DesignSheetFilter>({ page: 1, limit: LEGACY_LIST_LIMIT });
-  const [selectedSheetNo, setSelectedSheetNo] = useState<string | null>(null);
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
 
   const locationReady = useListLocation(activeFilters, activeFilters.page || 1, ['contract_id', 'contract_name', 'datestart', 'dateto', 'sort', 'direction'], (next, nextPage) => { setActiveFilters({ ...next, page: nextPage, limit: LEGACY_LIST_LIMIT }); setFilters(next); });
@@ -45,13 +44,6 @@ export default function DesignSheetsPage() {
   const canAdd = hasPermission("designsheet:add") || hasPermission("legacy:admin/designsheet/add");
   const canEdit = hasPermission("designsheet:edit") || hasPermission("legacy:admin/designsheet/edit");
   const canDelete = hasPermission("designsheet:delete") || hasPermission("legacy:admin/designsheet/delete");
-
-  const { data: detailsData, isLoading: detailsLoading } = useQuery({
-    queryKey: ['designsheet-details', selectedSheetNo],
-    queryFn: () => designsheetService.getDesignSheetForView(selectedSheetNo!),
-    enabled: selectedSheetNo !== null,
-    staleTime: 5 * 60 * 1000
-  });
 
   const { data: contractData, isLoading: contractLoading } = useQuery({
     queryKey: ['contract-details', selectedContractId],
@@ -146,9 +138,7 @@ export default function DesignSheetsPage() {
                 <tr key={d.id} className="hover:bg-slate-50/50 transition">
                   <td className="px-6 py-4 font-bold text-slate-900">{((activeFilters.page || 1) - 1) * (activeFilters.limit || 50) + idx + 1}</td>
                   <td className="px-6 py-4 font-bold text-slate-900">
-                     <span className="text-cyan-600 cursor-pointer" onClick={() => {if(canAction('designsheet','viewdesignsheet'))setSelectedSheetNo(d.designsheetno);}}>
-                         {d.designsheetno}
-                     </span>
+                     {(canAction('designsheet','index') || canAction('designsheet','viewdesignsheet')) ? <Link className="text-cyan-600 underline" href={`/dashboard/design-sheet/view/${d.id}`}>{d.designsheetno}</Link> : d.designsheetno}
                   </td>
                   <td className="px-4 py-3">
                         <button
@@ -164,13 +154,13 @@ export default function DesignSheetsPage() {
                   <td className="px-6 py-4 text-center">
                     {(d.design_sheet || [1, 2, 3, 4, 5].some(rev => d[`r${rev}`])) ? (
                         <span className="inline-flex items-center justify-center gap-2 flex-wrap">
-                          {d.design_sheet && <a href={`/designsheet/${d.design_sheet}`} target="_blank" rel="noreferrer" className="text-cyan-600 underline">
+                          {d.design_sheet && <button type="button" onClick={() => void designsheetService.downloadFile(d.id, 'design_sheet').catch(() => toast.error('Unable to download file'))} className="text-cyan-600 underline">
                               Download
-                          </a>}
+                          </button>}
                           {[1, 2, 3, 4, 5].map((rev) => d[`r${rev}`] ? (
-                            <a key={rev} href={`/designsheet/${d[`r${rev}`]}`} target="_blank" rel="noreferrer" className="text-cyan-600 underline">
+                            <button key={rev} type="button" onClick={() => void designsheetService.downloadFile(d.id, `r${rev}`).catch(() => toast.error('Unable to download file'))} className="text-cyan-600 underline">
                               R{rev}
-                            </a>
+                            </button>
                           ) : null)}
                         </span>
                     ) : '-'}
@@ -200,81 +190,6 @@ export default function DesignSheetsPage() {
 
       {!isLoading && !isError && data && <ListPagination page={activeFilters.page || 1} limit={LEGACY_LIST_LIMIT} total={data.total || 0} onPageChange={handlePageChange} />}
 
-      {selectedSheetNo !== null && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedSheetNo(null)}>
-          <div className="bg-white border border-slate-200 shadow-2xl rounded max-w-[900px] w-full p-8 flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh]" onClick={e => e.stopPropagation()}>
-            {detailsLoading ? (
-              <div className="flex-1 flex flex-col items-center justify-center py-20 text-slate-400 gap-2">
-                <Loader className="w-8 h-8 animate-spin text-cyan-600" />
-              </div>
-            ) : detailsData && detailsData.designsheet ? (
-              <div className="flex-1 flex flex-col overflow-y-auto pr-2">
-                <div className="relative mb-6">
-                    <h3 className="text-base font-extrabold text-slate-900 text-center">Design Sheet Details</h3>
-                    <div className="absolute right-0 top-0">
-                        {canAction("designsheet", "viewdesignsheet") && (
-                          <Link href={`/dashboard/design-sheet/print/${detailsData.designsheet.designsheetno}`} target="_blank" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs font-semibold shadow-sm transition">
-                            <Printer className="w-3.5 h-3.5" /> Print
-                        </Link>
-                        )}
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-y-3 gap-x-8 mb-8 text-sm font-semibold text-slate-800">
-                    <div>
-                        <span className="text-slate-600">Design Sheet No:- </span>
-                        {detailsData.designsheet.designsheetno}
-                    </div>
-                    <div>
-                        <span className="text-slate-600">Issue Date:- </span>
-                        {formatContractDate(detailsData.designsheet.datefrom)}
-                    </div>
-                    <div>
-                        <span className="text-slate-600">Contract:- </span>
-                        {detailsData.designsheet.contract_no}
-                    </div>
-                    <div>
-                        <span className="text-slate-600">Finished Product:- </span>
-                        {detailsData.designsheet.item_name}
-                    </div>
-                    <div className="col-span-2">
-                        <span className="text-slate-600">Quantity:- </span>
-                        {formatQty(detailsData.designsheet.quantity)} KM
-                    </div>
-                </div>
-
-                <h4 className="text-sm font-extrabold text-slate-900 text-center mb-4">Raw Material</h4>
-
-                <div className="border border-slate-200 overflow-hidden">
-                  <table className="w-full text-left border-collapse text-xs text-slate-700">
-                    <thead>
-                      <tr className="bg-slate-100 border-b border-slate-200">
-                        <th className="px-3 py-2 border-r border-slate-200">S.No.</th>
-                        <th className="px-3 py-2 border-r border-slate-200">Item Name</th>
-                        <th className="px-3 py-2 border-r border-slate-200 text-right">Qty(Per KM)</th>
-                        <th className="px-3 py-2 border-r border-slate-200 text-right">Total Qty</th>
-                        <th className="px-3 py-2">UOM</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200 bg-white">
-                      {detailsData.designsheetdetails.map((item: any, idx: number) => (
-                        <tr key={item.id} className="hover:bg-slate-50 transition">
-                          <td className="px-3 py-2 border-r border-slate-200">{idx + 1}.</td>
-                          <td className="px-3 py-2 border-r border-slate-200 uppercase">{item.item_name}</td>
-                          <td className="px-3 py-2 border-r border-slate-200 text-right font-medium">{formatQty(item.km_item_qty)}</td>
-                          <td className="px-3 py-2 border-r border-slate-200 text-right font-medium">{formatQty(item.item_qty)}</td>
-                          <td className="px-3 py-2 uppercase">{item.uom}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      )}
-
       {selectedContractId !== null && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedContractId(null)}>
           <div className="bg-white border border-slate-200 shadow-2xl rounded max-w-[900px] w-full p-8 flex flex-col relative overflow-hidden animate-in zoom-in-95 duration-200 max-h-[95vh]" onClick={e => e.stopPropagation()}>
@@ -287,7 +202,7 @@ export default function DesignSheetsPage() {
                 <div className="relative mb-6">
                     <h3 className="text-lg font-extrabold text-slate-900 text-center">Contract Details</h3>
                     <div className="absolute right-0 top-0">
-                        {hasPermission("contracts:pdf") && (
+                        {(canAction('production','viewcontractdetail') || canAction('production','viewcontractdetailspdf')) && (
                           <Link href={`/dashboard/production/viewcontractdetailspdf/${selectedContractId}`} target="_blank" className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded font-bold shadow-sm transition">
                             <Printer className="w-4 h-4" /> Print
                         </Link>

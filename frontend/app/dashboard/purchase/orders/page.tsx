@@ -108,7 +108,7 @@ export default function PurchaseOrdersPage() {
   const canRevise = hasPermission('purchaseorder:revise') || hasPermission('legacy:admin/purchaseorder/revised');
   const canDelete = hasPermission('purchaseorder:delete') || hasPermission('legacy:admin/purchaseorder/delete');
   const canDeliveryNote = hasPermission('purchaseorder:deliverynote') || hasPermission('legacy:admin/purchaseorder/deliverynote');
-  const canPrint=canAction('purchaseorder','view');
+  const canPrint=canAction('purchaseorder','index') || canAction('purchaseorder','view');
 
   return (
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
@@ -183,7 +183,7 @@ export default function PurchaseOrdersPage() {
                     </td>
                     <td className="p-4 text-slate-600">{formatContractDate(po.delivery_date) || '-'}</td>
                     <td className="p-4 text-center relative">
-                      {((po.is_latest_revision === 1 && (canRevise || canDelete || canDeliveryNote)) || canPrint || (po.amendment_no > 0 && canAction('purchaseorder','printallpo')) || (Number(po.delivery_notes_count || 0) > 0 && canAction('purchaseorder','printdeliveryschedule'))) && <button
+                      {((po.is_latest_revision === 1 && (canRevise || canDelete || canDeliveryNote)) || canPrint || (po.amendment_no > 0 && (canAction('purchaseorder','index') || canAction('purchaseorder','printallpo'))) || (Number(po.delivery_notes_count || 0) > 0 && (canAction('purchaseorder','index') || canAction('purchaseorder','printdeliveryschedule')))) && <button
                         onClick={event => {
                           const rect = event.currentTarget.getBoundingClientRect();
                           setDropdownPosition({ top: Math.max(8, Math.min(rect.bottom + 4, window.innerHeight - 220)), left: Math.max(8, Math.min(rect.right - 224, window.innerWidth - 232)) });

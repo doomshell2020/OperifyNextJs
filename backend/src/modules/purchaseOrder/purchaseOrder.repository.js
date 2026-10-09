@@ -8,6 +8,7 @@ class PurchaseOrderRepository {
   }
 
   async getHoverDetails(dbPool, idOrNumber) {
+    const lookup = /^\d+$/.test(String(idOrNumber)) ? 'po.id = :idOrNumber' : 'po.purchaseorder_id = :idOrNumber';
     const query = `
       SELECT 
         po.id,
@@ -31,7 +32,7 @@ class PurchaseOrderRepository {
       FROM st_purchaseorder po
       LEFT JOIN vendors v ON po.vendor_id = v.id
       LEFT JOIN users u ON po.added_by = u.id
-      WHERE po.id = :idOrNumber OR po.purchaseorder_id = :idOrNumber
+      WHERE ${lookup}
       ORDER BY po.id DESC LIMIT 1
     `;
     const rows = await dbPool.query(query, { replacements: { idOrNumber }, type: QueryTypes.SELECT });
@@ -44,6 +45,7 @@ class PurchaseOrderRepository {
   }
 
   async getDetails(dbPool, idOrNumber) {
+    const lookup = /^\d+$/.test(String(idOrNumber)) ? 'po.id = :idOrNumber' : 'po.purchaseorder_id = :idOrNumber';
     const poQuery = `
       SELECT 
         po.id,
@@ -74,7 +76,7 @@ class PurchaseOrderRepository {
         po.total_amt as total_amount
       FROM st_purchaseorder po
       LEFT JOIN vendors v ON po.vendor_id = v.id
-      WHERE po.id = :idOrNumber OR po.purchaseorder_id = :idOrNumber
+      WHERE ${lookup}
       ORDER BY po.id DESC LIMIT 1
     `;
     
@@ -190,6 +192,7 @@ class PurchaseOrderRepository {
         id,
         item_id,
         item_qty,
+        status,
         DATE(delivery_date) as delivery_date,
         delivery_note as remark
       FROM po_delivery_note
@@ -380,7 +383,22 @@ class PurchaseOrderRepository {
     }
     const revisionNumber = latestRevision + 1;
 
-    const normalizedItems = (items && items.length > 0) ? items : await this.getRevisionSourceItems(dbPool, source.id, transaction);
+    const V = require('../../utils/receiptValidation');
+    if (source.status === 'N') throw V.invalid('Deleted Purchase Orders cannot be revised.',409);
+    if (!Array.isArray(items) || !items.length) throw V.invalid('PO items are required.');
+    const normalizedItems = [];
+    for (const item of items) {
+      const qty = V.number(item.order_qty ?? item.item_qty, 'PO quantity');
+      const rate = V.number(item.rate ?? item.item_amt, 'PO rate');
+      const [product] = await V.select(dbPool,'SELECT id FROM st_additem WHERE id=:id LIMIT 1',{id:item.item_id},transaction);
+      if (!product) throw V.invalid('PO item does not exist.');
+      const [tax] = item.tax_id ? await V.select(dbPool,'SELECT tax FROM st_taxmaster WHERE id=:id LIMIT 1',{id:item.tax_id},transaction) : [];
+      if (item.tax_id && !tax) throw V.invalid('PO tax does not exist.');
+      const percentage = V.number(tax?.tax ?? 0, 'Tax percentage');
+      const price = qty * rate;
+      const taxAmount = price * percentage / 100;
+      normalizedItems.push({...item,order_qty:qty,rate,price,tax_percentage:percentage,tax_amt:taxAmount,amount:price+taxAmount});
+    }
     const totals = normalizedItems.reduce((acc, item) => {
       const qty = Number(item.order_qty ?? item.item_qty ?? 0) || 0;
       const tax = Number(item.tax_amt ?? item.item_tax_amt ?? 0) || 0;
@@ -391,7 +409,8 @@ class PurchaseOrderRepository {
       return acc;
     }, { total_qty: 0, total_tax: 0, total_amt: 0 });
 
-    const revisedDate = poData.revised_date || poData.inwarddate || new Date();
+    const revisedDate = V.storedDate(poData.revised_date || poData.inwarddate || new Date(), 'Revision date');
+    const deliveryDate = V.storedDate(poData.delivery_date || source.delivery_date, 'Delivery date');
     const poQuery = `
       INSERT INTO st_purchaseorder (
         purchaseorder_id, vendor_id, quotation_id, vendorshipaddress, delivery_date, freight,
@@ -407,10 +426,10 @@ class PurchaseOrderRepository {
     `;
     const poParams = {
       purchaseorder_id: source.purchaseorder_id,
-      vendor_id: poData.vendor_id ?? source.vendor_id,
+      vendor_id: source.vendor_id,
       quotation_id: source.quotation_id || null,
       vendorshipaddress: poData.vendorshipaddress ?? source.vendorshipaddress ?? '',
-      delivery_date: poData.delivery_date || source.delivery_date,
+      delivery_date: deliveryDate,
       freight: poData.freight ?? source.freight ?? '',
       payment_terms: poData.payment_terms ?? source.payment_terms ?? '',
       transit_insurance: poData.transit_insurance ?? source.transit_insurance ?? '',
@@ -429,7 +448,7 @@ class PurchaseOrderRepository {
       updated_time: new Date(),
       token: source.token || null,
       amendment_remarks: poData.amendment_remarks ?? source.amendment_remarks ?? '',
-      issue_vendor: poData.issue_vendor || source.issue_vendor || 'N',
+      issue_vendor: poData.issue_vendor ?? source.issue_vendor ?? 'N',
       payment_term: poData.payment_term ?? source.payment_term ?? '',
       postatus: source.postatus || 'O',
       revised_date: revisedDate
@@ -520,8 +539,43 @@ class PurchaseOrderRepository {
   }
 
   async addDeliveryNote(dbPool, poprimary_id, po_number, vendor_id, schedules, remark, transaction) {
+    const V = require('../../utils/receiptValidation');
+    const [po] = await V.select(dbPool,'SELECT * FROM st_purchaseorder WHERE id=:id FOR UPDATE',{id:poprimary_id},transaction);
+    if (!po) throw V.invalid('Purchase Order not found.',404);
+    const latest = await V.purchaseOrder(dbPool,po.purchaseorder_id,transaction);
+    if (Number(latest.id)!==Number(po.id)) throw V.invalid('Only the latest Purchase Order revision can receive a delivery note.',409);
+    po_number = po.purchaseorder_id; vendor_id = po.vendor_id;
+    if (!Array.isArray(schedules) || !schedules.length || schedules.length>4) throw V.invalid('Enter up to four delivery dates.');
+    const ordered = await V.select(dbPool,'SELECT item_id,SUM(item_qty) AS qty FROM st_purchaseorderDetails WHERE poprimary_id=:id GROUP BY item_id',{id:po.id},transaction);
+    const existing = await V.select(dbPool,'SELECT item_id,item_qty,DATE(delivery_date) AS delivery_date,status FROM po_delivery_note WHERE poprimary_id=:id FOR UPDATE',{id:po.id},transaction);
+    const totals = new Map(ordered.map(item=>[Number(item.item_id),0]));
+    const dates = new Set();
+    const start = V.storedDate(po.added_time,'PO date'), end = V.storedDate(po.delivery_date,'Expected delivery date');
+    for (const schedule of schedules) {
+      if (!Array.isArray(schedule.items)) throw V.invalid('Delivery items are required.');
+      const seen = new Set();
+      if (schedule.inwarddate) {
+        V.date(schedule.inwarddate,'Delivery date');
+        if (schedule.inwarddate<start || schedule.inwarddate>end) throw V.invalid('Delivery date must be between the PO date and expected delivery date.');
+        if (dates.has(schedule.inwarddate)) throw V.invalid('Each date must be unique. Please select different dates.');
+        dates.add(schedule.inwarddate);
+      }
+      for (const item of schedule.items) {
+        const id = Number(item.item_id), qty = V.number(item.qty,'Delivery quantity');
+        if (!totals.has(id) || seen.has(id)) throw V.invalid('Invalid or duplicate delivery item.');
+        seen.add(id);
+        if (qty>0 && !schedule.inwarddate) throw V.invalid('Delivery date cannot be blank.');
+        totals.set(id,totals.get(id)+qty);
+      }
+    }
+    for (const item of ordered) if (Math.abs(totals.get(Number(item.item_id))-Number(item.qty))>0.000001) throw V.invalid('Total schedule quantity must equal the PO quantity.');
+    for (const completed of existing.filter(row=>row.status==='N')) {
+      const date = V.storedDate(completed.delivery_date,'Delivery date');
+      const row = schedules.find(schedule=>schedule.inwarddate===date)?.items.find(item=>Number(item.item_id)===Number(completed.item_id));
+      if (!row || Number(row.qty)!==Number(completed.item_qty)) throw V.invalid('Completed delivery quantities cannot be changed.',409);
+    }
     // Delete existing schedules for this PO
-    await dbPool.query(`DELETE FROM po_delivery_note WHERE poprimary_id = :poprimary_id`, {
+    await dbPool.query(`DELETE FROM po_delivery_note WHERE poprimary_id = :poprimary_id AND (status IS NULL OR status != 'N')`, {
       replacements: { poprimary_id }, type: QueryTypes.DELETE, transaction
     });
 
@@ -529,6 +583,7 @@ class PurchaseOrderRepository {
       if (schedule.inwarddate && schedule.inwarddate.trim() !== '') {
         for (const item of schedule.items) {
           if (item.qty > 0) {
+            if (existing.some(row=>row.status==='N' && Number(row.item_id)===Number(item.item_id) && V.storedDate(row.delivery_date,'Delivery date')===schedule.inwarddate)) continue;
             const query = `
               INSERT INTO po_delivery_note 
               (po_id, poprimary_id, vendor_id, item_id, item_qty, delivery_date, delivery_note)

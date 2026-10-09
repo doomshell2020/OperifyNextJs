@@ -3,6 +3,7 @@ const express = require('express');
 const purchaseOrderController = require('./purchaseOrder.controller');
 const authenticate = require('../../middleware/auth');
 const tenantMiddleware = require('../../middleware/tenant');
+const { requireAnyPermission } = require('../../middleware/permission');
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ router.get('/next-id', purchaseOrderController.getNextPoNumber);
 router.get('/item/:itemId/last-price', permission('purchaseorder','getitemdetail'), purchaseOrderController.getLastItemPrice);
 router.get('/item/:itemId/history', permission('purchaseorder','viewitemdetail'), purchaseOrderController.getItemHistory);
 router.get('/:id', permission('purchaseorder','viewpodetail'), purchaseOrderController.getDetails); // Alias for consistency with new API standard
-const printPermission = (req,res,next) => permission('purchaseorder',req.query.mode==='revised'?'printallpo':req.query.mode==='delivery'?'printdeliveryschedule':'view')(req,res,next);
+const printPermission = (req,res,next) => requireAnyPermission(['legacy:admin/purchaseorder/index', `legacy:admin/purchaseorder/${req.query.mode==='revised'?'printallpo':req.query.mode==='delivery'?'printdeliveryschedule':'view'}`])(req,res,next);
 router.get('/:id/print-data', printPermission, purchaseOrderController.getPrintData);
 router.get('/:id/pdf', printPermission, purchaseOrderController.generatePdf);
 router.get('/:id/hover', permission('purchaseorder','viewpodetail'), purchaseOrderController.getHoverDetails);

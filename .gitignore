@@ -26,6 +26,7 @@
 !**/.env.example
 !**/.env.sample
 /tmp/
+/backend/storage/
 *.rar
 *.zip
 /test*.pdf

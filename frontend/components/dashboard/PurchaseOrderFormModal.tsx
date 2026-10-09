@@ -6,6 +6,8 @@ import purchaseOrderService, { PurchaseOrderDetailsData, PurchaseOrderItem } fro
 import { Loader, X, Save, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { formatQty, formatAmt } from '@/utils/formatters';
 import { DatePicker } from '../ui/DatePicker';
+import { settingsService } from '../../services/settings.service';
+import { LegacyAutocompleteInput } from '../ui/LegacyAutocompleteInput';
 
 interface PurchaseOrderFormModalProps {
   poId: number;
@@ -16,6 +18,11 @@ export function PurchaseOrderFormModal({ poId, onClose }: PurchaseOrderFormModal
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<any>({});
   const [items, setItems] = useState<Partial<PurchaseOrderItem>[]>([]);
+  const [search, setSearch] = useState('');
+  const [selectedProduct, setSelectedProduct] = useState('');
+  const [addedItemIds,setAddedItemIds] = useState<number[]>([]);
+  const {data:taxes=[]} = useQuery({queryKey:['po-revision-taxes'],queryFn:()=>settingsService.getTaxes()});
+  const {data:products=[]} = useQuery({queryKey:['po-revision-products',search],queryFn:()=>settingsService.getProducts({search,status:'Y'}),enabled:search.trim().length>=2});
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['purchase-order-revision-data', poId],
@@ -25,7 +32,7 @@ export function PurchaseOrderFormModal({ poId, onClose }: PurchaseOrderFormModal
 
   useEffect(() => {
     if (data) {
-      setFormData(data.po);
+      setFormData({...data.po, revised_date:new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())});
       setItems(data.items);
     }
   }, [data]);
@@ -50,7 +57,8 @@ export function PurchaseOrderFormModal({ poId, onClose }: PurchaseOrderFormModal
     (newItems[index] as any)[field] = value;
     
     // Auto-calculate amount
-    if (field === 'order_qty' || field === 'rate' || field === 'tax_percentage') {
+    if (field === 'tax_id') newItems[index].tax_percentage = Number(taxes.find(tax=>String(tax.id)===String(value))?.tax || 0);
+    if (field === 'order_qty' || field === 'rate' || field === 'tax_percentage' || field === 'tax_id') {
       const qty = parseFloat(newItems[index].order_qty as any) || 0;
       const rate = parseFloat(newItems[index].rate as any) || 0;
       const tax_p = parseFloat(newItems[index].tax_percentage as any) || 0;
@@ -76,6 +84,7 @@ export function PurchaseOrderFormModal({ poId, onClose }: PurchaseOrderFormModal
   };
 
   const handleSave = () => {
+    if (!data || !items.length) return;
     const totals = calculateTotal();
     const payload = {
       po: {
@@ -97,7 +106,7 @@ export function PurchaseOrderFormModal({ poId, onClose }: PurchaseOrderFormModal
         <div className="absolute top-4 right-4 z-10 flex gap-2">
           <button
             onClick={handleSave}
-            disabled={updateMutation.isPending || isLoading}
+            disabled={updateMutation.isPending || isLoading || isError || !data || !items.length}
             className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-bold shadow-sm transition cursor-pointer text-sm disabled:opacity-50"
           >
             {updateMutation.isPending ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
@@ -114,6 +123,7 @@ export function PurchaseOrderFormModal({ poId, onClose }: PurchaseOrderFormModal
         <h2 className="text-xl font-bold text-slate-800 mb-6">
           Revise Purchase Order
         </h2>
+        {updateMutation.isError && <p role="alert" className="text-red-600">{(updateMutation.error as any)?.response?.data?.message || 'Unable to revise Purchase Order.'}</p>}
 
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-20 text-slate-500">
@@ -141,6 +151,10 @@ export function PurchaseOrderFormModal({ poId, onClose }: PurchaseOrderFormModal
                 <DatePicker value={formData.po_date?.split('T')[0] || ''} disabled className="w-full border p-2 rounded bg-slate-50 text-slate-500 cursor-not-allowed" />
               </div>
               <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Generated Date</label>
+                <DatePicker name="revised_date" value={formData.revised_date || ''} onChange={handlePoChange} className="w-full border p-2 rounded" required />
+              </div>
+              <div>
                 <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Vendor</label>
                 <input type="text" value={formData.vendor_name || ''} disabled className="w-full border p-2 rounded bg-slate-50 text-slate-500 cursor-not-allowed" />
               </div>
@@ -165,6 +179,7 @@ export function PurchaseOrderFormModal({ poId, onClose }: PurchaseOrderFormModal
                     <th className="p-2 font-semibold text-slate-600 w-24">Rate</th>
                     <th className="p-2 font-semibold text-slate-600 w-24">Tax %</th>
                     <th className="p-2 font-semibold text-slate-600 w-32">Total</th>
+                    <th className="p-2">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -177,18 +192,28 @@ export function PurchaseOrderFormModal({ poId, onClose }: PurchaseOrderFormModal
                         <input type="number" min="0" value={item.order_qty || 0} onChange={(e) => handleItemChange(idx, 'order_qty', e.target.value)} className="w-full p-1 border rounded" />
                       </td>
                       <td className="p-2">
-                        <input type="number" min="0" step="0.01" value={item.rate || 0} onChange={(e) => handleItemChange(idx, 'rate', e.target.value)} className="w-full p-1 border rounded" />
+                        <input type="number" min="0" step="0.01" value={item.rate || 0} readOnly={!addedItemIds.includes(Number(item.item_id))} onChange={e=>handleItemChange(idx,'rate',e.target.value)} className="w-full p-1 border rounded" />
                       </td>
                       <td className="p-2">
-                        <input type="number" min="0" step="0.01" value={item.tax_percentage || 0} onChange={(e) => handleItemChange(idx, 'tax_percentage', e.target.value)} className="w-full p-1 border rounded" />
+                        <select aria-label={`Tax for ${item.item_name}`} value={item.tax_id || ''} onChange={e=>handleItemChange(idx,'tax_id',e.target.value)} className="w-full p-1 border rounded"><option value="">0</option>{taxes.map(tax=><option key={tax.id} value={tax.id}>{tax.tax}%</option>)}</select>
                       </td>
                       <td className="p-2 font-medium text-slate-800">
                         ₹{formatAmt(item.amount)}
                       </td>
+                      <td><button type="button" aria-label={`Remove ${item.item_name}`} onClick={()=>setItems(previous=>previous.filter((_,i)=>i!==idx))}><Trash2 size={16}/></button></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+            <div className="flex gap-2 my-4">
+              <LegacyAutocompleteInput aria-label="Search revision item" list="po-revision-items" placeholder="Enter Item Name" value={search} onChange={e=>{setSearch(e.target.value);setSelectedProduct(String(products.find(product=>product.item_name===e.target.value)?.id || ''));}} />
+              <datalist id="po-revision-items">{products.map(product=><option key={product.id} value={product.item_name}/>)}</datalist>
+              <button type="button" className="legacy-button" onClick={()=>{const product=products.find(product=>String(product.id)===selectedProduct || product.item_name===search);if(!product || items.some(item=>Number(item.item_id)===product.id))return;setItems(previous=>[...previous,{item_id:product.id,item_name:product.item_name,order_qty:0,rate:Number(product.cost_price || 0),price:0,tax_id:product.tax,tax_percentage:Number(taxes.find(tax=>tax.id===product.tax)?.tax || 0),tax_amt:0,amount:0,uom:product.uom_name}]);setAddedItemIds(previous=>[...previous,product.id]);setSearch('');setSelectedProduct('');}}>Add Item</button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <label>Payment Term<textarea name="payment_term" value={formData.payment_term || ''} onChange={handlePoChange} className="w-full border p-2 rounded" /></label>
+              <label>Amendment Remarks<textarea name="amendment_remarks" value={formData.amendment_remarks || ''} onChange={handlePoChange} className="w-full border p-2 rounded" /></label>
             </div>
 
             <div className="mt-4 flex justify-end">

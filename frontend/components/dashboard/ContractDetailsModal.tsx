@@ -41,7 +41,7 @@ export function ContractDetailsModal({ contractId, onClose }: ContractDetailsMod
               className="flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded font-bold shadow-sm transition cursor-pointer print:hidden text-sm"
             >
               <Printer className="w-4 h-4" />
-              Print / PDF
+              Print PDF
             </button>
           )}
           <button
@@ -96,9 +96,9 @@ export function ContractDetailsModal({ contractId, onClose }: ContractDetailsMod
                 <div key={item.id} className="space-y-2">
                   <div className="flex justify-between items-center text-xs text-black font-bold border-b border-gray-300 pb-1">
                     <span>Product:- {item.item_name}</span>
-                    <span>Quantity:- {formatQty(item.quantity)} {item.uom.toUpperCase()}</span>
-                    <span>Planned Qty:- {formatQty(item.planned_qty)} {item.uom.toUpperCase()}</span>
-                    <span>Prepared Qty:- {formatQty(item.prepared_qty)} {item.uom.toUpperCase()}</span>
+                    <span>Quantity:- {formatQty(item.quantity)} {String(item.uom || '').toUpperCase()}</span>
+                    <span>Planned Qty:- {formatQty(item.planned_qty)} {String(item.uom || '').toUpperCase()}</span>
+                    <span>Prepared Qty:- {formatQty(item.prepared_qty)} {String(item.uom || '').toUpperCase()}</span>
                     <span>Price:- {formatAmt(item.price)}</span>
                   </div>
                   

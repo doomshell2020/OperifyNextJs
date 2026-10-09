@@ -7,6 +7,7 @@ import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { designsheetService } from '../../../../../services/designsheet.service';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { Save, Plus, Trash2, ArrowLeft, Download, Search, Package, Loader2 } from 'lucide-react';
 import Link from 'next/link';
@@ -119,6 +120,7 @@ function ItemAutocomplete({
 export default function EditDesignSheetPage() {
   const canAction = useLegacyActionAccess();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { id } = useParams() as { id: string };
   const [formData, setFormData] = useState({
     contract_id: '', designsheetno: '', item_id: '', quantity: '', datefrom: '', contract_title: '', product_name: ''
@@ -252,6 +254,8 @@ export default function EditDesignSheetPage() {
 
           await designsheetService.updateDesignSheet(id, form);
           toast.success('Design Sheet updated successfully!');
+          await queryClient.invalidateQueries({queryKey: ['designsheets']});
+          await queryClient.invalidateQueries({queryKey: ['designsheet-details']});
           router.push('/dashboard/design-sheet');
       } catch (e: any) {
           toast.error(e.response?.data?.message || 'Error updating design sheet');
@@ -291,7 +295,7 @@ export default function EditDesignSheetPage() {
               <label className="text-xs font-bold text-slate-500 block mb-2">Upload Design Sheet</label>
               <input type="file" onChange={e => setFile(e.target.files?.[0] || null)} className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100" />
               <p className="text-[10px] text-rose-500 font-bold mt-1">PDF, JPG, JPEG or PNG files only</p>
-              {existingFiles.main && <a href={`/designsheet/${existingFiles.main}`} target="_blank" rel="noreferrer" className="text-xs text-blue-500 underline flex items-center gap-1 mt-1"><Download className="w-3 h-3"/> View existing</a>}
+              {existingFiles.main && <button type="button" onClick={() => void designsheetService.downloadFile(String(id), 'design_sheet').catch(() => toast.error('Unable to download file'))} className="text-xs text-blue-500 underline flex items-center gap-1 mt-1"><Download className="w-3 h-3"/> Download existing</button>}
             </div>
 
             {Array(5).fill(0).map((_, i) => (
@@ -303,7 +307,7 @@ export default function EditDesignSheetPage() {
                       setRevisions(newRevs);
                   }} className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-cyan-50 file:text-cyan-700 hover:file:bg-cyan-100" />
                   <p className="text-[10px] text-rose-500 font-bold mt-1">PDF, JPG, JPEG or PNG files only</p>
-                  {existingFiles.r[i] && <a href={`/designsheet/${existingFiles.r[i]}`} target="_blank" rel="noreferrer" className="text-xs text-blue-500 underline flex items-center gap-1 mt-1"><Download className="w-3 h-3"/> View R{i+1}</a>}
+                  {existingFiles.r[i] && <button type="button" onClick={() => void designsheetService.downloadFile(String(id), `r${i+1}`).catch(() => toast.error('Unable to download file'))} className="text-xs text-blue-500 underline flex items-center gap-1 mt-1"><Download className="w-3 h-3"/> Download R{i+1}</button>}
                 </div>
             ))}
         </div>

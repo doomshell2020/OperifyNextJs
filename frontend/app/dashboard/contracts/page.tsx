@@ -283,7 +283,7 @@ export default function ContractsPage() {
                           <Trash2 className="w-4 h-4" />
                         </button>
                       )}
-                      {canAction('production','viewcontractdetailspdf') && <button
+                      {(canAction('production','viewcontractdetail') || canAction('production','viewcontractdetailspdf')) && <button
                         onClick={async () => {
                           try {
                             toast.loading('Generating PDF...', { id: 'pdf-toast' });

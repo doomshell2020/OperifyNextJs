@@ -19,8 +19,10 @@ class VendorRepository {
         v.description,
         v.status,
         v.contact_person,
-        v.type
+        v.type,
+        s.name as state_name
       FROM vendors v
+      LEFT JOIN states s ON s.id = v.state_id
       WHERE v.id = :id
     `;
     const rows = await dbPool.query(query, { replacements: { id }, type: QueryTypes.SELECT });
@@ -38,7 +40,7 @@ class VendorRepository {
     return await dbPool.query(query, { replacements: { searchKey: `%${searchKey}%` }, type: QueryTypes.SELECT });
   }
 
-  async updateVendor(dbPool, id, vendorData) {
+  async updateVendor(dbPool, id, vendorData, transaction) {
     const {
       name, address, state_id, contact_no, email,
       vat_no, tin_no, tin_date, gst_number, pancard_number,
@@ -61,7 +63,7 @@ class VendorRepository {
       id
     };
 
-    await dbPool.query(query, { replacements: params, type: QueryTypes.UPDATE });
+    await dbPool.query(query, { replacements: params, type: QueryTypes.UPDATE, transaction });
     return true; // QueryTypes.UPDATE doesn't always easily expose affectedRows across all dialects, but throws on failure.
   }
 }

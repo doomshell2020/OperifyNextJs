@@ -5,6 +5,7 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import purchaseOrderService, { PurchaseOrderItem } from '../../services/purchaseOrder.service';
 import { Loader, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { DatePicker } from '../ui/DatePicker';
 
 interface DeliveryNoteModalProps {
   poId: number;
@@ -70,7 +71,8 @@ export function DeliveryNoteModal({ poId, onClose }: DeliveryNoteModalProps) {
       queryClient.invalidateQueries({ queryKey: ['purchase-order-details', poId] });
       queryClient.invalidateQueries({ queryKey: ['purchase-order-revision-data', poId] });
       onClose();
-    }
+    },
+    onError: (error: any) => toast.error(error.response?.data?.message || 'Unable to save delivery schedule.')
   });
 
   const handleDateChange = (index: number, val: string) => {
@@ -231,8 +233,8 @@ export function DeliveryNoteModal({ poId, onClose }: DeliveryNoteModalProps) {
                       {[0, 1, 2, 3].map(i => (
                         <React.Fragment key={i}>
                           <td className="border border-gray-300 p-2 w-[9%]">
-                            <input 
-                              type="date" 
+                            <DatePicker
+                              aria-label={`Delivery date ${i + 1}`}
                               min={data.po.po_date?.split('T')[0]} 
                               max={data.po.delivery_date?.split('T')[0]}
                               value={schedules[i].inwarddate} 
@@ -245,6 +247,7 @@ export function DeliveryNoteModal({ poId, onClose }: DeliveryNoteModalProps) {
                               type="number" 
                               step="0.01"
                               min="0"
+                              readOnly={data.schedules?.some(row=>row.status==='N' && Number(row.item_id)===Number(item.item_id) && row.delivery_date?.split('T')[0]===schedules[i].inwarddate)}
                               value={schedules[i].items[item.item_id] || ''} 
                               onChange={e => handleQtyChange(i, item.item_id, e.target.value)}
                               className="w-full px-2 py-1 border border-gray-300 rounded outline-none" 

@@ -7,6 +7,10 @@ const designsheetController = require('./designsheet.controller');
 const authenticate = require('../../middleware/auth');
 const tenantMiddleware = require('../../middleware/tenant');
 const permission = require('../jobChallan/legacyPermission');
+const { requireAnyPermission } = require('../../middleware/permission');
+const sheetFiles = require('./designsheet.files');
+const viewPermission = requireAnyPermission(['legacy:admin/designsheet/index', 'legacy:admin/designsheet/viewdesignsheet']);
+const filePermission = requireAnyPermission(['legacy:admin/designsheet/index', 'legacy:admin/designsheet/viewdesignsheet', 'legacy:admin/designsheet/edit']);
 
 // Enforce auth and multi-tenancy contexts
 router.use(authenticate);
@@ -15,7 +19,7 @@ router.use(tenantMiddleware);
 // Setup Multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const dir = path.join(__dirname, '../../../../frontend/public/designsheet');
+    const dir = sheetFiles.uploadDir(req);
     // Ensure directory exists
     if (!fs.existsSync(dir)){
         fs.mkdirSync(dir, { recursive: true });
@@ -23,11 +27,11 @@ const storage = multer.diskStorage({
     cb(null, dir);
   },
   filename: function (req, file, cb) {
-    // Mimicking CakePHP time() + md5(name) + ext
+    // Keep a readable filename while preventing simultaneous-upload collisions.
     const ext = path.extname(file.originalname);
     const crypto = require('crypto');
-    const hash = crypto.createHash('md5').update(file.originalname).digest('hex');
-    const newName = Math.floor(Date.now() / 1000) + hash + ext;
+    const stem = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9._ -]/g, '_').slice(0, 100) || 'design-sheet';
+    const newName = `${crypto.randomUUID()}-${stem}${ext}`;
     cb(null, newName);
   }
 });
@@ -55,8 +59,11 @@ router.get('/check-item', tenantMiddleware, designsheetController.checkDesignShe
 router.get('/search-items', tenantMiddleware, designsheetController.searchItems);
 router.get('/indent-items', tenantMiddleware, designsheetController.indentItems);
 router.get('/item-category', tenantMiddleware, designsheetController.getItemCatg);
-router.get('/view/:designsheetno', permission('designsheet','viewdesignsheet'), designsheetController.viewDesignSheet);
-router.get('/view/:designsheetno/pdf', permission('designsheet','viewdesignsheet'), (req, res, next) => { req.pdfDownload = true; next(); }, designsheetController.viewDesignSheet);
+router.get('/view/:designsheetno', viewPermission, designsheetController.viewDesignSheet);
+router.get('/view/:designsheetno/pdf', viewPermission, (req, res, next) => { req.pdfDownload = true; next(); }, designsheetController.viewDesignSheet);
+router.get('/records/:id', viewPermission, designsheetController.viewDesignSheet);
+router.get('/records/:id/pdf', viewPermission, (req,res,next)=>{req.pdfDownload=true;next();}, designsheetController.viewDesignSheet);
+router.get('/:id/files/:field', filePermission, sheetFiles.download);
 router.get('/contract-details/:contractId', tenantMiddleware, designsheetController.getContractDetails);
 router.get('/:id', permission('designsheet','edit'), designsheetController.getById);
 

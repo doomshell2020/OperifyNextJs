@@ -97,6 +97,17 @@ async function backendTests() {
   for (const mode of ['revised','delivery']) {
     const route=routerFor('purchaseOrder').stack.find(l=>l.route?.path==='/:id/pdf').route;
     assert.equal((await evaluate(route.stack[0].handle,{user:{permissions:[key('purchaseorder','view')]},query:{mode}})).code,403);
+    assert.equal((await evaluate(route.stack[0].handle,{user:{permissions:[key('purchaseorder','index')]},query:{mode}})).code,200);
+  }
+  for (const [module,url,allowed] of [
+    ['designsheet','/view/:designsheetno',['legacy:admin/designsheet/index','legacy:admin/designsheet/viewdesignsheet']],
+    ['designsheet','/:id/files/:field',['legacy:admin/designsheet/index','legacy:admin/designsheet/edit','legacy:admin/designsheet/viewdesignsheet']],
+    ['vendor','/:id',['legacy:admin/vendors/index','legacy:admin/vendors/viewdetail','legacy:admin/purchaseorder/index']],
+  ]) {
+    const guard=routerFor(module).stack.find(layer=>layer.route?.path===url).route.stack[0].handle;
+    for (const permissions of [[],['legacy:admin/contracts/edit'],...allowed.map(key=>[key])]) {
+      assert.equal((await evaluate(guard,{user:{permissions}})).code,permissions.some(key=>allowed.includes(key))?200:403);
+    }
   }
   const indentPopup = routerFor('indentpo').stack.find(layer => layer.route?.path === '/view-details/:id').route;
   const contractPdf = routerFor('contract').stack.find(layer => layer.route?.path === '/:id/pdf').route;
@@ -193,10 +204,10 @@ function frontendTests() {
     const tree=ContractPopup({contractId:23,onClose:noop});
     const html=renderToStaticMarkup(tree);
     const canPrint=permissions.some(grant=>[key('production','viewcontractdetail'),key('production','viewcontractdetailspdf')].includes(grant));
-    assert.equal(html.includes('Print / PDF'),canPrint,'Contract detail permission must show Print / PDF');
+    assert.equal(html.includes('Print PDF'),canPrint,'Contract detail permission must show Print / PDF');
     if(canPrint) {
       const flatten=element=>!element || typeof element!=='object' ? [] : [element,...React.Children.toArray(element.props?.children).flatMap(flatten)];
-      const button=flatten(tree).find(element=>element.type==='button' && React.Children.toArray(element.props.children).includes('Print / PDF'));
+      const button=flatten(tree).find(element=>element.type==='button' && React.Children.toArray(element.props.children).includes('Print PDF'));
       assert(button,'Contract popup print button must be present');
       openedPdfPaths=[];button.props.onClick();
       assert.deepEqual(openedPdfPaths,['/contracts/23/pdf'],'Contract print must request the selected contract PDF');
@@ -254,7 +265,7 @@ function frontendTests() {
   const po={id:1,amount:1,po_number:'1',is_latest_revision:1,amendment_no:0,delivery_notes_count:0};
   let html=render('app/dashboard/purchase/orders/page.tsx',[key('purchaseorder','index')],{'purchase-orders':{items:[po],total:1,page:1}});
   assert(html.includes('>1</td>') || html.includes('>1</button>'),'PO fixture row must render');
-  assert(!/<button/.test(actionCell(html)),'No empty PO Action menu');
+  assert(/<button/.test(actionCell(html)),'PHP list readers can open the PO print menu');
   html=render('app/dashboard/purchase/orders/page.tsx',[key('purchaseorder','delete')],{'purchase-orders':{items:[po],total:1,page:1}});
   assert(/<button/.test(actionCell(html)),'Permitted PO Action menu');
   for(const [file,controller,queryKey,operation] of [
@@ -281,7 +292,6 @@ function frontendTests() {
   for(const [pathname,controller,action] of [
     ['/dashboard/contracts/add','contracts','add'],['/dashboard/contracts/edit/1','contracts','edit'],
     ['/dashboard/purchase/indentpo/new','indentpo','add'],['/dashboard/admin/products/edit/1','additem','edit'],
-    ['/dashboard/purchase/inspections/print-po/1','purchaseorder','view'],
   ]) {
     currentPath=pathname;
     const Guard=loadTS(path.join(root,'frontend/components/ui/LegacyRouteAccess.tsx')).LegacyRouteAccess;

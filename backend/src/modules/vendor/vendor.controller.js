@@ -4,6 +4,7 @@ class VendorController {
   async getVendor(req, res, next) {
     try {
       const { id } = req.params;
+      if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) return res.status(400).json({success:false,message:'Invalid vendor ID'});
       const data = await repo.getVendorById(req.dbPool, id);
       if (!data) {
         return res.status(404).json({ success: false, message: 'Vendor not found' });
@@ -28,27 +29,15 @@ class VendorController {
   }
 
   async updateVendor(req, res, next) {
-    let connection;
     try {
       const { id } = req.params;
-      
-      connection = await req.dbPool.getConnection();
-      await connection.beginTransaction();
-      
-      const success = await repo.updateVendor(connection, id, req.body);
-      
-      if (!success) {
-        await connection.rollback();
-        return res.status(404).json({ success: false, message: 'Vendor not found' });
-      }
-
-      await connection.commit();
+      if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) return res.status(400).json({success:false,message:'Invalid vendor ID'});
+      const existing = await repo.getVendorById(req.dbPool, id);
+      if (!existing) return res.status(404).json({success:false,message:'Vendor not found'});
+      await req.dbPool.transaction(transaction => repo.updateVendor(req.dbPool, id, {...existing,...req.body}, transaction));
       res.json({ success: true, message: 'Vendor updated successfully' });
     } catch (error) {
-      if (connection) await connection.rollback();
       next(error);
-    } finally {
-      if (connection) connection.release();
     }
   }
 }

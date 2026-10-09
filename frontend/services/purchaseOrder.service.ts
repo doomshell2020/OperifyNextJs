@@ -83,6 +83,7 @@ export interface PurchaseOrderDetailsData {
     item_qty: number;
     delivery_date: string;
     remark?: string;
+    status?: string;
   }>;
   grns?: Array<{
     id: number;
