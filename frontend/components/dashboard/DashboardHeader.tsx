@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePermission } from '../../contexts/PermissionContext';
-import { useJcAccess } from '../jobChallan/useJcAccess';
 import { DEFAULT_LOGO_URL, resolveApiAssetUrl } from '../../services/apiConfig';
 import apiClient from '../../services/apiClient';
 import {
@@ -21,7 +20,6 @@ export const DashboardTopbar: React.FC = () => {
   const pathname = usePathname();
   const { user, loading, logout, switchCompany } = useAuth();
   const { hasPermission } = usePermission();
-  const { can: canJc } = useJcAccess();
   const [profileOpen, setProfileOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>(DEFAULT_LOGO_URL);
   const [companyError, setCompanyError] = useState<string | null>(null);
@@ -65,11 +63,14 @@ export const DashboardTopbar: React.FC = () => {
     { title: 'Daily Stock', icon: <img src="/legacy/headericons/stockregisterdailystock.png" alt="" width={33} height={26}/>, path: '/dashboard/inventory/daily' }
   ];
 
+  // PHP headernew.ctp deliberately renders these three navigation links
+  // without role URL checks. A visible menu is not an action grant: pages and
+  // APIs continue to enforce their own saved permissions.
   const jobWorkItems = [
-    { title: 'JC Challan', path: '/dashboard/jc-challan', allowed: canJc('jobchallan', 'index') },
-    { title: 'JC Receive', path: '/dashboard/jc-receive', allowed: canJc('jobchallan', 'receiveindex') },
-    { title: 'Gate Pass', path: '/dashboard/gatepass', allowed: canJc('gatepasses', 'index') }
-  ].filter(item => item.allowed);
+    { title: 'JC Challan', path: '/dashboard/jc-challan' },
+    { title: 'JC Receive', path: '/dashboard/jc-receive' },
+    { title: 'Gate Pass', path: '/dashboard/gatepass' }
+  ];
 
   const settingsMenu = [
     { title: 'Categories', path: '/dashboard/admin/categories', allowed: hasPermission('legacy:admin/itemcategory/index') },
@@ -145,7 +146,7 @@ export const DashboardTopbar: React.FC = () => {
             );
           })
         )}
-        {user?.role_id !== 101 && jobWorkItems.map(item => <Link key={item.path} href={item.path}
+        {user && user.role_id !== 101 && jobWorkItems.map(item => <Link key={item.path} href={item.path}
           className={`flex flex-col items-center justify-center px-1 h-[52px] gap-[3px] shrink-0 border-b-2 ${pathname.startsWith(item.path) ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'}`}>
           {item.title === "Gate Pass" ? <Receipt className="w-[22px] h-[22px]"/> : <img src={item.title === "JC Challan" ? "/legacy/headericons/cheque.png" : "/legacy/headericons/goodsreceivedindex.png"} alt="" width={33} height={26}/>}
           <span className="text-[9px] whitespace-nowrap">{item.title}</span>

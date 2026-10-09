@@ -153,6 +153,7 @@ function loadTS(filename) {
     if(name.endsWith('.css'))return new Proxy({},{get:(_,prop)=>String(prop)});
     if(name.includes('dateFormatter'))return {formatContractDate:v=>v || '',formatDate:v=>v || ''};
     if(name.includes('ListPagination'))return {ListPagination:dummy,LEGACY_LIST_LIMIT:50};
+    if(name.includes('apiConfig'))return {DEFAULT_LOGO_URL:'/logo.png',resolveApiAssetUrl:value=>value};
     return new Proxy({__esModule:true,default:dummy},{get:(obj,prop)=>prop in obj?obj[prop]:dummy});
   }});
   return m.exports;
@@ -163,6 +164,17 @@ function render(file,permissions,data,rows=[],props={}) {
 }
 function actionCell(markup) { return [...markup.matchAll(/<tr[^>]*>(.*?)<\/tr>/gs)].at(-1)[1].match(/<td[^>]*>(.*?)<\/td>/gs).at(-1); }
 function frontendTests() {
+  grants=[]; fixture={}; seededRows=[]; currentPath='/dashboard';
+  const Topbar=loadTS(path.join(root,'frontend/components/dashboard/DashboardHeader.tsx')).DashboardTopbar;
+  const navigation=renderToStaticMarkup(React.createElement(Topbar));
+  for(const [title,url] of [['JC Challan','/dashboard/jc-challan'],['JC Receive','/dashboard/jc-receive'],['Gate Pass','/dashboard/gatepass']]) {
+    assert(navigation.includes(`href="${url}"`),title+' navigation must match the unconditional PHP menu');
+    assert(navigation.includes('>'+title+'</span>'));
+  }
+  const jcAccess=loadTS(path.join(root,'frontend/components/jobChallan/useJcAccess.ts')).useJcAccess();
+  for(const [controller,action] of [['jobchallan','index'],['jobchallan','add'],['jobchallan','delete'],['jobchallan','viewpdf'],['jobchallan','receiveadd'],['gatepasses','index'],['gatepasses','add'],['gatepasses','edit'],['gatepasses','gatepasspdf']]) {
+    assert.equal(jcAccess.can(controller,action),false,'Visible navigation must not grant '+controller+'/'+action);
+  }
   const row={id:1,indent_id:1,issue_date:today,contract_name:'Contract',product_name:'Product',machine_name:'Machine',indent_id:1};
   for (const actions of combinations) {
     const html=render('app/dashboard/purchase/indentpo/page.tsx',actions.map(a=>key('indentpo',a)),{},[row]);
@@ -227,6 +239,6 @@ function frontendTests() {
     grants=[key(controller,action)];
     assert.equal(renderToStaticMarkup(React.createElement(Guard,null,'allowed form')),'allowed form');
   }
-  console.log('Frontend: 12 managers passed row visibility/blank-cell checks; direct-form guards passed.');
+  console.log('Frontend: PHP job-work navigation, denied action grants, 12 manager row checks and direct-form guards passed.');
 }
 backendTests().then(permissionLoadingTests).then(frontendTests).catch(error=>{console.error(error);process.exitCode=1;});

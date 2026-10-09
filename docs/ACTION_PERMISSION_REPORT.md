@@ -36,3 +36,7 @@ Authentication still reloads current grants on protected requests. Authenticated
 - PHP contains public/unguarded helper actions. Next.js requires saved action grants instead of reproducing those security gaps, as requested. Unconfigured actions are denied. Existing incomplete transactional modules were not implemented as part of this correction.
 
 Regression checks are in `scripts/test-permissions.cjs`; they do not connect to or modify a database.
+
+## Follow-up: missing job-work navigation
+
+The PHP header explicitly leaves JC Challan, JC Receive and Gate Pass navigation unguarded. Applying action permission checks to these menu links hid them for users without those URL grants. The header now preserves PHP's menu visibility for signed-in users in its ordinary ERP navigation. Page/list access, row actions and API operations still require their existing saved grants. A navigation regression test verifies that all three links appear with an empty grant list and that this does not grant any protected action. No permission records were added or changed.
