@@ -4,6 +4,7 @@ const indentpoController = require('./indentpo.controller');
 const auth = require('../../middleware/auth');
 const tenant = require('../../middleware/tenant');
 const permission=require('../jobChallan/legacyPermission');
+const { requireAnyPermission } = require('../../middleware/permission');
 const { requireCurrentIndent } = require('../../middleware/legacyActionDate');
 
 // All routes require authentication and tenant db connection
@@ -28,6 +29,10 @@ router.get('/:indent_id/pdf', permission('indentpo','viewindentpopdf'), indentpo
 router.get('/:indent_id/detail', permission('indentpo','viewindentpodetail'), indentpoController.getIndentpoDetail);
 // Popup details and popup printing both identify the same database row.
 router.get('/view-details/:id/pdf', permission('indentpo','viewindentpopdf'), indentpoController.downloadPdfById);
-router.get('/view-details/:id', permission('indentpo','viewindentpodetail'), indentpoController.getIndentPoDetails);
+// Opening a listed indent is part of reading the Indent Manager.
+router.get('/view-details/:id', requireAnyPermission([
+  'legacy:admin/indentpo/index',
+  'legacy:admin/indentpo/viewindentpodetail',
+]), indentpoController.getIndentPoDetails);
 
 module.exports = router;

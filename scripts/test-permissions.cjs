@@ -98,6 +98,11 @@ async function backendTests() {
     const route=routerFor('purchaseOrder').stack.find(l=>l.route?.path==='/:id/pdf').route;
     assert.equal((await evaluate(route.stack[0].handle,{user:{permissions:[key('purchaseorder','view')]},query:{mode}})).code,403);
   }
+  const indentPopup = routerFor('indentpo').stack.find(layer => layer.route?.path === '/view-details/:id').route;
+  for (const [actions, expected] of [[[],403],[['edit'],403],[['index'],200],[['viewindentpodetail'],200]]) {
+    const result = await evaluate(indentPopup.stack[0].handle, { user:{permissions:actions.map(action => key('indentpo',action))} });
+    assert.equal(result.code, expected, 'Indent popup should accept list or detail access only');
+  }
   const req={user:{permissions:[]},params:{indent_id:'1'},dbPool:{query:async()=>[{issue_date:'2000-01-01'}]}};
   assert.equal((await evaluate(requireCurrentIndent,req)).code,403);
   req.dbPool.query=async()=>[{issue_date:today}]; assert.equal((await evaluate(requireCurrentIndent,req)).code,200);
@@ -176,6 +181,12 @@ function frontendTests() {
     assert.equal(jcAccess.can(controller,action),false,'Visible navigation must not grant '+controller+'/'+action);
   }
   const row={id:1,indent_id:1,issue_date:today,contract_name:'Contract',product_name:'Product',machine_name:'Machine',indent_id:1};
+  for (const actions of [[],['index'],['viewindentpodetail'],['edit']]) {
+    const html = render('app/dashboard/purchase/indentpo/page.tsx',actions.map(action => key('indentpo',action)),{},[row]);
+    const indentButton = [...html.matchAll(/<button\b[^>]*>1<\/button>/g)][0]?.[0];
+    assert(indentButton, 'Indent number must be rendered');
+    assert.equal(indentButton.includes('disabled=""'), !actions.includes('index') && !actions.includes('viewindentpodetail'), 'List access must enable the indent popup');
+  }
   for (const actions of combinations) {
     const html=render('app/dashboard/purchase/indentpo/page.tsx',actions.map(a=>key('indentpo',a)),{},[row]);
     const cell=actionCell(html);

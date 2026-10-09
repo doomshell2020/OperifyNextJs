@@ -4,7 +4,7 @@ import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm, useFieldArray, useWatch, Controller } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch, Controller, type FieldError } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import purchaseOrderService from '@/services/purchaseOrder.service';
@@ -141,7 +141,8 @@ export default function AddPurchaseOrderPage() {
         ]);
         setPoNumber(poRes);
         setVendors(suppliersRes);
-        setTaxes(taxesRes);
+        // Legacy tax rates are stored as strings; form validation requires numbers.
+        setTaxes(taxesRes.map(tax => ({ ...tax, tax: Number(tax.tax) })));
         setAvailableProducts(productsRes);
       } catch (error) {
         console.error(error);
@@ -194,14 +195,16 @@ export default function AddPurchaseOrderPage() {
     }
 
     let lprPrice = product.cost_price || 0;
-    try {
-      const latest = await purchaseOrderService.getLastItemPrice(product.id.toString());
-      if (latest.price != null) lprPrice = latest.price;
-    } catch (e) {
-      console.error("Failed to fetch LPR for product", e);
+    if (canAction('purchaseorder', 'getitemdetail')) {
+      try {
+        const latest = await purchaseOrderService.getLastItemPrice(product.id.toString());
+        if (latest.price != null) lprPrice = latest.price;
+      } catch (e) {
+        console.error("Failed to fetch LPR for product", e);
+      }
     }
 
-    const taxMatch = taxes.find(t => t.tax === product.tax);
+    const taxMatch = taxes.find(t => t.tax === Number(product.tax));
     update(index, {
       ...getValues(`items.${index}`),
       item_id: product.id.toString(),
@@ -306,7 +309,7 @@ export default function AddPurchaseOrderPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="legacy-form legacy-form-po max-w-[1600px] mx-auto p-4 md:p-6 lg:p-8 font-sans space-y-6 bg-gray-50 min-h-screen">
+    <form onSubmit={handleSubmit(onSubmit, () => toast.error('Please correct the errors shown above Submit.'))} className="legacy-form legacy-form-po max-w-[1600px] mx-auto p-4 md:p-6 lg:p-8 font-sans space-y-6 bg-gray-50 min-h-screen">
 <LegacyPageHeader title="Purchase Order Manager"/>
 <div className="legacy-box-heading">Generate Purchase Order id : {poNumber}</div>
 
@@ -489,10 +492,10 @@ export default function AddPurchaseOrderPage() {
                         <td className="p-3 text-right">{formatAmt(rowPreTax)}</td>
                         <td className="p-3">
                            <div className="flex flex-col gap-2">
-                             <select className="w-full h-[40px] border border-gray-300 rounded-md px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm" {...register(`items.${index}.tax_id` as const)} onChange={(e) => {
+                             <select className="w-full h-[40px] border border-gray-300 rounded-md px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm" {...register(`items.${index}.tax_id` as const, { onChange: (e) => {
                                const selectedTax = taxes.find(t => t.id.toString() === e.target.value);
                                setValue(`items.${index}.tax_percentage`, selectedTax ? selectedTax.tax : 0);
-                             }}>
+                             } })}>
                                <option value="">0% GST</option>
                                {taxes.map(t => (
                                  <option key={t.id} value={t.id}>{t.tax}% GST</option>
@@ -687,6 +690,24 @@ export default function AddPurchaseOrderPage() {
         </div>
       )}
 
+      {Object.keys(errors).length > 0 && (
+        <div role="alert" className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <p className="font-medium">Please correct these errors before submitting:</p>
+          <ul className="list-disc pl-5 mt-2">
+            {Object.entries(errors).filter(([name]) => name !== 'items').map(([name, error]) => (
+              <li key={name}>{error?.message}</li>
+            ))}
+            {(errors.items?.message || errors.items?.root?.message) && (
+              <li>{errors.items.message || errors.items.root?.message}</li>
+            )}
+            {Array.isArray(errors.items) && errors.items.map((itemErrors, index) =>
+              itemErrors && Object.entries(itemErrors as Partial<Record<keyof POFormValues['items'][number], FieldError>>).map(([name, error]) => (
+                <li key={`${index}-${name}`}>Item {index + 1} ({name.replaceAll('_', ' ')}): {error?.message}</li>
+              ))
+            )}
+          </ul>
+        </div>
+      )}
 <div className="legacy-form-footer"><div className="flex items-center gap-3">
           <button type="button" onClick={() => router.back()} className="px-4 py-2 h-[42px] bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm flex items-center justify-center gap-2 focus:ring-2 focus:ring-offset-1 focus:ring-gray-200">
             <ArrowLeft className="w-4 h-4" /> Back

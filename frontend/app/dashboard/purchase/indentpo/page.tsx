@@ -141,7 +141,7 @@ export default function IndentPoListPage() {
                 : indents.length === 0 ? <tr><td colSpan={8} className="text-center"><div className="flex items-center justify-center gap-2 py-6"><Search className="h-4 w-4" />No indents found matching your criteria</div></td></tr>
                 : indents.map((indent, index) => <tr key={indent.id}>
                   <td>{(page - 1) * 50 + index + 1}</td>
-                  <td><button type="button" className="font-semibold text-blue-500 hover:underline" disabled={!canAction('indentpo','viewindentpodetail')} onClick={() => setSelectedIndentId(indent.id)}>{indent.indent_id}</button></td>
+                  <td><button type="button" className="font-semibold text-blue-500 hover:underline" disabled={!canAction('indentpo','index') && !canAction('indentpo','viewindentpodetail')} onClick={() => setSelectedIndentId(indent.id)}>{indent.indent_id}</button></td>
                   <td><button type="button" className="text-left font-semibold text-blue-500 hover:underline" disabled={!indent.contract_id || !canAction('production','viewcontractdetail')} onClick={() => setSelectedContractId(indent.contract_id || null)}>{indent.contract_name}{indent.workorder ? `(${indent.workorder})` : ''}</button></td>
                   <td>{indent.product_name}</td>
                   <td>{indent.machine_name}</td>
@@ -191,16 +191,24 @@ function IndentDetailsModal({ id, onClose }: { id: number, onClose: () => void }
   const canAction = useLegacyActionAccess();
   const [details, setDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError('');
+    setDetails(null);
     indentpoService.getIndentPoDetails(id).then(data => {
+      if (!active) return;
       setDetails(data);
-      setLoading(false);
-    }).catch(err => {
-      alert("Failed to load details");
-      onClose();
+    }).catch(() => {
+      if (active) setError('Failed to load indent details. Please try again.');
+    }).finally(() => {
+      if (active) setLoading(false);
     });
-  }, [id]);
+    return () => { active = false; };
+  }, [id, retryKey]);
 
   const handlePrint = () => {
     if (!details?.header?.indent_id) return;
@@ -209,22 +217,26 @@ function IndentDetailsModal({ id, onClose }: { id: number, onClose: () => void }
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-[900px] max-h-[90vh] flex flex-col">
-        {loading ? (
-          <div className="p-12 flex justify-center"><RefreshCw className="w-8 h-8 animate-spin text-blue-600" /></div>
-        ) : details ? (
-          <>
+      <div role="dialog" aria-modal="true" aria-labelledby="indent-details-title" className="bg-white rounded-xl shadow-xl w-full max-w-[900px] max-h-[90vh] flex flex-col">
             <div className="flex justify-between items-center p-4 border-b">
-              <h2 className="text-xl font-bold">Indent Details</h2>
+              <h2 id="indent-details-title" className="text-xl font-bold">Indent Details</h2>
               <div className="flex gap-2">
-                {canAction('indentpo','viewindentpopdf') && <Button onClick={handlePrint} variant="primary">
+                {details && canAction('indentpo','viewindentpopdf') && <Button onClick={handlePrint} variant="primary">
                   <Printer className="w-4 h-4 mr-2" />
                   Print
                 </Button>}
-                <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full">âœ•</button>
+                <button type="button" onClick={onClose} aria-label="Close indent details" className="p-2 hover:bg-slate-100 rounded-full">×</button>
               </div>
             </div>
-
+        {loading ? (
+          <div role="status" aria-label="Loading indent details" className="p-12 flex justify-center"><RefreshCw className="w-8 h-8 animate-spin text-blue-600" /></div>
+        ) : error ? (
+          <div role="alert" className="p-6 text-sm text-red-600">
+            <p>{error}</p>
+            <button type="button" className="mt-3 underline" onClick={() => setRetryKey(key => key + 1)}>Retry</button>
+          </div>
+        ) : details ? (
+          <>
             <div className="p-6 overflow-y-auto" id="printable-indent-modal">
               <div className="grid grid-cols-2 gap-4 mb-8 text-sm">
                 <div>
