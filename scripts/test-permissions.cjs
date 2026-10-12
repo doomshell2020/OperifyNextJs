@@ -66,7 +66,7 @@ const routes = [
   ['gatepass','post','/','gatepasses','add'],['gatepass','put','/:id','gatepasses','edit'],['gatepass','get','/:id/pdf','gatepasses','gatepasspdf'],
   ['gatepass','get','/:id/edit-data','gatepasses','edit'],
   ['reverseIndent','post','/','reverseindent','add'],['reverseIndent','delete','/:id','reverseindent','delete'],['reverseIndent','get','/:id/pdf','reverseindent','viewreverseindentpdf'],
-  ['stockRegister','get','/export','stockregister','summaryexcel'],['stockRegister','get','/daily/export','stockregister','dailystockexcel'],
+  ['stockRegister','get','/daily/export','stockregister','dailystockexcel'],
   ['stockRegister','get','/details/dispatched','stockregister','dispatchedstock'],
   ['settings','post','/products','additem','add'],['settings','put','/products/:id','additem','edit'],['settings','delete','/products/:id','additem','delete'],
   ['settings','patch','/products/:id/status','additem','status'],['settings','get','/products/export','additem','viewitemexcel'],
@@ -103,6 +103,7 @@ async function backendTests() {
     ['jobChallan','/:id/tracking',['legacy:admin/jobchallan/index','legacy:admin/jobchallan/receiveindex','legacy:admin/jobchallan/jcinfo']],
     ['jobReceive','/details',['legacy:admin/jobchallan/receiveadd','legacy:admin/jobchallan/itemreceived']],
     ['stockRegister','/details/received',['legacy:admin/stockregister/index','legacy:admin/stockregister/receivedstock']],
+    ['stockRegister','/export',['legacy:admin/stockregister/index','legacy:admin/stockregister/summaryexcel']],
     ['designsheet','/view/:designsheetno',['legacy:admin/designsheet/index','legacy:admin/designsheet/viewdesignsheet']],
     ['designsheet','/:id/files/:field',['legacy:admin/designsheet/index','legacy:admin/designsheet/edit','legacy:admin/designsheet/viewdesignsheet']],
     ['vendor','/:id',['legacy:admin/vendors/index','legacy:admin/vendors/viewdetail','legacy:admin/purchaseorder/index']],
@@ -262,10 +263,11 @@ function frontendTests() {
   for(const field of ['Received Item Job Challan Entry','Item Name','Qty','Received Date','Vehicle No.','GST %','Tax Amt','Total','+ Add More','Close'])assert(modalForm.includes(field),'Return modal field missing: '+field);
   const receiptPath='/dashboard/inventory/stock/received/2026-10-12/6';
   const stockRow={item_id:6,item_name:'COPPER ROD (CCR)',date_range:'2026-10-12',opening_stock:'5688.40',received_stock:'80.00',dispatched_stock:'0.00',closing_stock:'5768.40'};
-  for (const permissions of [[],[key('stockregister','index')],[key('stockregister','receivedstock')],[key('stockregister','dailystock')],[key('contracts','index')]]) {
+  for (const permissions of [[],[key('stockregister','index')],[key('stockregister','summaryexcel')],[key('stockregister','receivedstock')],[key('stockregister','dailystock')],[key('contracts','index')]]) {
     const allowed=permissions.some(grant=>[key('stockregister','index'),key('stockregister','receivedstock')].includes(grant));
     const html=render('app/dashboard/inventory/stock/page.tsx',permissions,{},[],{},[[],[],'6',[],'2026-10-12','2026-10-12',false,'',[stockRow],false,'received','','','']);
     assert.equal(html.includes(`href="${receiptPath}"`),allowed,'Received quantity must link for stock list or detail readers');
+    assert.equal(html.includes('aria-label="Export Summary Excel"'),permissions.some(grant=>[key('stockregister','index'),key('stockregister','summaryexcel')].includes(grant)),'Export must be visible to register readers, matching PHP and the API');
     if (allowed) assert(html.includes('target="_blank"'),'Opening receipt must preserve index filters');
     currentPath=receiptPath;
     grants=permissions;

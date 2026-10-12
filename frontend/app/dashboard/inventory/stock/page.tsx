@@ -150,7 +150,7 @@ export default function StockRegisterPage() {
             Search
           </button>
           <button onClick={handleReset} className="legacy-button">Reset</button>
-          {canAction('stockregister','summaryexcel') && <button
+          {(canAction('stockregister','index') || canAction('stockregister','summaryexcel')) && <button
             type="button"
             title="Export Summary Excel"
             aria-label="Export Summary Excel"
@@ -167,7 +167,7 @@ export default function StockRegisterPage() {
                   category_ids: selectedCategories
                 });
               } catch(e) {
-                setError('Failed to export Excel');
+                setError('Excel export failed. Please check your Stock Register access or contact your administrator.');
               }
             }}
             className="stock-excel-export"
