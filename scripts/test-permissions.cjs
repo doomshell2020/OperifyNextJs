@@ -100,6 +100,8 @@ async function backendTests() {
     assert.equal((await evaluate(route.stack[0].handle,{user:{permissions:[key('purchaseorder','index')]},query:{mode}})).code,200);
   }
   for (const [module,url,allowed] of [
+    ['jobChallan','/:id/tracking',['legacy:admin/jobchallan/index','legacy:admin/jobchallan/receiveindex','legacy:admin/jobchallan/jcinfo']],
+    ['jobReceive','/details',['legacy:admin/jobchallan/receiveadd','legacy:admin/jobchallan/itemreceived']],
     ['stockRegister','/details/received',['legacy:admin/stockregister/index','legacy:admin/stockregister/receivedstock']],
     ['designsheet','/view/:designsheetno',['legacy:admin/designsheet/index','legacy:admin/designsheet/viewdesignsheet']],
     ['designsheet','/:id/files/:field',['legacy:admin/designsheet/index','legacy:admin/designsheet/edit','legacy:admin/designsheet/viewdesignsheet']],
@@ -187,7 +189,7 @@ function loadTS(filename) {
     if(name.includes('legacyActionDate'))return {isLegacyToday};
     if(name.includes('useListLocation'))return {useListLocation:()=>true};
     if(name==='@tanstack/react-query')return {useQuery:options=>({data:fixture[options.queryKey[0]],isLoading:false,isError:false,refetch:noop}),useQueryClient:()=>({invalidateQueries:noop}),useMutation:()=>({mutate:noop,isPending:false})};
-    if(name==='next/navigation')return {useRouter:()=>({push:noop}),usePathname:()=>currentPath,useParams:()=>({date:'2026-10-12',productId:'6'})};
+    if(name==='next/navigation')return {useRouter:()=>({push:noop}),usePathname:()=>currentPath,useParams:()=>({id:'111',date:'2026-10-12',productId:'6'}),useSearchParams:()=>new URLSearchParams()};
     if(name==='next/link')return {__esModule:true,default:({children,href,...props})=>React.createElement('a',{href,...props},children)};
     if(name==='lucide-react')return new Proxy({},{get:(_,icon)=>()=>React.createElement('svg',{'data-icon':icon})});
     if(name.endsWith('.css'))return new Proxy({},{get:(_,prop)=>String(prop)});
@@ -209,6 +211,22 @@ function render(file,permissions,data,rows=[],props={},states=null) {
 function actionCell(markup) { return [...markup.matchAll(/<tr[^>]*>(.*?)<\/tr>/gs)].at(-1)[1].match(/<td[^>]*>(.*?)<\/td>/gs).at(-1); }
 function frontendTests() {
   const flatten = element => !element || typeof element !== 'object' ? [] : [element, ...React.Children.toArray(element.props?.children).flatMap(flatten)];
+  const localReceive={challan_id:111,challan_no:'792',item_id:1,item_name:'Existing item',dispatch_qty:10,total_received:4,pending_qty:6,sender_name:'Local party',jc_date:'2026-10-12'};
+  const jcReceiveHtml=render('components/jobChallan/JcReceiveList.tsx',[key('jobchallan','receiveindex'),key('jobchallan','receiveadd')],{'jc-receive':{items:[localReceive],total:1}});
+  assert(jcReceiveHtml.includes('href="/dashboard/jc-challan/111/tracking"'));
+  assert(jcReceiveHtml.includes('href="/dashboard/jc-receive/create?challan_id=111"'));
+  assert(!jcReceiveHtml.includes('sender_db') && !jcReceiveHtml.includes('%7C'),'Receive navigation must stay local');
+  const localJc={...localReceive,id:111,vendor:{name:'Local party'},status:'Pending',job_challan_items:[{id:1,item_id:1,item_name:'Existing item',quantity:10,received_qty:4,pending_qty:6,total_amount:20,rate:2,tax_rate:0,item:{item_name:'Existing item'}}]};
+  const jcHtml=render('app/dashboard/jc-challan/page.tsx',[key('jobchallan','index')],{jobChallans:{items:[localJc],total:1},jcVendors:[]});
+  assert(jcHtml.includes('/dashboard/jc-challan/111/tracking') && jcHtml.includes('Closed'));
+  assert(!jcHtml.includes('Amount (') && !jcHtml.includes('value="Received"'),'Index columns and statuses must match PHP');
+  const trackingHtml=render('app/dashboard/jc-challan/[id]/tracking/page.tsx',[key('jobchallan','index')],{jcTracking:{challan:localJc,history:[{id:8,item_id:1,item_name:'Existing item',received_qty:4,receive_date:'2026-10-12'}],tracking:{1:{consumed:10,balance:6}},returnedItems:{'Existing item':{type:'Processed/Returned',output:'-',quantity:4}}}});
+  for (const title of ['Item Receipts History','Production &amp; Return Tracking','Returned Items (Finished Goods / Unused RM)']) assert(trackingHtml.includes(title));
+  const returnForm=render('components/jobChallan/ReceiveForm.tsx',[key('jobchallan','itemreceived')],{receivePending:{items:[{item_id:1,item_name:'Existing item',original_qty:10,received_qty:4,pending_qty:6}]},jcReturnTaxes:[]},[],{returnId:'111'});
+  assert(returnForm.includes('Received Date') && returnForm.includes('Vehicle No.') && returnForm.includes('GST %'),'Return row must preserve PHP date, vehicle and valuation fields');
+  assert(!returnForm.includes('linked company'));
+  const modalForm=render('components/jobChallan/ReturnForm.tsx',[key('jobchallan','itemreceived')],{receivePending:{items:[{item_id:1,item_name:'Existing item',original_qty:10,pending_qty:6}]},jcReturnTaxes:[{id:1,tax:18}]},[],{id:'111'});
+  for(const field of ['Received Item Job Challan Entry','Item Name','Qty','Received Date','Vehicle No.','GST %','Tax Amt','Total','+ Add More','Close'])assert(modalForm.includes(field),'Return modal field missing: '+field);
   const receiptPath='/dashboard/inventory/stock/received/2026-10-12/6';
   const stockRow={item_id:6,item_name:'COPPER ROD (CCR)',date_range:'2026-10-12',opening_stock:'5688.40',received_stock:'80.00',dispatched_stock:'0.00',closing_stock:'5768.40'};
   for (const permissions of [[],[key('stockregister','index')],[key('stockregister','receivedstock')],[key('stockregister','dailystock')],[key('contracts','index')]]) {

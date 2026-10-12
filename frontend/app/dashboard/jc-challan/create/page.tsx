@@ -31,10 +31,11 @@ const emptyItem = (): ItemRow => ({
 
 // ─── Item Search Dropdown ────────────────────────────────────────────────────
 function ItemSearch({
-  value, onSelect, processType, placeholder
+  value, onSelect, onClear, processType, placeholder
 }: {
   value: string;
   onSelect: (item: any) => void;
+  onClear: (value: string) => void;
   processType: string;
   placeholder?: string;
 }) {
@@ -43,6 +44,7 @@ function ItemSearch({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const timer = useRef<any>(null);
+  const requestVersion = useRef(0);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setSearch(value); }, [value]);
@@ -56,21 +58,23 @@ function ItemSearch({
   }, []);
 
   const doSearch = useCallback(async (q: string) => {
+    const version = ++requestVersion.current;
     if (!q.trim()) { setResults([]); setOpen(false); return; }
     setLoading(true);
     try {
       const res = await apiClient.get('/job-challan/search-items', {
         params: { search: q, process_type: processType }
       });
-      setResults(res.data.data || []);
-      setOpen(true);
-    } catch { setResults([]); }
-    setLoading(false);
+      if (version === requestVersion.current) { setResults(res.data.data || []); setOpen(true); }
+    } catch { if (version === requestVersion.current) setResults([]); }
+    if (version === requestVersion.current) setLoading(false);
   }, [processType]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value;
     setSearch(v);
+    onClear(v);
+    requestVersion.current++;
     clearTimeout(timer.current);
     timer.current = setTimeout(() => doSearch(v), 250);
   };
@@ -143,6 +147,7 @@ export default function AddJobChallan() {
   const [sfpRate, setSfpRate] = useState('');
   const [sfpTax, setSfpTax] = useState('');
   const [sfpHsn, setSfpHsn] = useState('');
+  const sfpRequest = useRef(0);
 
   // Dropdown data
   const [vendors, setVendors] = useState<any[]>([]);
@@ -165,15 +170,18 @@ export default function AddJobChallan() {
   // Fetch in-hand stock + hsn + tax for a given item row
   const fetchItemStock = async (item_id: string, rowIdx: number, isSfp = false) => {
     if (!item_id) return;
+    const version = isSfp ? ++sfpRequest.current : 0;
     try {
       const res = await apiClient.get('/job-challan/item-stock', { params: { item_id } });
       const d = res.data.data;
       if (isSfp) {
+        if (version !== sfpRequest.current) return;
         setSfpInHand(String(d.inhand_qty));
         setSfpHsn(d.hsn_code || '');
         setSfpTax(String(d.tax_rate || ''));
       } else {
         setItems(prev => {
+          if (prev[rowIdx]?.item_id !== item_id) return prev;
           const upd = [...prev];
           upd[rowIdx] = {
             ...upd[rowIdx],
@@ -402,6 +410,7 @@ export default function AddJobChallan() {
                         value={row.item_name}
                         processType="Manufacturing"
                         onSelect={item => handleItemSelect(item, idx)}
+                        onClear={value => setItems(prev => prev.map((item, i) => i === idx ? { ...emptyItem(), item_name: value, quantity: item.quantity, rate: item.rate } : item))}
                         placeholder="Search item..."
                       />
                     </td>
@@ -467,53 +476,40 @@ export default function AddJobChallan() {
 
         {/* ── Semi-Finished Product (In Progress only) ─── */}
         {processingType === 'In Progress' && (
-          <div className="bg-white border border-pink-200 p-6 rounded-xl shadow-sm">
-            <h3 className="text-sm font-bold text-pink-700 uppercase tracking-wider mb-4 border-b border-pink-100 pb-2">
-              Semi-Finished Product <span className="text-red-500">*</span>
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <div>
-                <label className={labelCls}>Product Name <span className="text-red-500">*</span></label>
-                <ItemSearch
-                  value={sfpName}
-                  processType="Semi-Finished"
-                  onSelect={handleSfpSelect}
-                  placeholder="Search semi-finished product..."
-                />
-                <input type="hidden" value={sfpId} />
-              </div>
-              <div>
-                <label className={labelCls}>Quantity <span className="text-red-500">*</span></label>
-                <input type="number" min="0.01" step="0.01" className={inputCls}
-                  value={sfpQty} onChange={e => setSfpQty(e.target.value)} placeholder="Enter quantity" />
-              </div>
-              <div>
-                <label className={labelCls}>In Hand Qty</label>
-                <input type="text" readOnly className={inputCls + ' bg-slate-50'} value={sfpInHand} placeholder="Fetched from server" />
-              </div>
-              <div><label className={labelCls}>HSN/SAC</label><input className={inputCls} value={sfpHsn} onChange={e => setSfpHsn(e.target.value)} /></div>
-              <div><label className={labelCls}>Rate</label><input type="number" min="0" step="0.01" className={inputCls} value={sfpRate} onChange={e => setSfpRate(e.target.value)} /></div>
-              <div><label className={labelCls}>Tax %</label><select className={inputCls} value={sfpTax} onChange={e => setSfpTax(e.target.value)}><option value="">-- Tax --</option>{taxMaster.map(t => <option key={t.id} value={String(t.tax)}>{t.tax}%</option>)}</select></div>
-              <div><label className={labelCls}>Tax Amount</label><input readOnly className={inputCls} value={sfpTaxAmount.toFixed(2)} /></div>
-              <div><label className={labelCls}>Total Amount</label><input readOnly className={inputCls} value={(sfpBase + sfpTaxAmount).toFixed(2)} /></div>
-            </div>
+          <div className="bg-white p-3 overflow-x-auto">
+            <table className="w-full text-sm" style={{minWidth:900}}><thead><tr>
+              {['Product Name *','In Hand Qty','Quantity *','HSN/SAC','Rate','Tax %','Tax Amount','Total Amount'].map(title=><th className="p-2" key={title}>{title}</th>)}
+            </tr></thead><tbody><tr>
+              <td className="p-2" style={{minWidth:220}}><ItemSearch value={sfpName} processType="Semi-Finished" onSelect={handleSfpSelect}
+                onClear={value=>{sfpRequest.current++;setSfpId('');setSfpName(value);setSfpInHand('0');setSfpHsn('');setSfpTax('');}} placeholder="Search semi-finished product..." /></td>
+              <td className="p-2"><input readOnly className={inputCls} value={sfpInHand} /></td>
+              <td className="p-2"><input type="number" min="0.01" step="0.01" className={inputCls} value={sfpQty} onChange={e=>setSfpQty(e.target.value)} /></td>
+              <td className="p-2"><input className={inputCls} value={sfpHsn} onChange={e=>setSfpHsn(e.target.value)} /></td>
+              <td className="p-2"><input type="number" min="0" step="0.01" className={inputCls} value={sfpRate} onChange={e=>setSfpRate(e.target.value)} /></td>
+              <td className="p-2"><select className={inputCls} value={sfpTax} onChange={e=>setSfpTax(e.target.value)}><option value="">-- Tax --</option>{taxMaster.map(t=><option key={t.id} value={String(t.tax)}>{t.tax}%</option>)}</select></td>
+              <td className="p-2"><input readOnly className={inputCls} value={sfpTaxAmount.toFixed(2)} /></td>
+              <td className="p-2"><input readOnly className={inputCls} value={(sfpBase+sfpTaxAmount).toFixed(2)} /></td>
+            </tr></tbody></table>
           </div>
         )}
 
-        {/* ── Buttons ───────────────────────────────────── */}
         <div className="flex items-center justify-end gap-3 pt-2">
-          <button type="button" onClick={() => router.push('/dashboard/jc-challan')}
+          <button type="button" onClick={() => {
+            sfpRequest.current++;
+            setChallanNo(''); setJcDate(localDate()); setVendorId(''); setGstNo(''); setEstimatedValues(''); setExpectedDays(''); setWorkDescription('');
+            setProcessingType('Manufacturing'); setItems([emptyItem()]); setSfpId(''); setSfpName(''); setSfpQty(''); setSfpInHand('0'); setSfpRate(''); setSfpTax(''); setSfpHsn('');
+          }}
             className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition">
             Reset
           </button>
           <button type="submit" disabled={loading}
             className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-2.5 rounded-lg font-semibold shadow-md transition disabled:opacity-50">
             {loading ? <Loader className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {loading ? 'Saving...' : 'Save Job Challan'}
+            {loading ? 'Saving...' : 'Save'}
           </button>
         </div>
 
-<div className="legacy-form-footer"><button onClick={() => router.back()} className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-sm font-medium transition">
+<div className="legacy-form-footer"><button type="button" onClick={() => router.back()} className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-md text-sm font-medium transition">
           <ArrowLeft className="w-4 h-4" /> Back to List
         </button></div>
 </form>

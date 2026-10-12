@@ -3,7 +3,7 @@ import { Search } from 'lucide-react';
 import { Product } from '@/services/settings.service';
 
 interface ProductSearchSelectProps {
-  products: Product[];
+  products: Pick<Product, 'id' | 'item_name'>[];
   value: string;
   onChange: (productId: string) => void;
   error?: string;

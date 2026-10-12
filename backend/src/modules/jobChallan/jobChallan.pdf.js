@@ -56,14 +56,14 @@ async function generateJobChallanPDF(payload) {
   const firstItem = items[0] || {};
   const item = plain(firstItem.item);
 
-  const supplierName = siteSetting.first_name || siteDetails.company_name || 'Tirupati Plastomatics (P) Ltd.';
+  const supplierName = siteSetting.first_name || siteDetails.company_name || '';
   const supplierAddress = [
     siteDetails.address1,
     siteDetails.address2
-  ].filter(Boolean).join(', ') || siteDetails.address || 'Plot No. B-141-A, Road No. 9-D, V.K.I Area, Jaipur - 302013';
+  ].filter(Boolean).join(', ') || siteDetails.address || '';
   const configuredGstin = siteDetails.gst_no || siteDetails.gst;
-  const supplierGstin = configuredGstin && configuredGstin !== '00' ? configuredGstin : '08AAACT5317J1ZA';
-  const supplierPan = siteDetails.pan_number || siteDetails.pan_no || 'AAACT5317J';
+  const supplierGstin = configuredGstin && configuredGstin !== '00' ? configuredGstin : '';
+  const supplierPan = siteDetails.pan_number || siteDetails.pan_no || '';
   const supplierCity = 'Jaipur'; // The legacy template always uses Jaipur for Place.
   const taxRate = Number(firstItem.tax_rate || 0);
   const taxAmount = Number(firstItem.tax_amount || 0);

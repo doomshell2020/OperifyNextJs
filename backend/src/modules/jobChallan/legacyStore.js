@@ -49,27 +49,22 @@ function filterRows(rows, query, dateField) {
   const search = String(query.search || '').toLowerCase();
   const challanNo = String(query.challan_no || query.challanNo || '').toLowerCase();
   const from = query.from_date || query.fromDate, to = query.to_date || query.toDate;
+  if (from) date(from, 'From Date');
+  if (to) date(to, 'To Date');
+  if (from && to && from > to) fail('To Date cannot be earlier than From Date');
+  const dateValue = value => value instanceof Date ? value.toISOString().slice(0,10) : String(value || '').slice(0,10);
   const vendor = query.sub_contractor_id || query.vendor_id || query.vendorId;
   return rows.filter(row => (!challanNo || String(row.challan_no || '').toLowerCase().includes(challanNo)) && (!search || [row.challan_no, row.gatepass_no, row.reference_jc_no, row.item_name, row.sender_name, row.company_name, row.vendor_name].some(v => String(v || '').toLowerCase().includes(search))) &&
     (!vendor || String(row.sub_contractor_id || row.sub_contractors_id) === String(vendor)) &&
     (!query.status || row.status === query.status) &&
-    (!from || String(row[dateField] || '').slice(0, 10) >= from) && (!to || String(row[dateField] || '').slice(0, 10) <= to));
-}
-async function linked(dbName) {
-  const db = await getTenantSequelize(dbName);
-  return select(db, "SELECT DISTINCT name, database_name FROM sub_contractors WHERE database_name IS NOT NULL AND database_name != '' AND database_name != :dbName", { dbName });
+    (!from || dateValue(row[dateField]) >= from) && (!to || dateValue(row[dateField]) <= to));
 }
 async function source(dbName, senderDb, challanId, transaction, connection) {
+  if (senderDb && senderDb !== dbName) fail('JC records must belong to the selected company.', 403);
   const db = connection || await getTenantSequelize(dbName);
   const id = positiveId(challanId);
-  if (senderDb === dbName) {
-    const [jc] = await select(db, `SELECT * FROM job_challans WHERE id=:id${transaction ? ' FOR UPDATE' : ''}`, { id }, transaction);
-    if (!jc) fail('Job Challan not found', 404);
-    return jc;
-  }
-  if (!(await linked(dbName)).some(row => row.database_name === senderDb)) fail('Sender company is not linked to this tenant', 403);
-  const [jc] = await select(db, `SELECT j.* FROM ${table('job_challans', senderDb)} j JOIN ${table('sub_contractors', senderDb)} s ON s.id=j.sub_contractors_id WHERE j.id=:id AND s.database_name=:dbName${transaction ? ' FOR UPDATE' : ''}`, { id, dbName }, transaction);
-  if (!jc) fail('Unauthorized or invalid Job Challan', 403);
+  const [jc] = await select(db, `SELECT * FROM job_challans WHERE id=:id${transaction ? ' FOR UPDATE' : ''}`, { id }, transaction);
+  if (!jc) fail('Job Challan not found', 404);
   return jc;
 }
 async function stock(db, itemId, transaction, database) {
@@ -77,6 +72,10 @@ async function stock(db, itemId, transaction, database) {
   return Number(row.balance);
 }
 async function movement(db, { challan_id, item_id, quantity, issue_date, sub_contractors_id, store_type }, transaction) {
+  const fields = new Set((await columns(db, 'st_stock_register')).map(column => column.Field));
+  if (['indent_id','contract_id','finishedproduct_id','item_id','quantity','issue_date','sub_contractors_id','store_type','status'].some(field => !fields.has(field))) {
+    fail('Required JC stock columns are missing in the selected company. No entry was saved.', 409);
+  }
   return insert(db, 'st_stock_register', { indent_id: String(challan_id || 0), contract_id: '0', finishedproduct_id: '0', item_id, quantity, issue_date, sub_contractors_id, store_type, added_time: new Date(), status: 'Y' }, transaction);
 }
-module.exports = { fail, identifier, table, select, columns, insert, positiveId, number, date, today, round, paginate, filterRows, linked, source, stock, movement };
+module.exports = { fail, identifier, table, select, columns, insert, positiveId, number, date, today, round, paginate, filterRows, source, stock, movement };

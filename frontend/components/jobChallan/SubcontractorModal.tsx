@@ -1,5 +1,6 @@
 'use client';
 import {useState} from 'react';
+import {createPortal} from 'react-dom';
 import apiClient from '@/services/apiClient';
 import toast from 'react-hot-toast';
 import {buttonClass,inputClass,errorMessage,useJcAccess} from './useJcAccess';
@@ -8,5 +9,22 @@ export default function SubcontractorModal({onAdded}:{onAdded:(vendor:{id:number
   const [form,setForm]=useState<Record<string,string>>({});
   const {can}=useJcAccess();
   if (!can('jobchallan','ajaxaddsubcontractor')) return null;
-  return <><button type="button" className="text-cyan-700 text-sm underline" onClick={()=>setOpen(true)}>Add Sub Contractor</button>{open && <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"><div role="dialog" aria-modal="true" aria-label="Add Sub Contractor" className="bg-white rounded-xl p-6 w-full max-w-lg space-y-3"><h2 className="font-bold text-lg">Add Sub Contractor</h2>{[['name','Company/Party Name'],['contact_person','Contact Person'],['mobile','Contact Number'],['email','Email'],['pan_no','PAN No.'],['gst_no','GST No.'],['address','Address']].map(([key,label])=><label key={key} className="block text-sm">{label}<input className={inputClass} type={key==='email'?'email':'text'} value={form[key] || ''} onChange={e=>setForm({...form,[key]:e.target.value})}/></label>)}<div className="flex gap-3"><button type="button" disabled={busy} className={buttonClass} onClick={async()=>{if(!form.name?.trim()){toast.error('Company/Party Name is required');return;}setBusy(true);try{const response=await apiClient.post('/job-challan/vendors',form);onAdded(response.data.data);setOpen(false);setForm({});}catch(error){toast.error(errorMessage(error));}finally{setBusy(false);}}}>{busy?'Saving...':'Save'}</button><button type="button" onClick={()=>setOpen(false)}>Cancel</button></div></div></div>}</>;
+  return <><button type="button" className="text-cyan-700 text-sm underline" onClick={()=>setOpen(true)}>Add Company / Party</button>
+    {open && createPortal(<div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <div role="dialog" aria-modal="true" aria-label="Add Company / Party" className="bg-white w-full max-w-[999px]">
+        <div className="flex items-center justify-between p-3 bg-[#3399CC] text-white"><h2>Add Company / Party</h2><button type="button" aria-label="Close" onClick={()=>setOpen(false)}>×</button></div>
+        <form className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4" onSubmit={async event=>{
+          event.preventDefault();event.stopPropagation();if(busy)return;
+          if(!form.name?.trim()){toast.error('Company/Party Name is required');return;}
+          setBusy(true);try{const response=await apiClient.post('/job-challan/vendors',form);onAdded(response.data.data);setOpen(false);setForm({});}
+          catch(error){toast.error(errorMessage(error));}finally{setBusy(false);}
+        }}>
+          {[['name','Company/Party Name'],['contact_person','Contact Person'],['mobile','Mobile'],['email','Email'],['pan_no','PAN NO.'],['gst_no','GST No.']].map(([key,label])=><label key={key} className="block text-sm">{label}{key==='name' && ' *'}
+            <input required={key==='name'} className={inputClass} type={key==='email'?'email':'text'} maxLength={key==='mobile'?15:['pan_no','gst_no'].includes(key)?20:undefined} value={form[key] || ''} onChange={event=>setForm({...form,[key]:event.target.value})}/></label>)}
+          <label className="md:col-span-3">Address<textarea rows={2} className={inputClass} value={form.address || ''} onChange={event=>setForm({...form,address:event.target.value})}/></label>
+          <div className="md:col-span-3"><button type="submit" disabled={busy} className={buttonClass}>{busy?'Saving...':'Submit'}</button></div>
+        </form>
+      </div>
+    </div>,document.body)}
+  </>;
 }

@@ -3,12 +3,10 @@ const L = require('../jobChallan/legacyStore');
 const manualFields = ['is_manual','manual_challan_no','reference_jc_no','challan_date','vehicle_no','jc_type','other_company_name','receive_no'];
 class ReceiveService {
   async options(dbName) {
-    const db = await getTenantSequelize(dbName), eligible = [];
-    for (const sender of await L.linked(dbName)) {
-      const rows = await L.select(db, `SELECT j.id,j.challan_no,j.jc_date FROM ${L.table('job_challans',sender.database_name)} j JOIN ${L.table('sub_contractors',sender.database_name)} s ON s.id=j.sub_contractors_id
-        WHERE s.database_name=:dbName AND j.status NOT IN ('Completed','Cancelled','Deleted') AND COALESCE((SELECT SUM(quantity) FROM ${L.table('job_challan_items',sender.database_name)} WHERE challan_id=j.id),0) > COALESCE((SELECT SUM(received_qty) FROM ${L.table('job_challan_receives',sender.database_name)} WHERE challan_id=j.id),0) ORDER BY j.id DESC`, { dbName });
-      eligible.push(...rows.map(row => ({ ...row, key: `${row.id}|${sender.database_name}`, sender_db: sender.database_name, sender_name: sender.name })));
-    }
+    const db = await getTenantSequelize(dbName);
+    const rows = await L.select(db, `SELECT j.id,j.challan_no,j.jc_date,s.name AS sender_name FROM job_challans j LEFT JOIN sub_contractors s ON s.id=j.sub_contractors_id
+      WHERE j.status NOT IN ('Completed','Cancelled','Deleted') AND COALESCE((SELECT SUM(quantity) FROM job_challan_items WHERE challan_id=j.id),0) > COALESCE((SELECT SUM(received_qty) FROM job_challan_receives WHERE challan_id=j.id),0) ORDER BY j.id DESC`);
+    const eligible = rows.map(row => ({ ...row, key: String(row.id) }));
     const products = await L.select(db, "SELECT a.id,a.item_name,a.itemtype,u.unit_name FROM st_additem a LEFT JOIN st_measurementunits u ON u.id=a.uom WHERE a.status='Y' ORDER BY a.item_name");
     const vendors = await L.select(db, 'SELECT id,name,gst_no FROM sub_contractors ORDER BY name');
     const fields = new Set((await L.columns(db,'job_challan_receives')).map(column=>column.Field));
@@ -16,15 +14,17 @@ class ReceiveService {
   }
   async details(dbName, query) {
     const db = await getTenantSequelize(dbName);
-    const [id, senderDb] = String(query.challan_id || '').split('|');
+    const [id, requestedDb] = String(query.challan_id || '').split('|');
+    if (requestedDb && requestedDb !== dbName) L.fail('JC records must belong to the selected company.',403);
+    const senderDb = dbName;
     if (query.jc_type === 'Others') {
       const [jc] = await L.select(db, 'SELECT * FROM job_challans WHERE challan_no=:no LIMIT 1', { no: query.reference_jc_no || '' });
       if (!jc) L.fail('Reference JC Not Found',404);
-      return this.details(dbName, { challan_id: `${jc.id}|${dbName}` });
+      return this.details(dbName, { challan_id: String(jc.id) });
     }
     const jc = await L.source(dbName,senderDb,id);
     const items = await this.pending(db,jc.id,senderDb);
-    const [company] = senderDb === dbName ? await L.select(db,'SELECT name AS cname FROM sub_contractors WHERE id=:id',{id:jc.sub_contractors_id}) : await L.select(db,`SELECT cname FROM ${L.table('st_companymaster',senderDb)} WHERE main_branch='Y' LIMIT 1`);
+    const [company] = await L.select(db,'SELECT name AS cname FROM sub_contractors WHERE id=:id',{id:jc.sub_contractors_id});
     return { ...jc, from_company: company?.cname || '', items };
   }
   async pending(db,id,senderDb,t) {
@@ -38,21 +38,20 @@ class ReceiveService {
     const db=await getTenantSequelize(dbName), rows=[];
     const fields = new Set((await L.columns(db,'job_challan_receives')).map(column=>column.Field));
     if (manualFields.every(field=>fields.has(field))) rows.push(...await L.select(db,`SELECT r.id AS challan_id,r.id AS receive_id,r.manual_challan_no AS challan_no,r.reference_jc_no,r.challan_date AS jc_date,r.receive_date,r.vehicle_no,r.item_id,a.item_name,r.dispatch_qty,r.received_qty AS total_received,r.sub_contractors_id,COALESCE(r.other_company_name,s.name,'Manual') AS sender_name,1 AS is_manual,'local' AS sender_db FROM job_challan_receives r LEFT JOIN st_additem a ON a.id=r.item_id LEFT JOIN sub_contractors s ON s.id=r.sub_contractors_id WHERE r.is_manual=1 ORDER BY r.id DESC`));
-    for (const sender of await L.linked(dbName)) {
-      const incoming=await L.select(db,`SELECT j.id AS challan_id,j.challan_no,j.jc_date,j.vehicle_no,j.status,j.sub_contractors_id,i.item_id,a.item_name,SUM(i.quantity) AS dispatch_qty,
-        COALESCE((SELECT SUM(received_qty) FROM ${L.table('job_challan_receives',sender.database_name)} r WHERE r.challan_id=j.id AND r.item_id=i.item_id),0) AS total_received
-        FROM ${L.table('job_challans',sender.database_name)} j JOIN ${L.table('sub_contractors',sender.database_name)} s ON s.id=j.sub_contractors_id JOIN ${L.table('job_challan_items',sender.database_name)} i ON i.challan_id=j.id LEFT JOIN ${L.table('st_additem',sender.database_name)} a ON a.id=i.item_id
-        WHERE s.database_name=:dbName AND j.status != 'Cancelled' GROUP BY j.id,j.challan_no,j.jc_date,j.vehicle_no,j.status,j.sub_contractors_id,i.item_id,a.item_name ORDER BY j.id DESC`,{dbName});
-      rows.push(...incoming.map(row=>({...row,sender_db:sender.database_name,sender_name:sender.name})));
-    }
+    const incoming=await L.select(db,`SELECT j.id AS challan_id,j.challan_no,j.jc_date,j.vehicle_no,j.status,j.sub_contractors_id,s.name AS sender_name,i.item_id,a.item_name,SUM(i.quantity) AS dispatch_qty,
+      COALESCE((SELECT SUM(received_qty) FROM job_challan_receives r WHERE r.challan_id=j.id AND r.item_id=i.item_id),0) AS total_received
+      FROM job_challans j LEFT JOIN sub_contractors s ON s.id=j.sub_contractors_id JOIN job_challan_items i ON i.challan_id=j.id LEFT JOIN st_additem a ON a.id=i.item_id
+      WHERE j.status != 'Cancelled' GROUP BY j.id,j.challan_no,j.jc_date,j.vehicle_no,j.status,j.sub_contractors_id,s.name,i.item_id,a.item_name ORDER BY j.id DESC`);
+    rows.push(...incoming);
     return L.paginate(L.filterRows(rows.map(row=>({...row,pending_qty:Math.max(0,L.round(Number(row.dispatch_qty)-Number(row.total_received)))})),query,'jc_date'),query);
   }
   async create(dbName,payload,localReturnId) {
     const db=await getTenantSequelize(dbName);
     const manual=payload.jc_type==='Others' && !localReturnId;
-    const [rawId,senderDb]=localReturnId ? [localReturnId,dbName] : String(payload.challan_id || '').split('|');
-    if (!manual && !localReturnId && senderDb===dbName) L.fail('Select an incoming JC from a linked company');
-    // Qualified tables share the same MySQL connection and transaction.
+    const [rawId,requestedDb]=localReturnId ? [localReturnId,dbName] : String(payload.challan_id || '').split('|');
+    if (requestedDb && requestedDb!==dbName) L.fail('JC records must belong to the selected company.',403);
+    const senderDb=dbName;
+    // Lock the local JC and save the receipt, IN movement and status together.
     return db.transaction(async t=>{
       const saved=[];
       if (manual) {
@@ -92,14 +91,8 @@ class ReceiveService {
           const cols=await L.columns(db,'job_challan_receives',senderDb);
           if (receipt.vehicle_no && !cols.some(col=>col.Field==='vehicle_no')) L.fail('The sender company is missing the receive vehicle column. Apply the reviewed JC schema migration first.',409);
           if (localReturnId && (rate || tax_rate) && ['rate','tax_rate','tax_amount','amount'].some(name=>!cols.some(col=>col.Field===name))) L.fail('Return valuation columns are missing. Apply the reviewed JC schema migration before entering charges.',409);
-          let localItemId=item_id;
-          if (!localReturnId) {
-            const [local]=await L.select(db,'SELECT id FROM st_additem WHERE item_name=:name LIMIT 1',{name:line.item_name},t);
-            if (!local) L.fail(`Item '${line.item_name}' does not exist in local Item Master. Please create it first.`);
-            localItemId=local.id;
-          }
           saved.push(await L.insert(db,'job_challan_receives',receipt,t,senderDb));
-          await L.movement(db,{challan_id:jc.id,item_id:localItemId,quantity:received_qty,issue_date:receive_date,sub_contractors_id:jc.sub_contractors_id,store_type:'1'},t);
+          await L.movement(db,{challan_id:jc.id,item_id,quantity:received_qty,issue_date:receive_date,sub_contractors_id:jc.sub_contractors_id,store_type:'1'},t);
         }
         const [sum]=await L.select(db,`SELECT COALESCE((SELECT SUM(quantity) FROM ${L.table('job_challan_items',senderDb)} WHERE challan_id=:id),0) AS dispatched,COALESCE((SELECT SUM(received_qty) FROM ${L.table('job_challan_receives',senderDb)} WHERE challan_id=:id),0) AS received`,{id:jc.id},t);
         const status=Number(sum.received)===0?'Pending':Number(sum.received)<Number(sum.dispatched)?'Partially Returned':'Completed';
@@ -110,7 +103,7 @@ class ReceiveService {
   }
   async returnPdf(dbName,id,senderDb) {
     const db=await getTenantSequelize(dbName), sourceDb=senderDb || dbName;
-    if (sourceDb!==dbName && !(await L.linked(dbName)).some(row=>row.database_name===sourceDb)) L.fail('Unauthorized sender',403);
+    if (sourceDb!==dbName) L.fail('JC records must belong to the selected company.',403);
     const [receipt]=await L.select(db,`SELECT r.*,a.item_name,a.item_isbn AS hsn_code,u.unit_name FROM ${L.table('job_challan_receives',sourceDb)} r LEFT JOIN ${L.table('st_additem',sourceDb)} a ON a.id=r.item_id LEFT JOIN ${L.table('st_measurementunits',sourceDb)} u ON u.id=a.uom WHERE r.id=:id`,{id:L.positiveId(id)});
     if (!receipt || !receipt.challan_id) L.fail('Return transaction not found',404);
     const detail=await require('../jobChallan/jobChallan.service').getDetail(dbName,receipt.challan_id,sourceDb);

@@ -99,28 +99,22 @@ class JobChallanService {
     jc.vendor = vendor || {}; jc.final_amount = Number(jc.total_amount || 0)+Number(jc.gst_amount || 0);
     jc.job_challan_items = items.map(row => ({ ...row, total: row.total ?? row.total_amount ?? Number(row.amount || 0)+Number(row.tax_amount || 0), return_type: row.return_type || row.itemtype, pending_qty: Math.max(0, L.round(dispatch.get(Number(row.item_id))-Number(row.received_qty))), item: { id: row.item_id, item_name: row.item_name || row.master_item_name, unit_name: row.unit_name } }));
     const tracking = {};
-    if (vendor?.database_name && vendor.database_name !== sourceDb) {
-      for (const row of items) {
-        const [local] = await L.select(db, `SELECT id FROM ${L.table('st_additem',vendor.database_name)} WHERE item_name=:name LIMIT 1`, { name: row.item_name || row.master_item_name });
-        const [used] = local ? await L.select(db, `SELECT COALESCE(ROUND(SUM(quantity),2),0) AS consumed FROM ${L.table('st_stock_register',vendor.database_name)} WHERE item_id=:id AND store_type IN ('2','4')`, { id: local.id }) : [{}];
-        tracking[row.item_id] = { consumed: Number(used.consumed || 0), balance: local ? await L.stock(db, local.id, null, vendor.database_name) : 0 };
-      }
+    for (const row of items) {
+      const [used] = await L.select(db, "SELECT COALESCE(ROUND(SUM(quantity),2),0) AS consumed FROM st_stock_register WHERE item_id=:id AND store_type IN ('2','4')", { id: row.item_id });
+      tracking[row.item_id] = { consumed: Number(used.consumed || 0), balance: await L.stock(db, row.item_id) };
+    }
+    const returnedItems = {};
+    for (const row of history) {
+      if (!row.item_name) continue;
+      if (!returnedItems[row.item_name]) returnedItems[row.item_name] = { type: 'Processed/Returned', output: '-', quantity: 0 };
+      returnedItems[row.item_name].quantity += Number(row.received_qty);
     }
     const [site_details] = await L.select(db, `SELECT * FROM ${L.table('sitesettings_details',sourceDb)} WHERE status='Y' LIMIT 1`);
     const [sitesetting] = await L.select(db, `SELECT * FROM ${L.table('sitesettings',sourceDb)} LIMIT 1`);
-    return { challan: jc, source_db: sourceDb, site_details, sitesetting, history, tracking };
+    return { challan: jc, source_db: sourceDb, site_details, sitesetting, history, tracking, returnedItems };
   }
   async getPdfDetail(dbName, id, senderDb) {
-    if (senderDb) return this.getDetail(dbName,id,senderDb);
-    try { return await this.getDetail(dbName,id); }
-    catch (error) {
-      if (error.status !== 404) throw error;
-      for (const sender of await L.linked(dbName)) {
-        try { return await this.getDetail(dbName,id,sender.database_name); }
-        catch (lookupError) { if (![403,404].includes(lookupError.status)) throw lookupError; }
-      }
-      throw error;
-    }
+    return this.getDetail(dbName,id,senderDb);
   }
   async remove(dbName, id) {
     const db = await getTenantSequelize(dbName); id = L.positiveId(id);

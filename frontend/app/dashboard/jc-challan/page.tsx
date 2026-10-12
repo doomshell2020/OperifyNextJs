@@ -89,10 +89,9 @@ export default function JobChallanList() {
   return (
     <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
       <LegacyPageHeader title="Job Challan Report"/>
-      {can('jobchallan','add') && <Link className="legacy-button" href="/dashboard/jc-challan/create">+ Add Job Challan</Link>}
 
       {/* Filters */}
-      <div className="legacy-filter-row">
+      <div className="legacy-jc-search"><h2 className="legacy-box-heading">Search Job Challan</h2><div className="legacy-filter-row">
         <div>
           <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">From Date</label>
           <DatePicker  name="fromDate" value={filters.fromDate} onChange={handleFilterChange}
@@ -117,8 +116,7 @@ export default function JobChallanList() {
             className="w-full border border-slate-200 rounded-md p-2 text-sm focus:border-cyan-500 outline-none">
             <option value="">All Statuses</option>
             <option value="Created">Created</option><option value="Pending">Pending</option><option value="Partially Returned">Partially Returned</option><option value="Completed">Completed</option>
-            <option value="Received">Received</option>
-            <option value="Cancelled">Cancelled</option>
+            <option value="Closed">Closed</option>
           </select>
         </div>
         <div>
@@ -133,8 +131,9 @@ export default function JobChallanList() {
           <button onClick={resetFilters} className="bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-md p-2 flex items-center justify-center transition" title="Reset Filters">
             Reset
           </button>
+          {can('jobchallan','add') && <Link className="legacy-button" href="/dashboard/jc-challan/create">Add</Link>}
         </div>
-      </div>
+      </div></div>
 
       {/* Table */}
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden relative min-h-[300px]">
@@ -161,8 +160,7 @@ export default function JobChallanList() {
                 <th className="p-4 font-semibold min-w-[180px]">Vendor</th>
                 <th className="p-4 font-semibold w-32">Vehicle No</th>
                 <th className="p-4 font-semibold w-28">Status</th>
-                <th className="p-4 font-semibold text-right w-36">Amount (₹)</th>
-                <th className="p-4 font-semibold text-center w-36">Actions</th>
+                <th className="p-4 font-semibold text-center w-36">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -170,7 +168,7 @@ export default function JobChallanList() {
                 data.items.map((item: any, idx: number) => (
                   <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
                     <td className="p-4 text-slate-500">{((page - 1) * 50) + idx + 1}</td>
-                    <td className="p-4 font-medium text-cyan-700">{item.challan_no}</td>
+                    <td className="p-4 font-medium text-cyan-700"><Link href={`/dashboard/jc-challan/${item.id}/tracking`}>{item.challan_no}</Link></td>
                     <td className="p-4 text-slate-600">{formatContractDate(item.jc_date)}</td>
                     <td className="p-4 font-medium text-blue-600 truncate max-w-[200px]">{item.vendor?.name || 'N/A'}</td>
                     <td className="p-4 text-slate-500">{item.vehicle_no || '—'}</td>
@@ -179,12 +177,12 @@ export default function JobChallanList() {
                       <div className="flex justify-center gap-1">
                         {can('jobchallan','view') && <button onClick={() => router.push(`/dashboard/jc-challan/${item.id}`)}
                           className="p-1.5 text-slate-400 hover:text-cyan-600 hover:bg-cyan-50 rounded transition" title="View">
-                          <Eye className="w-4 h-4" />
+                          View
                         </button>}
-                        {can('jobchallan','viewpdf') && <button onClick={() => router.push(`/dashboard/jc-challan/${item.id}/pdf`)}
+                        {can('jobchallan','viewpdf') && <Link href={`/dashboard/jc-challan/${item.id}/pdf`} target="_blank" rel="noopener noreferrer"
                           className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition" title="PDF">
                           <FileText className="w-4 h-4" />
-                        </button>}
+                        </Link>}
                         {can('jobchallan','delete') && <button onClick={() => handleDelete(item.id)} disabled={deleteMutation.isPending}
                           className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition disabled:opacity-40" title="Delete">
                           <Trash2 className="w-4 h-4" />

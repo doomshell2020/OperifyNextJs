@@ -1,2 +1,2 @@
-import JcModuleList from '@/components/jobChallan/JcModuleList';
-export default function Page(){return <JcModuleList module="receive"/>;}
+import JcReceiveList from '@/components/jobChallan/JcReceiveList';
+export default function Page(){return <JcReceiveList/>;}

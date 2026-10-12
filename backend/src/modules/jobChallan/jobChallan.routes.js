@@ -35,6 +35,9 @@ router.post('/:id/receive', permission('jobchallan','itemreceived'), async (req,
   catch(error) { next(error); }
 });
 router.get('/:id/pdf', permission('jobchallan','viewpdf'), jobChallanController.downloadPdf.bind(jobChallanController));
+router.get('/:id/tracking', requireAnyPermission([
+  'legacy:admin/jobchallan/index','legacy:admin/jobchallan/receiveindex','legacy:admin/jobchallan/jcinfo'
+]), jobChallanController.getDetail.bind(jobChallanController));
 router.get('/:id', permission('jobchallan','view'), jobChallanController.getDetail.bind(jobChallanController));
 router.delete('/:id', permission('jobchallan','delete'), jobChallanController.remove.bind(jobChallanController));
 

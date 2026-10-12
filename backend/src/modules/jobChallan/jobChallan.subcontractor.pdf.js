@@ -2,10 +2,10 @@ const {escapeHtml:e,amount,date,document} = require('../../utils/legacyPdf');
 function buildSubcontractorChallanHtml(payload) {
   const c=payload.challan, s=payload.site_details || {}, setting=payload.sitesetting || {}, to=c.vendor || {};
   const item=c.job_challan_items?.[0] || {};
-  const fromName=setting.first_name || s.company_name || 'KANHHA CABLES PVT. LTD.';
-  const address=[s.address1,s.address2].filter(Boolean).join(', ') || s.address || 'Plot No. A-336 & A-336(A), Road No. 17, V.K.I. Area, Jaipur-302013';
+  const fromName=setting.first_name || s.company_name || '';
+  const address=[s.address1,s.address2].filter(Boolean).join(', ') || s.address || '';
   const gst=s.gst_no || s.gst;
-  const fromGst=gst && gst!=='00' ? gst : '08AACCK1942L1ZE';
+  const fromGst=gst && gst!=='00' ? gst : '';
   const state=value=>String(value || '').replace(/\D/g,'').slice(0,2) || '08';
   const sameState=state(fromGst)===state(to.gst_no);
   const tax=Number(item.tax_amount || 0),qty=Number(item.quantity || 0),rate=Number(item.rate || 0);
