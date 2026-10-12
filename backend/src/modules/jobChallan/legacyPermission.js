@@ -1,4 +1,5 @@
 const { requirePermission } = require('../../middleware/permission');
-// The existing PHP role URL grant is authoritative. Missing labels deny access.
+// Session grants are authoritative. Auth applies the JC-only PHP fallback for
+// absent action labels; configured role denials remain denied here.
 module.exports = (controller, action) =>
   requirePermission(`legacy:admin/${controller}/${action}`.toLowerCase());

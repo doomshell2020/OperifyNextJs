@@ -151,15 +151,28 @@ async function permissionLoadingTests() {
     assert.deepEqual(JSON.parse(JSON.stringify(options.where)),{role_id:'fixture-role',is_permission:'1'});
     return [{p_lable_id:1},{p_lable_id:2}];
   }}, permission_label: {findAll:async options=>{
+    if (!options.where) return [];
     assert.deepEqual(Array.from(options.where.id),[1,2]);
     return [{url:'admin/contracts/edit_other'},{url:'admin/designsheet/edit'}];
   }}};
   vm.runInNewContext(fs.readFileSync(path.join(root,'backend/src/modules/auth/auth.repository.js'),'utf8'),
-    {module,exports:module.exports,require:()=>({centralModels:db}),console});
+    {module,exports:module.exports,require:name=>name==='./legacyJcAccess'?require('../backend/src/modules/auth/legacyJcAccess'):({centralModels:db}),console});
   const result=await module.exports.getUserPermissions('fixture-role');
   assert(!result.includes('contracts:edit'),'A similarly named URL must not grant Edit');
   assert(result.includes('designsheet:edit'));
   assert(result.includes('legacy:admin/contracts/edit_other'));
+  assert(result.includes('legacy:admin/jobchallan/receiveindex'),'Unconfigured JC Receive must match the authenticated PHP workflow');
+  const {legacyJcPermissions,actions}=require('../backend/src/modules/auth/legacyJcAccess');
+  const labels=actions.map(action=>({url:`admin/jobchallan/${action}`}));
+  assert.deepEqual(legacyJcPermissions(labels,[]),[],'Configured but ungranted JC actions must remain denied');
+  for(const action of actions) {
+    const grant=`legacy:admin/jobchallan/${action}`;
+    assert.deepEqual(legacyJcPermissions(labels,[grant]),[grant]);
+  }
+  const partial=legacyJcPermissions([{url:' Admin/Jobchallan/Delete '}],['legacy:admin/jobchallan/index']);
+  assert(!partial.includes('legacy:admin/jobchallan/delete'),'Explicit denied Delete must not inherit index access');
+  assert(partial.includes('legacy:admin/jobchallan/receiveindex'));
+  assert(!partial.some(grant=>grant.includes('gatepasses') || grant.includes('contracts')),'JC fallback must not expand other modules');
   console.log('Permission loading: central role/allowed-label join and exact alias matching passed.');
 }
 
@@ -220,6 +233,11 @@ function frontendTests() {
   const jcHtml=render('app/dashboard/jc-challan/page.tsx',[key('jobchallan','index')],{jobChallans:{items:[localJc],total:1},jcVendors:[]});
   assert(jcHtml.includes('/dashboard/jc-challan/111/tracking') && jcHtml.includes('Closed'));
   assert(!jcHtml.includes('Amount (') && !jcHtml.includes('value="Received"'),'Index columns and statuses must match PHP');
+  const migratedJcGrants=require('../backend/src/modules/auth/legacyJcAccess').legacyJcPermissions([],[key('jobchallan','index')]);
+  const migratedJcHtml=render('app/dashboard/jc-challan/page.tsx',migratedJcGrants,{jobChallans:{items:[localJc],total:1},jcVendors:[]});
+  for(const action of ['title="View"','title="PDF"','title="Delete"','href="/dashboard/jc-challan/create"'])assert(migratedJcHtml.includes(action),'Unconfigured PHP JC action must be visible: '+action);
+  const migratedReceiveHtml=render('components/jobChallan/JcReceiveList.tsx',migratedJcGrants,{'jc-receive':{items:[localReceive],total:1}});
+  assert(migratedReceiveHtml.includes('Add New Receive') && !migratedReceiveHtml.includes('You do not have permission'),'Unconfigured receive module must render with the same session grants used by the API');
   const trackingHtml=render('app/dashboard/jc-challan/[id]/tracking/page.tsx',[key('jobchallan','index')],{jcTracking:{challan:localJc,history:[{id:8,item_id:1,item_name:'Existing item',received_qty:4,receive_date:'2026-10-12'}],tracking:{1:{consumed:10,balance:6}},returnedItems:{'Existing item':{type:'Processed/Returned',output:'-',quantity:4}}}});
   for (const title of ['Item Receipts History','Production &amp; Return Tracking','Returned Items (Finished Goods / Unused RM)']) assert(trackingHtml.includes(title));
   const returnForm=render('components/jobChallan/ReceiveForm.tsx',[key('jobchallan','itemreceived')],{receivePending:{items:[{item_id:1,item_name:'Existing item',original_qty:10,received_qty:4,pending_qty:6}]},jcReturnTaxes:[]},[],{returnId:'111'});

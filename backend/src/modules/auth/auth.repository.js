@@ -1,4 +1,5 @@
 const { centralModels, getTenantModels } = require('../../config/sequelize');
+const { legacyJcPermissions } = require('./legacyJcAccess');
 
 /**
  * AuthRepository executes database operations for authentication
@@ -132,18 +133,16 @@ class AuthRepository {
         raw: true
       });
 
-      if (!accesses || accesses.length === 0) return [];
-
-      const labelIds = accesses.map(acc => acc.p_lable_id);
+      const labelIds = (accesses || []).map(acc => acc.p_lable_id);
 
       // Find the corresponding URLs from permission_label
-      const labels = await centralModels.permission_label.findAll({
+      const labels = labelIds.length ? await centralModels.permission_label.findAll({
         where: {
           id: labelIds
         },
         attributes: ['url'],
         raw: true
-      });
+      }) : [];
 
       // Map CakePHP URLs to our standard permission keys
       const permissions = [];
@@ -179,7 +178,12 @@ class AuthRepository {
         permissions.push(`legacy:${url}`);
       });
 
-      return [...new Set(permissions)]; // Return unique permissions
+      // Read the catalogue independently of this role's allowed rows. A label
+      // present without an allowed role row is an explicit denial, not fallback.
+      const configuredLabels = await centralModels.permission_label.findAll({
+        attributes: ['url'], raw: true
+      });
+      return legacyJcPermissions(configuredLabels, permissions);
     } catch (err) {
       console.error('Error fetching user permissions:', err);
       return [];

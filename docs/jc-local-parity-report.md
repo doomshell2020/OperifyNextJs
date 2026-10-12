@@ -1,5 +1,13 @@
 # JC Challan / JC Receive repair
 
+## Follow-up: access denied and missing action buttons after live restart
+
+The live screenshots showed the new layout with Add/View/PDF/Delete absent and JC Receive denied. The initial fix preserved an incorrect migration assumption: it required per-action URL labels even though the active PHP JC templates do not gate these actions and the active controller's permission-check block is commented out. The checked local permission catalogue contains no JC labels at all.
+
+Session permission loading now applies the PHP authenticated fallback only to the known JC operations when their action label is absent. If an action label is configured, the saved role grant remains mandatory, including explicit denied or missing role-access rows. Other modules have no fallback. Authentication, active-user checks, selected-company authorization and local-only JC data boundaries remain enforced. No role/label records were inserted or updated.
+
+This resolves the earlier local testing limitation: real existing-user GET requests now pass for the JC list, JC Receive list, receive options/details, JC details and tracking. Unauthenticated requests still return 401. Regression tests cover absent/configured/denied JC labels and the actual rendered Add/View/PDF/Delete and Add New Receive controls. Deploy this follow-up backend commit and refresh the browser to reload `/auth/me`; there is no database migration.
+
 The current PHP `JobchallanController.php` and its active `Jobchallan` templates were compared with the Next.js lists, forms, details, tracking, APIs, permissions and three PDF templates. Dated backup PHP files were not treated as the current implementation.
 
 ## Confirmed differences and fixes
@@ -30,12 +38,12 @@ Dispatch preserves raw-material/semi-finished stock checks, quantity × rate, GS
 - Permission checks passed, including the new tracking and return-detail grants, actual rendered list/detail/form fields, local navigation and existing manager checks.
 - Production build/TypeScript/route generation and backend syntax checks passed.
 - Existing JC 111 and receipt 110 were rendered to A4 PDFs and visually inspected. Both are one page, with readable tables and no overlap/clipping.
-- Existing-user HTTP checks verified unauthenticated 401 and authenticated denial 403. **Authorized HTTP/browser testing is blocked in this local copy because no existing local user has the saved `jobchallan/index` grant.** Saved role records were left unchanged.
+- The initial HTTP audit verified unauthenticated 401 and exposed a 403 caused by absent JC labels. The follow-up above resolves this: existing-user read-only HTTP checks now pass. No saved role records were changed. Full interactive browser testing of the deployed follow-up remains outstanding.
 
 ## Intentional differences / remaining limits
 
 1. Your explicit instruction overrides PHP's cross-company system: all data and stock writes stay in the selected company, and tracking shows local company stock rather than subcontractor database stock.
-2. Saved action permissions are enforced. PHP's current templates show several actions unconditionally; the new code does not grant writes or PDF access to a user lacking those grants. Existing local role configuration needs an authorized JC reader for full browser testing.
+2. Configured action permissions are enforced. For JC actions without a configured label, the follow-up restores the PHP authenticated workflow; configured denials still block the action. Other modules' access rules are unchanged.
 3. Duplicate product lines are budgeted as a group and transactions roll back atomically. The old PHP receives use the first dispatch row and its local-return workflow can partially save before an error; those defects are not copied.
 4. The source JC PDF layouts use the first dispatched item; that format is retained. Old company-identity fallbacks are removed to avoid inventing document data.
 5. The code is local and has not been deployed in this task. No production submissions, deletions, role edits or database migrations were performed.
