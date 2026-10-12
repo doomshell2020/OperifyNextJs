@@ -104,28 +104,30 @@ export default function StockRegisterPage() {
   };
 
   return (
-    <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
+    <main className="stock-register-page max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
 
-      <LegacyPageHeader title="Stock Register"/>
-      <div className="bg-white border border-slate-200 p-2 space-y-4">
+      <LegacyPageHeader title="Stock Register" breadcrumb="Goods Received Manager"/>
+      <div className="stock-register-box bg-white border border-slate-200">
         {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="stock-register-filters">
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">Product</label>
             <ProductSearchSelect
               products={products}
+              placeholder="Enter Item Name (Optional)"
               value={selectedProduct}
               onChange={setSelectedProduct}
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Categories (Optional)</label>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">Category (Optional)</label>
             <CategoryCheckboxSelect categories={categories} value={selectedCategories} onChange={setSelectedCategories} />
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">Date From <span className="text-red-500">*</span></label>
             <DatePicker
               value={dateFrom}
+              placeholder="Date From"
               onChange={(e) => setDateFrom(e.target.value)}
               className="w-full text-sm border border-slate-300 rounded-md p-2 outline-none focus:border-cyan-500"
             />
@@ -134,26 +136,20 @@ export default function StockRegisterPage() {
             <label className="block text-xs font-semibold text-slate-600 mb-1">Date To <span className="text-red-500">*</span></label>
             <DatePicker
               value={dateTo}
+              placeholder="Date To"
               onChange={(e) => setDateTo(e.target.value)}
               className="w-full text-sm border border-slate-300 rounded-md p-2 outline-none focus:border-cyan-500"
             />
           </div>
-        </div>
-
         {/* Actions */}
-        <div className="flex justify-end gap-3 mt-4">
-          <button
-            onClick={handleReset}
-            className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 text-slate-600 hover:bg-slate-200 rounded-lg text-sm font-semibold transition"
-          >
-            <RefreshCw className="w-4 h-4" /> Reset
-          </button>
+        <div className="stock-register-actions">
           <button
             onClick={handleSearch}
             className="flex items-center gap-1.5 px-4 py-2 bg-cyan-600 text-white hover:bg-cyan-700 rounded-lg text-sm font-semibold shadow-md transition"
           >
-            <Search className="w-4 h-4" /> Search
+            Search
           </button>
+          <button onClick={handleReset} className="legacy-button">Reset</button>
           {canAction('stockregister','summaryexcel') && <button
             onClick={async () => {
               if (!dateFrom || !dateTo) {
@@ -176,6 +172,7 @@ export default function StockRegisterPage() {
             <List className="w-4 h-4" /> Export Summary Excel
           </button>}
         </div>
+        </div>
 
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-md text-sm flex items-center gap-2">
@@ -184,7 +181,7 @@ export default function StockRegisterPage() {
         )}
 
         {/* Results Table */}
-        <div className="mt-8 overflow-x-auto rounded-lg border border-slate-200">
+        <div className="stock-register-results overflow-x-auto border border-slate-200">
           <table className="w-full text-left text-sm text-slate-600">
             <thead className="bg-slate-50 text-slate-800 text-xs uppercase font-bold border-b border-slate-200">
               <tr>
@@ -248,7 +245,7 @@ export default function StockRegisterPage() {
               ) : (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-slate-400">
-                    Select a date range and click Search to view stock register.
+                    No Record Found
                   </td>
                 </tr>
               )}

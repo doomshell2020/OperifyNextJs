@@ -7,9 +7,10 @@ interface ProductSearchSelectProps {
   value: string;
   onChange: (productId: string) => void;
   error?: string;
+  placeholder?: string;
 }
 
-export function ProductSearchSelect({ products, value, onChange, error }: ProductSearchSelectProps) {
+export function ProductSearchSelect({ products, value, onChange, error, placeholder = 'Select product...' }: ProductSearchSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -47,7 +48,7 @@ export function ProductSearchSelect({ products, value, onChange, error }: Produc
         <input 
           type="text"
           className={`w-full h-[40px] border rounded-md pl-3 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm ${error ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'}`}
-          placeholder="Select product..."
+        placeholder={placeholder}
           value={searchTerm}
           onChange={(e) => {
             setSearchTerm(e.target.value);

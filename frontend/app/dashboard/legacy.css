@@ -1,5 +1,28 @@
 /* Values from headernew.ctp, AdminLTE, admin/style.css and admin/pagination.ctp.
    Scoped to ERP screens so login and generated print/PDF templates keep their layout. */
+/* Stockregister/index.ctp: compact filter row and checkbox category list. */
+.stock-register-box { border-top: 3px solid #d2d6de !important; border-radius: 0 0 3px 3px; padding: 24px 10px 10px; }
+.stock-register-filters { display: grid; grid-template-columns: 2fr 3fr 2fr 2fr 3fr; column-gap: 24px; align-items: end; }
+.stock-register-filters > div { min-width: 0; }
+.stock-register-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.stock-register-actions button { min-height: 32px; }
+.stock-register-results { margin-top: 10px; border-radius: 0; }
+.stock-register-results table { table-layout: fixed; }
+.stock-register-results td { font-weight: 400; }
+.stock-register-results td[colspan] { padding: 8px !important; }
+.stock-category-dropdown { position: relative; font-size: 12px; }
+.stock-category-dropdown summary { display: flex; justify-content: space-between; align-items: center; height: 32px; padding: 6px 12px; cursor: pointer; list-style: none; background: #fff; border: 1px solid #d2d6de; }
+.stock-category-dropdown summary::-webkit-details-marker { display: none; }
+.stock-category-caret { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 4px solid currentColor; }
+.stock-category-list { position: absolute; top: 100%; left: 0; width: 100%; max-height: 220px; overflow-y: auto; z-index: 1000; padding: 5px; background: #fff; border: 1px solid #ced4da; }
+.legacy-erp .stock-category-list label { display: flex; align-items: center; gap: 4px; margin: 0; min-height: 24px; line-height: 24px; cursor: pointer; font-size: 16px !important; font-weight: 400 !important; }
+.stock-category-list input { width: 13px; height: 13px; accent-color: #1683ff; flex-shrink: 0; }
+.stock-category-list hr { margin: 4px 0; border-top: 1px solid #ccc; }
+.stock-category-list strong { font-weight: 700; }
+@media (max-width: 767px) {
+  .stock-register-filters { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stock-register-actions { grid-column: 1 / -1; }
+}
 .legacy-erp { font-family: var(--font-legacy-font), Arial, sans-serif; background: #ecf0f5; color: #333; }
 .legacy-erp .font-sans { font-family: inherit; }
 /* PHP headernew.ctp: icons fit within 33 x 26px; all labels share a baseline. */
