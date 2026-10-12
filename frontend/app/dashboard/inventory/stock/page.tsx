@@ -3,7 +3,7 @@
 import {useLegacyActionAccess} from '@/components/ui/useLegacyActionAccess';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState, useEffect } from 'react';
-import Select from 'react-select';
+import { CategoryCheckboxSelect } from './CategoryCheckboxSelect';
 import Link from 'next/link';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { RefreshCw, Search, List, AlertCircle } from 'lucide-react';
@@ -119,22 +119,8 @@ export default function StockRegisterPage() {
             />
           </div>
           <div>
-            <label htmlFor="stock-categories" className="block text-xs font-semibold text-slate-600 mb-1">Categories (Optional)</label>
-            <Select
-              inputId="stock-categories"
-              instanceId="stock-categories"
-              isMulti
-              closeMenuOnSelect={false}
-              options={categories.map(c => ({ value: String(c.id), label: c.category_name }))}
-              value={categories.filter(c => selectedCategories.includes(String(c.id))).map(c => ({ value: String(c.id), label: c.category_name }))}
-              onChange={options => setSelectedCategories(options.map(option => option.value))}
-              placeholder="Select categories..."
-              className="text-sm"
-              styles={{
-                control: base => ({ ...base, minHeight: 32, borderRadius: 0, borderColor: '#cbd5e1' }),
-                menu: base => ({ ...base, zIndex: 30 }),
-              }}
-            />
+            <label className="block text-xs font-semibold text-slate-600 mb-1">Categories (Optional)</label>
+            <CategoryCheckboxSelect categories={categories} value={selectedCategories} onChange={setSelectedCategories} />
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">Date From <span className="text-red-500">*</span></label>
