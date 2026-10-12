@@ -23,6 +23,23 @@ export interface DailyStockRecord {
   closing_stock: number;
 }
 
+export interface ReceivedStockDetail {
+  id: number;
+  store_type: string;
+  item_name: string;
+  po_id: string | null;
+  po_date: string | null;
+  is_revised: number | null;
+  purchaseorder_id: number | null;
+  vendor_name: string | null;
+  contact_no: string | null;
+  email: string | null;
+  inwarddate: string | null;
+  bill_no: string | null;
+  bill_date: string | null;
+  quantity: number;
+}
+
 export const stockRegisterService = {
   async getCategories(): Promise<{id: number, category_name: string}[]> {
     const res = await apiClient.get('/stock-register/categories');
@@ -75,6 +92,11 @@ export const stockRegisterService = {
   async getReceivedStockDetails(filters: { date: string; product_id: string }): Promise<any[]> {
     const res = await apiClient.get('/stock-register/details/received', { params: filters });
     return res.data.data;
+  },
+
+  async getReceivedStockPage(filters: { date: string; product_id: string }): Promise<{ data: ReceivedStockDetail[]; product: { id: number; item_name: string } }> {
+    const res = await apiClient.get('/stock-register/details/received', { params: filters });
+    return res.data;
   },
 
   async getDispatchedStockDetails(filters: { date: string; product_id: string }): Promise<any[]> {

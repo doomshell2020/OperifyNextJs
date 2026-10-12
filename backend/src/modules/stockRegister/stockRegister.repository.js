@@ -201,6 +201,9 @@ class StockRegisterRepository {
   async getReceivedStockDetails(dbPool, { product_id, date }) {
     const sql = `
       SELECT
+        sr.id,
+        sr.store_type,
+        p.item_name,
         sr.po_id,
         po.added_time as po_date,
         po.is_revised,
@@ -210,17 +213,14 @@ class StockRegisterRepository {
         v.email,
         gr.inwarddate,
         gr.bill_no,
+        gr.bill_date,
         sr.quantity,
-        sr.sub_contractors_id,
-        sc.name as sc_name,
-        sc.mobile as sc_mobile,
-        sc.email as sc_email,
         sr.issue_date
       FROM st_stock_register sr
+      LEFT JOIN st_additem p ON sr.item_id = p.id
       LEFT JOIN st_goodsreceive gr ON sr.goods_id = gr.id
       LEFT JOIN st_purchaseorder po ON sr.purchaseorder_id = po.id
       LEFT JOIN vendors v ON gr.vendor_id = v.id
-      LEFT JOIN sub_contractors sc ON sr.sub_contractors_id = sc.id
       WHERE sr.item_id = :product_id
         AND sr.store_type IN ('0', '1', '3')
         AND sr.status != 'N'
@@ -232,6 +232,13 @@ class StockRegisterRepository {
       replacements: { product_id, date },
       type: QueryTypes.SELECT
     });
+  }
+
+  async getReceivedStockProduct(dbPool, product_id) {
+    const products = await dbPool.query('SELECT id, item_name FROM st_additem WHERE id = :product_id', {
+      replacements: { product_id }, type: QueryTypes.SELECT
+    });
+    return products[0] || null;
   }
 
   async getDispatchedStockDetails(dbPool, { product_id, date }) {

@@ -31,10 +31,19 @@ class StockRegisterService {
   }
 
   async getReceivedStockDetails(dbPool, filters) {
-    if (!filters.date || !filters.product_id) {
-      throw new Error('date and product_id are required.');
+    const { date, product_id } = filters;
+    if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+        Number.isNaN(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date ||
+        !/^[1-9]\d*$/.test(String(product_id))) {
+      const error = new Error('A valid date (YYYY-MM-DD) and product_id are required.');
+      error.status = 400;
+      throw error;
     }
     return await stockRegisterRepository.getReceivedStockDetails(dbPool, filters);
+  }
+
+  async getReceivedStockProduct(dbPool, product_id) {
+    return stockRegisterRepository.getReceivedStockProduct(dbPool, product_id);
   }
 
   async getDispatchedStockDetails(dbPool, filters) {

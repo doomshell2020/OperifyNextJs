@@ -78,7 +78,9 @@ class StockRegisterController {
         date: req.query.date
       };
       const data = await stockRegisterService.getReceivedStockDetails(req.dbPool, filters);
-      res.json({ success: true, data });
+      const product = await stockRegisterService.getReceivedStockProduct(req.dbPool, filters.product_id);
+      if (!product) return res.status(404).json({ success: false, error: { message: 'Product not found.' } });
+      res.json({ success: true, data, product });
     } catch (error) {
       next(error);
     }

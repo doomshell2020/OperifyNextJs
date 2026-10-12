@@ -36,7 +36,7 @@ export function LegacyRouteAccess({ children }: { children: ReactNode }) {
     controller = 'goodsreceived';
     action = pathname.endsWith('/add') ? 'add' : pathname.includes('/view/') ? 'viewgrndetail' : 'index';
   } else if (pathname.startsWith('/dashboard/inventory/')) {
-    controller = 'stockregister'; action = pathname.endsWith('/daily') ? 'dailystock' : 'index';
+    controller = 'stockregister'; action = pathname.includes('/stock/received/') ? 'receivedstock' : pathname.endsWith('/daily') ? 'dailystock' : 'index';
   } else if (pathname.startsWith('/dashboard/production/')) {
     controller = 'production'; action = pathname.includes('/viewcontractdetailspdf/') ? 'viewcontractdetailspdf'
       : pathname.endsWith('/entry') ? 'productionorders' : 'index';

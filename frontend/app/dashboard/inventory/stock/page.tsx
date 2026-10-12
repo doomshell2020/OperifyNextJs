@@ -3,6 +3,7 @@
 import {useLegacyActionAccess} from '@/components/ui/useLegacyActionAccess';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { RefreshCw, Search, List, AlertCircle } from 'lucide-react';
 import { settingsService, Product, Category } from '../../../../services/settings.service';
@@ -219,12 +220,14 @@ export default function StockRegisterPage() {
                     <td className="p-3 font-medium text-cyan-600">{r.opening_stock}</td>
                     <td className="p-3 text-green-600">
                       {parseFloat(r.received_stock.toString()) > 0 && canAction('stockregister','receivedstock') ? (
-                        <button
-                          onClick={() => openModal('received', r.date_range, r.item_id, r.item_name)}
+                        <Link
+                          href={`/dashboard/inventory/stock/received/${encodeURIComponent(r.date_range)}/${r.item_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
                           className="hover:underline text-left"
                         >
                           {r.received_stock}
-                        </button>
+                        </Link>
                       ) : (
                         r.received_stock
                       )}
