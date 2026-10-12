@@ -67,7 +67,7 @@ const routes = [
   ['gatepass','get','/:id/edit-data','gatepasses','edit'],
   ['reverseIndent','post','/','reverseindent','add'],['reverseIndent','delete','/:id','reverseindent','delete'],['reverseIndent','get','/:id/pdf','reverseindent','viewreverseindentpdf'],
   ['stockRegister','get','/export','stockregister','summaryexcel'],['stockRegister','get','/daily/export','stockregister','dailystockexcel'],
-  ['stockRegister','get','/details/received','stockregister','receivedstock'],['stockRegister','get','/details/dispatched','stockregister','dispatchedstock'],
+  ['stockRegister','get','/details/dispatched','stockregister','dispatchedstock'],
   ['settings','post','/products','additem','add'],['settings','put','/products/:id','additem','edit'],['settings','delete','/products/:id','additem','delete'],
   ['settings','patch','/products/:id/status','additem','status'],['settings','get','/products/export','additem','viewitemexcel'],
   ['settings','post','/categories','itemcategory','add'],['settings','put','/categories/:id','itemcategory','edit'],['settings','delete','/categories/:id','itemcategory','delete'],
@@ -100,6 +100,7 @@ async function backendTests() {
     assert.equal((await evaluate(route.stack[0].handle,{user:{permissions:[key('purchaseorder','index')]},query:{mode}})).code,200);
   }
   for (const [module,url,allowed] of [
+    ['stockRegister','/details/received',['legacy:admin/stockregister/index','legacy:admin/stockregister/receivedstock']],
     ['designsheet','/view/:designsheetno',['legacy:admin/designsheet/index','legacy:admin/designsheet/viewdesignsheet']],
     ['designsheet','/:id/files/:field',['legacy:admin/designsheet/index','legacy:admin/designsheet/edit','legacy:admin/designsheet/viewdesignsheet']],
     ['vendor','/:id',['legacy:admin/vendors/index','legacy:admin/vendors/viewdetail','legacy:admin/purchaseorder/index']],
@@ -186,7 +187,7 @@ function loadTS(filename) {
     if(name.includes('legacyActionDate'))return {isLegacyToday};
     if(name.includes('useListLocation'))return {useListLocation:()=>true};
     if(name==='@tanstack/react-query')return {useQuery:options=>({data:fixture[options.queryKey[0]],isLoading:false,isError:false,refetch:noop}),useQueryClient:()=>({invalidateQueries:noop}),useMutation:()=>({mutate:noop,isPending:false})};
-    if(name==='next/navigation')return {useRouter:()=>({push:noop}),usePathname:()=>currentPath};
+    if(name==='next/navigation')return {useRouter:()=>({push:noop}),usePathname:()=>currentPath,useParams:()=>({date:'2026-10-12',productId:'6'})};
     if(name==='next/link')return {__esModule:true,default:({children,href,...props})=>React.createElement('a',{href,...props},children)};
     if(name==='lucide-react')return new Proxy({},{get:(_,icon)=>()=>React.createElement('svg',{'data-icon':icon})});
     if(name.endsWith('.css'))return new Proxy({},{get:(_,prop)=>String(prop)});
@@ -208,6 +209,24 @@ function render(file,permissions,data,rows=[],props={},states=null) {
 function actionCell(markup) { return [...markup.matchAll(/<tr[^>]*>(.*?)<\/tr>/gs)].at(-1)[1].match(/<td[^>]*>(.*?)<\/td>/gs).at(-1); }
 function frontendTests() {
   const flatten = element => !element || typeof element !== 'object' ? [] : [element, ...React.Children.toArray(element.props?.children).flatMap(flatten)];
+  const receiptPath='/dashboard/inventory/stock/received/2026-10-12/6';
+  const stockRow={item_id:6,item_name:'COPPER ROD (CCR)',date_range:'2026-10-12',opening_stock:'5688.40',received_stock:'80.00',dispatched_stock:'0.00',closing_stock:'5768.40'};
+  for (const permissions of [[],[key('stockregister','index')],[key('stockregister','receivedstock')],[key('stockregister','dailystock')],[key('contracts','index')]]) {
+    const allowed=permissions.some(grant=>[key('stockregister','index'),key('stockregister','receivedstock')].includes(grant));
+    const html=render('app/dashboard/inventory/stock/page.tsx',permissions,{},[],{},[[],[],'6','','2026-10-12','2026-10-12',false,'',[stockRow],false,'received','','','']);
+    assert.equal(html.includes(`href="${receiptPath}"`),allowed,'Received quantity must link for stock list or detail readers');
+    if (allowed) assert(html.includes('target="_blank"'),'Opening receipt must preserve index filters');
+    currentPath=receiptPath;
+    grants=permissions;
+    const Guard=loadTS(path.join(root,'frontend/components/ui/LegacyRouteAccess.tsx')).LegacyRouteAccess;
+    assert.equal(renderToStaticMarkup(React.createElement(Guard,null,'receipt details'))==='receipt details',allowed,'Direct receipt page must match the API access policy');
+  }
+  const receipt={id:1,po_id:'2627-2',purchaseorder_id:2856,is_revised:1,po_date:'2026-10-12',vendor_name:'Vendor',inwarddate:'2026-10-12',bill_no:'1001',bill_date:'2026-10-12'};
+  for (const permissions of [[key('stockregister','index')],[key('purchaseorder','index')],[key('purchaseorder','view')]]) {
+    const html=render('app/dashboard/inventory/stock/received/[date]/[productId]/page.tsx',permissions,{},[],{},[[receipt],'COPPER ROD (CCR)',false,'','',1]);
+    assert.equal(html.includes('Open PO 2627-2 revision 1 PDF'),permissions.some(grant=>[key('purchaseorder','index'),key('purchaseorder','view')].includes(grant)),'Receipt PDF visibility must match the existing PDF API grants');
+  }
+  hookStates=null;currentPath='/dashboard';
   const grnFixture={data:{grn:{id:17,purchaseorder_id:'2627-1',total_amt:'100',total_tax:'10'},items:[{id:1,item_name:'Received material',order_qty:9,quantity:3,rate:20,cost_price:60,tax:0,tax_rates:[0],amount:60,uom:'KG'}]}};
   for (const allowed of [false,true]) {
     grants=allowed?[key('goodsreceived','index')]:[];fixture={'grn-details':grnFixture};

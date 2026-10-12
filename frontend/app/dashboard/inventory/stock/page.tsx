@@ -219,7 +219,7 @@ export default function StockRegisterPage() {
                     <td className="p-3 font-semibold text-slate-700">{r.date_range}</td>
                     <td className="p-3 font-medium text-cyan-600">{r.opening_stock}</td>
                     <td className="p-3 text-green-600">
-                      {parseFloat(r.received_stock.toString()) > 0 && canAction('stockregister','receivedstock') ? (
+                      {parseFloat(r.received_stock.toString()) > 0 && (canAction('stockregister','index') || canAction('stockregister','receivedstock')) ? (
                         <Link
                           href={`/dashboard/inventory/stock/received/${encodeURIComponent(r.date_range)}/${r.item_id}`}
                           target="_blank"

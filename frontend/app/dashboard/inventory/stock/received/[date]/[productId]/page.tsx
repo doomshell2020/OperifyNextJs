@@ -81,7 +81,7 @@ export default function ReceivedStockPage() {
                   <td className="border border-slate-200 p-3">
                     {row.po_id || '-'} / {formatContractDate(row.po_date) || '-'}{' '}
                     {Number(row.is_revised) > 0 && <small className="text-red-600">Revised-{row.is_revised} </small>}
-                    {row.purchaseorder_id && can('purchaseorder', 'view') &&
+                    {row.purchaseorder_id && (can('purchaseorder', 'view') || can('purchaseorder', 'index')) &&
                       <button type="button" onClick={() => openPdf(Number(row.purchaseorder_id))}
                         title={`Open PO ${row.po_id} revision ${row.is_revised || 0} PDF`}
                         aria-label={`Open PO ${row.po_id} revision ${row.is_revised || 0} PDF`}

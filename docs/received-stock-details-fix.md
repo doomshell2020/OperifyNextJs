@@ -1,5 +1,11 @@
 # Received Stock Details repair
 
+## Follow-up: quantity did not open for the live user
+
+Browser inspection on 12 October 2026 confirmed that Brijkiran's COPPER ROD (CCR), product 6, had an 80.00 received quantity rendered as plain text. Direct navigation to the implemented receipt page showed "You do not have permission to access this page." The same user's PHP page displayed PO 2627-2, revision 1, PO primary key 2856, inward date 12-10-2026 and bill 1001. The separate `stockregister/receivedstock` grant was incorrectly required for a drill-down that PHP exposes from the stock index.
+
+The received quantity, direct page guard and API now accept either the existing `stockregister/index` or `stockregister/receivedstock` grant. Missing permissions and unrelated/daily-stock grants still deny receipt access. No saved role grants or database records are changed. Receipt PDF visibility now accepts `purchaseorder/index` as well as `purchaseorder/view`, matching the existing PDF endpoint. Regression tests render the actual index and details components and check the direct-page/API permission combinations, including index-only access.
+
 ## Root cause
 
 The migration implemented Received Stock as `StockDetailModal`, with no dedicated Next.js details route. The modal omitted the PHP DataTable search/pagination and PO PDF link. The received-detail SQL selected `sr.sub_contractors_id` and joined `sub_contractors`; these do not exist in the tenant schema. That made receipt retrieval fail before rendering the PO/GRN data. The modal also displayed inward date under Bill Date.

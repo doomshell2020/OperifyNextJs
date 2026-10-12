@@ -46,6 +46,7 @@ export function LegacyRouteAccess({ children }: { children: ReactNode }) {
   // JC/Receive/Gate Pass pages already check the individual operation using
   // useJcAccess. Dashboard and own-profile pages require authentication only.
   const allowed = can(controller, action) || (controller === 'designsheet' && action === 'viewdesignsheet' && can('designsheet', 'index'))
+    || (controller === 'stockregister' && action === 'receivedstock' && can('stockregister', 'index'))
     || (controller === 'production' && action === 'viewcontractdetailspdf' && can('production', 'viewcontractdetail'))
     || (controller === 'purchaseorder' && action === 'view' && can('purchaseorder', 'index'))
     || (controller === 'goodsreceived' && action === 'viewgrndetail' && can('goodsreceived','index'));
