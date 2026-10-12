@@ -1,5 +1,6 @@
 'use client';
 import { LegacyAutocompleteInput } from '@/components/ui/LegacyAutocompleteInput';
+import { DesignSheetDetailsModal } from '@/components/DesignSheetDetailsModal';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -31,6 +32,7 @@ export default function DesignSheetsPage() {
 
   const [activeFilters, setActiveFilters] = useState<DesignSheetFilter>({ page: 1, limit: LEGACY_LIST_LIMIT });
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null);
+  const [selectedDesignSheetId, setSelectedDesignSheetId] = useState<string | null>(null);
 
   const locationReady = useListLocation(activeFilters, activeFilters.page || 1, ['contract_id', 'contract_name', 'datestart', 'dateto', 'sort', 'direction'], (next, nextPage) => { setActiveFilters({ ...next, page: nextPage, limit: LEGACY_LIST_LIMIT }); setFilters(next); });
   const { data, isLoading, isError, refetch } = useQuery({
@@ -138,7 +140,7 @@ export default function DesignSheetsPage() {
                 <tr key={d.id} className="hover:bg-slate-50/50 transition">
                   <td className="px-6 py-4 font-bold text-slate-900">{((activeFilters.page || 1) - 1) * (activeFilters.limit || 50) + idx + 1}</td>
                   <td className="px-6 py-4 font-bold text-slate-900">
-                     {(canAction('designsheet','index') || canAction('designsheet','viewdesignsheet')) ? <Link className="text-cyan-600 underline" href={`/dashboard/design-sheet/view/${d.id}`}>{d.designsheetno}</Link> : d.designsheetno}
+                     {(canAction('designsheet','index') || canAction('designsheet','viewdesignsheet')) ? <button type="button" className="text-cyan-600 underline" aria-haspopup="dialog" onClick={() => setSelectedDesignSheetId(String(d.id))}>{d.designsheetno}</button> : d.designsheetno}
                   </td>
                   <td className="px-4 py-3">
                         <button
@@ -189,6 +191,8 @@ export default function DesignSheetsPage() {
       )}
 
       {!isLoading && !isError && data && <ListPagination page={activeFilters.page || 1} limit={LEGACY_LIST_LIMIT} total={data.total || 0} onPageChange={handlePageChange} />}
+
+      {selectedDesignSheetId !== null && <DesignSheetDetailsModal id={selectedDesignSheetId} onClose={() => setSelectedDesignSheetId(null)} />}
 
       {selectedContractId !== null && (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedContractId(null)}>
