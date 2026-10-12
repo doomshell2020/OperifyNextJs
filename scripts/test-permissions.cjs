@@ -257,7 +257,7 @@ function frontendTests() {
   const stockRow={item_id:6,item_name:'COPPER ROD (CCR)',date_range:'2026-10-12',opening_stock:'5688.40',received_stock:'80.00',dispatched_stock:'0.00',closing_stock:'5768.40'};
   for (const permissions of [[],[key('stockregister','index')],[key('stockregister','receivedstock')],[key('stockregister','dailystock')],[key('contracts','index')]]) {
     const allowed=permissions.some(grant=>[key('stockregister','index'),key('stockregister','receivedstock')].includes(grant));
-    const html=render('app/dashboard/inventory/stock/page.tsx',permissions,{},[],{},[[],[],'6','','2026-10-12','2026-10-12',false,'',[stockRow],false,'received','','','']);
+    const html=render('app/dashboard/inventory/stock/page.tsx',permissions,{},[],{},[[],[],'6',[],'2026-10-12','2026-10-12',false,'',[stockRow],false,'received','','','']);
     assert.equal(html.includes(`href="${receiptPath}"`),allowed,'Received quantity must link for stock list or detail readers');
     if (allowed) assert(html.includes('target="_blank"'),'Opening receipt must preserve index filters');
     currentPath=receiptPath;

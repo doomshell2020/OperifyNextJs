@@ -1,5 +1,19 @@
 import apiClient from './apiClient';
 
+interface StockRegisterFilters {
+  date_from: string;
+  date_to: string;
+  product_id?: string;
+  category_id?: string;
+  category_ids?: string[];
+}
+
+function stockRegisterParams({ category_ids, ...filters }: StockRegisterFilters) {
+  const params = Object.fromEntries(Object.entries(filters).filter(([, value]) => value !== undefined && value !== ''));
+  if (category_ids?.length) params.category_ids = category_ids.join(',');
+  return params;
+}
+
 export interface StockRecord {
   item_id: number;
   item_name: string;
@@ -71,14 +85,14 @@ export const stockRegisterService = {
     link.click();
     link.parentNode?.removeChild(link);
   },
-  async getStockRegister(filters: { date_from: string; date_to: string; product_id?: string; category_id?: string }): Promise<StockRecord[]> {
-    const params = Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== undefined && v !== ''));
+  async getStockRegister(filters: StockRegisterFilters): Promise<StockRecord[]> {
+    const params = stockRegisterParams(filters);
     const res = await apiClient.get('/stock-register', { params });
     return res.data.data;
   },
 
-  async exportExcel(filters: { date_from: string; date_to: string; product_id?: string; category_id?: string }) {
-    const params = Object.fromEntries(Object.entries(filters).filter(([, v]) => v !== undefined && v !== ''));
+  async exportExcel(filters: StockRegisterFilters) {
+    const params = stockRegisterParams(filters);
     const res = await apiClient.get('/stock-register/export', { params, responseType: 'blob' });
     const url = window.URL.createObjectURL(new Blob([res.data]));
     const link = document.createElement('a');

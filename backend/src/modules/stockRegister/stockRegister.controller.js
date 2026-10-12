@@ -55,6 +55,7 @@ class StockRegisterController {
       const filters = {
         product_id: req.query.product_id,
         category_id: req.query.category_id,
+        category_ids: req.query.category_ids,
         date_from: req.query.date_from,
         date_to: req.query.date_to
       };
@@ -104,6 +105,7 @@ class StockRegisterController {
       const filters = {
         product_id: req.query.product_id,
         category_id: req.query.category_id,
+        category_ids: req.query.category_ids,
         date_from: req.query.date_from,
         date_to: req.query.date_to
       };

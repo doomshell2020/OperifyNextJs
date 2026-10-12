@@ -54,7 +54,7 @@ class StockRegisterRepository {
   }
 
   async getStockRegister(dbPool, filters = {}) {
-    const { product_id, category_id, date_from, date_to } = filters;
+    const { product_id, category_id, category_ids, date_from, date_to } = filters;
 
     // 1. Get products matching filters
     let pQuery = `
@@ -69,7 +69,10 @@ class StockRegisterRepository {
       pQuery += ` AND p.id = :product_id`;
       pReplacements.product_id = product_id;
     }
-    if (category_id) {
+    if (category_ids?.length) {
+      pQuery += ` AND p.category_id IN (:category_ids)`;
+      pReplacements.category_ids = category_ids;
+    } else if (category_id) {
       pQuery += ` AND p.category_id = :category_id`;
       pReplacements.category_id = category_id;
     }

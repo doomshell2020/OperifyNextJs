@@ -27,7 +27,17 @@ class StockRegisterService {
       throw new Error('Date From cannot be greater than Date To.');
     }
 
-    return await stockRegisterRepository.getStockRegister(dbPool, filters);
+    const rawCategories = filters.category_ids;
+    const categoryIds = rawCategories == null || rawCategories === '' ? []
+      : (Array.isArray(rawCategories) ? rawCategories : String(rawCategories).split(','));
+    if (categoryIds.some(id => !/^[1-9]\d*$/.test(String(id)))) {
+      const error = new Error('Valid category IDs are required.');
+      error.status = 400;
+      throw error;
+    }
+    return await stockRegisterRepository.getStockRegister(dbPool, {
+      ...filters, category_ids: [...new Set(categoryIds.map(String))]
+    });
   }
 
   async getReceivedStockDetails(dbPool, filters) {

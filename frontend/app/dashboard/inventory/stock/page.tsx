@@ -3,6 +3,7 @@
 import {useLegacyActionAccess} from '@/components/ui/useLegacyActionAccess';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState, useEffect } from 'react';
+import Select from 'react-select';
 import Link from 'next/link';
 import { useAuth } from '../../../../contexts/AuthContext';
 import { RefreshCw, Search, List, AlertCircle } from 'lucide-react';
@@ -20,7 +21,7 @@ export default function StockRegisterPage() {
   const [categories, setCategories] = useState<Category[]>([]);
 
   const [selectedProduct, setSelectedProduct] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
@@ -83,7 +84,7 @@ export default function StockRegisterPage() {
         date_from: dateFrom,
         date_to: dateTo,
         product_id: selectedProduct,
-        category_id: selectedCategory
+        category_ids: selectedCategories
       });
       setRecords(data || []);
     } catch (err: any) {
@@ -95,7 +96,7 @@ export default function StockRegisterPage() {
 
   const handleReset = () => {
     setSelectedProduct('');
-    setSelectedCategory('');
+    setSelectedCategories([]);
     setDateFrom('');
     setDateTo('');
     setError('');
@@ -118,17 +119,22 @@ export default function StockRegisterPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Category (Optional)</label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full text-sm border border-slate-300 rounded-md p-2 outline-none focus:border-cyan-500"
-            >
-              <option value="">Select Category</option>
-              {categories.map(c => (
-                <option key={c.id} value={c.id}>{c.category_name}</option>
-              ))}
-            </select>
+            <label htmlFor="stock-categories" className="block text-xs font-semibold text-slate-600 mb-1">Categories (Optional)</label>
+            <Select
+              inputId="stock-categories"
+              instanceId="stock-categories"
+              isMulti
+              closeMenuOnSelect={false}
+              options={categories.map(c => ({ value: String(c.id), label: c.category_name }))}
+              value={categories.filter(c => selectedCategories.includes(String(c.id))).map(c => ({ value: String(c.id), label: c.category_name }))}
+              onChange={options => setSelectedCategories(options.map(option => option.value))}
+              placeholder="Select categories..."
+              className="text-sm"
+              styles={{
+                control: base => ({ ...base, minHeight: 32, borderRadius: 0, borderColor: '#cbd5e1' }),
+                menu: base => ({ ...base, zIndex: 30 }),
+              }}
+            />
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">Date From <span className="text-red-500">*</span></label>
@@ -173,7 +179,7 @@ export default function StockRegisterPage() {
                   date_from: dateFrom,
                   date_to: dateTo,
                   product_id: selectedProduct,
-                  category_id: selectedCategory
+                  category_ids: selectedCategories
                 });
               } catch(e) {
                 setError('Failed to export Excel');
