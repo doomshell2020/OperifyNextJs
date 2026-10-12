@@ -156,13 +156,20 @@ async function permissionLoadingTests() {
     return [{url:'admin/contracts/edit_other'},{url:'admin/designsheet/edit'}];
   }}};
   vm.runInNewContext(fs.readFileSync(path.join(root,'backend/src/modules/auth/auth.repository.js'),'utf8'),
-    {module,exports:module.exports,require:name=>name==='./legacyJcAccess'?require('../backend/src/modules/auth/legacyJcAccess'):({centralModels:db}),console});
+    {module,exports:module.exports,require:name=>name==='./legacyJcAccess'?require('../backend/src/modules/auth/legacyJcAccess'):name==='./legacyStockAccess'?require('../backend/src/modules/auth/legacyStockAccess'):({centralModels:db}),console});
   const result=await module.exports.getUserPermissions('fixture-role');
   assert(!result.includes('contracts:edit'),'A similarly named URL must not grant Edit');
   assert(result.includes('designsheet:edit'));
   assert(result.includes('legacy:admin/contracts/edit_other'));
   assert(result.includes('legacy:admin/jobchallan/receiveindex'),'Unconfigured JC Receive must match the authenticated PHP workflow');
   const {legacyJcPermissions,actions}=require('../backend/src/modules/auth/legacyJcAccess');
+  const {legacyStockPermissions}=require('../backend/src/modules/auth/legacyStockAccess');
+  const stockIndex='legacy:admin/stockregister/index',stockExport='legacy:admin/stockregister/summaryexcel';
+  assert.deepEqual(legacyStockPermissions([],[stockIndex]),[stockIndex,stockExport]);
+  assert.deepEqual(legacyStockPermissions([],[]),[]);
+  assert.deepEqual(legacyStockPermissions([],['legacy:admin/stockregister/dailystock']),['legacy:admin/stockregister/dailystock']);
+  assert.deepEqual(legacyStockPermissions([{url:' Admin/Stockregister/Summaryexcel '}],[stockIndex]),[stockIndex]);
+  assert.deepEqual(legacyStockPermissions([{url:'admin/stockregister/summaryexcel'}],[stockIndex,stockExport]),[stockIndex,stockExport]);
   const labels=actions.map(action=>({url:`admin/jobchallan/${action}`}));
   assert.deepEqual(legacyJcPermissions(labels,[]),[],'Configured but ungranted JC actions must remain denied');
   for(const action of actions) {

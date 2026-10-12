@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { CategoryCheckboxSelect } from './CategoryCheckboxSelect';
 import Link from 'next/link';
 import { useAuth } from '../../../../contexts/AuthContext';
-import { RefreshCw, Search, List, AlertCircle } from 'lucide-react';
+import { RefreshCw, FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { settingsService, Product, Category } from '../../../../services/settings.service';
 import { stockRegisterService, StockRecord } from '../../../../services/stockRegister.service';
 import { ProductSearchSelect } from '../../../../components/ProductSearchSelect';
@@ -151,6 +151,9 @@ export default function StockRegisterPage() {
           </button>
           <button onClick={handleReset} className="legacy-button">Reset</button>
           {canAction('stockregister','summaryexcel') && <button
+            type="button"
+            title="Export Summary Excel"
+            aria-label="Export Summary Excel"
             onClick={async () => {
               if (!dateFrom || !dateTo) {
                 setError('Date From and Date To are required for export.');
@@ -167,9 +170,9 @@ export default function StockRegisterPage() {
                 setError('Failed to export Excel');
               }
             }}
-            className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-lg text-sm font-semibold shadow-md transition"
+            className="stock-excel-export"
           >
-            <List className="w-4 h-4" /> Export Summary Excel
+            <FileSpreadsheet aria-hidden="true" size={28} />
           </button>}
         </div>
         </div>
