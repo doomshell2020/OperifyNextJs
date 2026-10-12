@@ -41,6 +41,7 @@ class GrnInspectionRepository {
         g.id,
         g.inspection_id,
         g.po_id,
+        (SELECT po.id FROM st_purchaseorder po WHERE po.purchaseorder_id = g.po_id AND po.status != 'N' ORDER BY po.id DESC LIMIT 1) as po_record_id,
         g.inwarddate as inward_date,
         g.bill_no,
         g.bill_date,

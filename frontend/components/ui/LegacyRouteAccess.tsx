@@ -47,7 +47,8 @@ export function LegacyRouteAccess({ children }: { children: ReactNode }) {
   // useJcAccess. Dashboard and own-profile pages require authentication only.
   const allowed = can(controller, action) || (controller === 'designsheet' && action === 'viewdesignsheet' && can('designsheet', 'index'))
     || (controller === 'production' && action === 'viewcontractdetailspdf' && can('production', 'viewcontractdetail'))
-    || (controller === 'purchaseorder' && action === 'view' && can('purchaseorder', 'index'));
+    || (controller === 'purchaseorder' && action === 'view' && can('purchaseorder', 'index'))
+    || (controller === 'goodsreceived' && action === 'viewgrndetail' && can('goodsreceived','index'));
   if (controller && (!allowed || (action === 'add_inspection_grn' && !can('goodsreceived', 'add')))) {
     return <p role="alert" className="p-4">You do not have permission to access this page.</p>;
   }

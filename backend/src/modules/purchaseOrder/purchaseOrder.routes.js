@@ -17,15 +17,21 @@ router.post('/', permission('purchaseorder','add'), purchaseOrderController.crea
 router.get('/next-id', purchaseOrderController.getNextPoNumber);
 router.get('/item/:itemId/last-price', permission('purchaseorder','getitemdetail'), purchaseOrderController.getLastItemPrice);
 router.get('/item/:itemId/history', permission('purchaseorder','viewitemdetail'), purchaseOrderController.getItemHistory);
-router.get('/:id', permission('purchaseorder','viewpodetail'), purchaseOrderController.getDetails); // Alias for consistency with new API standard
-const printPermission = (req,res,next) => requireAnyPermission(['legacy:admin/purchaseorder/index', `legacy:admin/purchaseorder/${req.query.mode==='revised'?'printallpo':req.query.mode==='delivery'?'printdeliveryschedule':'view'}`])(req,res,next);
+// PHP links PO details and their PDF from both receiving managers.
+const detailGrants = ['legacy:admin/purchaseorder/viewpodetail', 'legacy:admin/purchaseorder/index', 'legacy:admin/goodsreceived/index', 'legacy:admin/goodsreceived/grninspection'];
+router.get('/:id', requireAnyPermission(detailGrants), purchaseOrderController.getDetails);
+router.get('/:id/details/pdf', requireAnyPermission([...detailGrants,'legacy:admin/purchaseorder/viewpodetailspdf']), purchaseOrderController.generateDetailsPdf);
+const printPermission = (req,res,next) => requireAnyPermission([
+  'legacy:admin/purchaseorder/index',
+  `legacy:admin/purchaseorder/${req.query.mode==='revised'?'printallpo':req.query.mode==='delivery'?'printdeliveryschedule':'view'}`
+])(req,res,next);
 router.get('/:id/print-data', printPermission, purchaseOrderController.getPrintData);
 router.get('/:id/pdf', printPermission, purchaseOrderController.generatePdf);
 router.get('/:id/hover', permission('purchaseorder','viewpodetail'), purchaseOrderController.getHoverDetails);
 // Form reads require the same action permission as their corresponding writes.
 router.get('/:id/revision-data', permission('purchaseorder','revised'), purchaseOrderController.getDetails);
 router.get('/:id/delivery-data', permission('purchaseorder','deliverynote'), purchaseOrderController.getDetails);
-router.get('/:id/details', permission('purchaseorder','viewpodetail'), purchaseOrderController.getDetails);
+router.get('/:id/details', requireAnyPermission(detailGrants), purchaseOrderController.getDetails);
 router.put('/:id', permission('purchaseorder','revised'), purchaseOrderController.revisePurchaseOrder);
 router.delete('/:id', permission('purchaseorder','delete'), purchaseOrderController.deletePurchaseOrder);
 router.post('/:id/delivery-note', permission('purchaseorder','deliverynote'), purchaseOrderController.addDeliveryNote);

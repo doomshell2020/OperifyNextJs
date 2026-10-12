@@ -3,6 +3,18 @@ const { launchPdfBrowser } = require('../../utils/pdfBrowser');
 const { FRONTEND_URL } = require('../../config/environment');
 
 class PurchaseOrderController {
+  async generateDetailsPdf(req,res,next) {
+    try {
+      const data=await purchaseOrderService.getDetails(req.dbPool,req.params.id);
+      const pdf=await require('./purchaseOrder.details.pdf').generateDetailsPDF(data);
+      res.setHeader('Content-Type','application/pdf');
+      res.setHeader('Content-Disposition',`inline; filename="PO_details_${Number(data.po.id)}.pdf"`);
+      res.send(pdf);
+    } catch(error) {
+      if(error.message==='Purchase Order not found') return res.status(404).json({success:false,message:error.message});
+      next(error);
+    }
+  }
   async getHoverDetails(req, res, next) {
     try {
       const { id } = req.params;

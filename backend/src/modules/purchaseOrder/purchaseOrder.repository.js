@@ -116,16 +116,18 @@ class PurchaseOrderRepository {
         i.item_name,
         pod.item_qty as order_qty,
         pod.item_amt as rate,
-        pod.item_base_price as price,
-        pod.tax_percentage,
+        (pod.item_qty * pod.item_amt) as price,
+        COALESCE(t.tax, pod.tax_percentage) as tax_percentage,
         pod.item_tax_amt as tax_amt,
         pod.item_total_amount as amount,
         pod.tax_id,
-        COALESCE(pod.uom, 'KG') as uom,
+        COALESCE(NULLIF(pod.uom, ''), u.unit_name) as uom,
         pod.weight,
         pod.volume
       FROM st_purchaseorderDetails pod
       LEFT JOIN st_additem i ON pod.item_id = i.id
+      LEFT JOIN st_measurementunits u ON i.uom = u.id
+      LEFT JOIN st_taxmaster t ON pod.tax_id = t.id
       WHERE pod.poprimary_id = :poId
     `;
     
@@ -135,14 +137,15 @@ class PurchaseOrderRepository {
     const grnQuery = `
       SELECT 
         g.id,
-        g.inspection_id as grn_number,
+        g.id as grn_number,
         g.bill_no,
         DATE(g.bill_date) as bill_date,
         DATE(g.inwarddate) as inward_date,
         g.total_qty,
         g.total_amt
-      FROM grn_inspection g
-      WHERE g.po_id = :poNumber
+      FROM st_goodsreceive g
+      WHERE g.purchaseorder_id = :poNumber
+      ORDER BY g.id DESC
     `;
     const grnRows = await dbPool.query(grnQuery, { replacements: { poNumber: po.po_number }, type: QueryTypes.SELECT });
     
@@ -154,17 +157,19 @@ class PurchaseOrderRepository {
           gd.item_id,
           i.item_name,
           gd.quantity as item_qty,
-          gd.cost_price as rate,
-          gd.rate as price,
-          COALESCE(t.tax, 18) as tax_percentage,
+          gd.rate as rate,
+          gd.cost_price as price,
+          t.tax as tax_percentage,
           gd.tax as tax_amt,
           gd.amount as amount,
-          COALESCE(u.unit_name, 'KG') as uom
-        FROM grn_inspection_details gd
+          u.unit_name as uom,
+          (SELECT pod.item_qty FROM st_purchaseorderDetails pod WHERE pod.purchaseorder_id = gd.po_id AND pod.item_id = gd.item_id ORDER BY pod.id DESC LIMIT 1) as order_qty
+        FROM st_stock_register gd
         LEFT JOIN st_additem i ON gd.item_id = i.id
         LEFT JOIN st_taxmaster t ON gd.tax_id = t.id
         LEFT JOIN st_measurementunits u ON i.uom = u.id
-        WHERE gd.inspection_id = :grnNumber
+        WHERE gd.goods_id = :grnNumber AND gd.store_type = '1' AND gd.status != 'N'
+        ORDER BY gd.id ASC
       `;
       const grnItemRows = await dbPool.query(grnItemsQuery, { replacements: { grnNumber: grn.grn_number }, type: QueryTypes.SELECT });
       return { ...grn, items: grnItemRows };
@@ -182,7 +187,7 @@ class PurchaseOrderRepository {
       });
       return {
         ...item,
-        pending_qty: Number(item.order_qty) - receivedQty
+        pending_qty: Math.round((Number(item.order_qty) - Math.round(receivedQty * 100) / 100) * 100) / 100
       };
     });
 

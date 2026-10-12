@@ -220,8 +220,8 @@ export default function GrnIndexPage() {
               {data?.data && data.data.length > 0 ? (
                 data.data.map((grn: any) => (
                   <tr key={grn.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                    <td className="p-4 font-medium text-cyan-700 cursor-pointer hover:underline" onClick={() => { setSelectedGrnId(grn.id); setIsGrnModalOpen(true); }}>{grn.id}</td>
-                    <td className="p-4 font-medium text-cyan-700 cursor-pointer hover:underline" onClick={() => { setSelectedPoId(grn.purchaseorder_id); setIsPoModalOpen(true); }}>{grn.purchaseorder_id}</td>
+                    <td className="p-4 font-medium text-cyan-700 cursor-pointer hover:underline" onClick={() => { setSelectedGrnId(String(grn.id)); setIsGrnModalOpen(true); }}>{grn.id}</td>
+                    <td className="p-4 font-medium text-cyan-700 cursor-pointer hover:underline" onClick={() => { setSelectedPoId(String(grn.po_record_id || grn.purchaseorder_id)); setIsPoModalOpen(true); }}>{grn.purchaseorder_id}</td>
                     <td className="p-4 text-slate-600">{formatContractDate(grn.inwarddate)}</td>
                     <td className="p-4 text-slate-600">{grn.bill_no}</td>
                     <td className="p-4 text-slate-600">{formatContractDate(grn.bill_date)}</td>
@@ -231,14 +231,16 @@ export default function GrnIndexPage() {
                     <td className="p-4 text-right font-bold">{parseFloat(grn.total_amt).toLocaleString('en-IN')}</td>
                     <td className="p-4 text-center">
                       <div className="flex items-center justify-center space-x-3">
-                        {canAction('goodsreceived','view') && <button
+                        {(canAction('goodsreceived','index') || canAction('goodsreceived','view') || canAction('goodsreceived','viewgrndetail')) && <>
+                        <button type="button" className="legacy-button" onClick={() => { void grnPdfService.openGrnPdf(grn.id).catch(() => alert('Unable to open GRN PDF. Please retry and allow popups.')); }}>Print PDF</button>
+                        <button
                           onClick={() => handleDownloadPdf(grn.id)}
                           disabled={downloadingPdf === grn.id}
                           className="text-red-500 hover:text-red-700 transition disabled:opacity-50"
-                          title="Download GRN PDF"
+                          title="Download PDF"
                         >
-                          {downloadingPdf === grn.id ? <Loader className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
-                        </button>}
+                          {downloadingPdf === grn.id ? <Loader className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />} Download PDF
+                        </button></>}
                         {canAction('goodsreceived','viewgrndetail') && <button onClick={() => router.push(`/dashboard/purchase/grn/view/${grn.id}`)} className="text-green-600 hover:text-green-800 transition" title="View GRN">
                           <Eye className="w-5 h-5" />
                         </button>}

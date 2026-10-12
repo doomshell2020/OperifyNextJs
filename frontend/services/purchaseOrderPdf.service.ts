@@ -1,6 +1,6 @@
 import apiClient from './apiClient';
 
-export async function openPurchaseOrderPdf(id: number, mode: 'current' | 'revised' | 'delivery' = 'current'): Promise<void> {
+export async function openPurchaseOrderPdf(id: number, mode: 'current' | 'revised' | 'delivery' | 'details' = 'current'): Promise<void> {
   // Open during the click so browser popup protection permits the new tab.
   const pdfWindow = window.open('about:blank', '_blank');
   if (!pdfWindow) throw new Error('Allow popups to open the purchase order PDF.');
@@ -9,8 +9,8 @@ export async function openPurchaseOrderPdf(id: number, mode: 'current' | 'revise
   pdfWindow.document.body.textContent = 'Generating purchase order PDF…';
 
   try {
-    const response = await apiClient.get<Blob>(`/purchase-orders/${id}/pdf`, {
-      params: { mode },
+    const response = await apiClient.get<Blob>(mode === 'details' ? `/purchase-orders/${id}/details/pdf` : `/purchase-orders/${id}/pdf`, {
+      params: mode === 'details' ? {} : { mode },
       responseType: 'blob',
       headers: { Accept: 'application/pdf' },
     });

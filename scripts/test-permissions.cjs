@@ -103,11 +103,19 @@ async function backendTests() {
     ['designsheet','/view/:designsheetno',['legacy:admin/designsheet/index','legacy:admin/designsheet/viewdesignsheet']],
     ['designsheet','/:id/files/:field',['legacy:admin/designsheet/index','legacy:admin/designsheet/edit','legacy:admin/designsheet/viewdesignsheet']],
     ['vendor','/:id',['legacy:admin/vendors/index','legacy:admin/vendors/viewdetail','legacy:admin/purchaseorder/index']],
+    ['grn','/:id',['legacy:admin/goodsreceived/index','legacy:admin/goodsreceived/viewgrndetail']],
+    ['grn','/:id/pdf',['legacy:admin/goodsreceived/index','legacy:admin/goodsreceived/view','legacy:admin/goodsreceived/viewgrndetail']],
+    ['purchaseOrder','/:id/details',['legacy:admin/purchaseorder/viewpodetail','legacy:admin/purchaseorder/index','legacy:admin/goodsreceived/index','legacy:admin/goodsreceived/grninspection']],
+    ['purchaseOrder','/:id/details/pdf',['legacy:admin/purchaseorder/viewpodetail','legacy:admin/purchaseorder/index','legacy:admin/goodsreceived/index','legacy:admin/goodsreceived/grninspection','legacy:admin/purchaseorder/viewpodetailspdf']],
   ]) {
     const guard=routerFor(module).stack.find(layer=>layer.route?.path===url).route.stack[0].handle;
     for (const permissions of [[],['legacy:admin/contracts/edit'],...allowed.map(key=>[key])]) {
       assert.equal((await evaluate(guard,{user:{permissions}})).code,permissions.some(key=>allowed.includes(key))?200:403);
     }
+  }
+  for (const grant of [key('goodsreceived','index'), key('goodsreceived','grninspection'), key('purchaseorder','viewpodetail')]) {
+    const route = routerFor('purchaseOrder').stack.find(l=>l.route?.path==='/:id/pdf').route;
+    for (const mode of ['current','revised','delivery']) assert.equal((await evaluate(route.stack[0].handle,{user:{permissions:[grant]},query:{mode}})).code,403);
   }
   const indentPopup = routerFor('indentpo').stack.find(layer => layer.route?.path === '/view-details/:id').route;
   const contractPdf = routerFor('contract').stack.find(layer => layer.route?.path === '/:id/pdf').route;
@@ -172,6 +180,7 @@ function loadTS(filename) {
     if(name==='react-dom')return {createPortal:dummy};
     if(name.includes('PermissionContext'))return {usePermission:()=>({hasPermission:canPermission,permissions:grants})};
     if(name.includes('useLegacyActionAccess'))return loadTS(path.join(root,'frontend/components/ui/useLegacyActionAccess.ts'));
+    if(name.includes('ReceivingDetailsTable'))return loadTS(path.join(root,'frontend/components/ReceivingDetailsTable.tsx'));
     if(name.includes('useJcAccess'))return loadTS(path.join(root,'frontend/components/jobChallan/useJcAccess.ts'));
     if(name.includes('AuthContext'))return {useAuth:()=>({user:{id:1,db:'fixture',permissions:grants},loading:false})};
     if(name.includes('legacyActionDate'))return {isLegacyToday};
@@ -183,6 +192,8 @@ function loadTS(filename) {
     if(name.endsWith('.css'))return new Proxy({},{get:(_,prop)=>String(prop)});
     if(name.includes('dateFormatter'))return {formatContractDate:v=>v || '',formatDate:v=>v || ''};
     if(name.endsWith('/pdf.service'))return {openModulePdf:url=>{openedPdfPaths.push(url);}};
+    if(name.includes('purchaseOrderPdf.service'))return {openPurchaseOrderPdf:(id,mode)=>{openedPdfPaths.push([id,mode]);return Promise.resolve();}};
+    if(name.includes('grnPdf.service'))return {grnPdfService:{openGrnPdf:id=>{openedPdfPaths.push(id);return Promise.resolve();}}};
     if(name.includes('ListPagination'))return {ListPagination:dummy,LEGACY_LIST_LIMIT:50};
     if(name.includes('apiConfig'))return {DEFAULT_LOGO_URL:'/logo.png',resolveApiAssetUrl:value=>value};
     return new Proxy({__esModule:true,default:dummy},{get:(obj,prop)=>prop in obj?obj[prop]:dummy});
@@ -196,6 +207,27 @@ function render(file,permissions,data,rows=[],props={},states=null) {
 }
 function actionCell(markup) { return [...markup.matchAll(/<tr[^>]*>(.*?)<\/tr>/gs)].at(-1)[1].match(/<td[^>]*>(.*?)<\/td>/gs).at(-1); }
 function frontendTests() {
+  const flatten = element => !element || typeof element !== 'object' ? [] : [element, ...React.Children.toArray(element.props?.children).flatMap(flatten)];
+  const grnFixture={data:{grn:{id:17,purchaseorder_id:'2627-1',total_amt:'100',total_tax:'10'},items:[{id:1,item_name:'Received material',order_qty:9,quantity:3,rate:20,cost_price:60,tax:0,tax_rates:[0],amount:60,uom:'KG'}]}};
+  for (const allowed of [false,true]) {
+    grants=allowed?[key('goodsreceived','index')]:[];fixture={'grn-details':grnFixture};
+    const Popup=loadTS(path.join(root,'frontend/components/GrnDetailsModal.tsx')).GrnDetailsModal;
+    const tree=Popup({id:17,isOpen:true,onClose:noop});
+    const html=renderToStaticMarkup(tree);
+    assert.equal(html.includes('Print PDF'),allowed);
+    assert(html.includes('9') && html.includes('3') && html.includes('60'));
+    assert(!html.includes('18</td>'),'Zero tax must not become an invented 18 percent');
+    assert(html.includes('Tax Included'));
+    if(allowed){openedPdfPaths=[];flatten(tree).find(element=>element.type==='button' && React.Children.toArray(element.props.children).some(child=>typeof child==='string' && child.includes('Print PDF'))).props.onClick();assert.deepEqual(openedPdfPaths,[17]);}
+  }
+  for (const grant of [key('goodsreceived','index'),key('goodsreceived','grninspection'),key('purchaseorder','viewpodetail')]) {
+    grants=[grant];fixture={'purchase-order':{po:{id:42,po_number:'2627-1'},items:[]}};
+    const Popup=loadTS(path.join(root,'frontend/components/PurchaseOrderDetailsModal.tsx')).PurchaseOrderDetailsModal;
+    const tree=Popup({id:'2627-1',isOpen:true,onClose:noop});
+    assert(renderToStaticMarkup(tree).includes('Print PDF'));
+    openedPdfPaths=[];flatten(tree).find(element=>element.type==='button' && React.Children.toArray(element.props.children).some(child=>typeof child==='string' && child.includes('Print PDF'))).props.onClick();
+    assert.deepEqual(openedPdfPaths,[[42,'details']],'PO number link must print the loaded record ID and dedicated details template');
+  }
   hookStates=null;
   fixture={'contract-details':{contract:{title:'Doom',workorder:'2026'},items:[]}};
   const ContractPopup=loadTS(path.join(root,'frontend/components/dashboard/ContractDetailsModal.tsx')).ContractDetailsModal;
@@ -276,7 +308,8 @@ function frontendTests() {
     const data=queryKey==='grn'?{data:[row],pagination:{total:1,page:1}}:[row];
     for(const allowed of [false,true]) {
       const html=render(`app/dashboard/${file}/page.tsx`,[key(controller,'index'),...(allowed?[key(controller,operation)]:[])],{[queryKey]:data});
-      assert.equal(/<button|<a /.test(actionCell(html)),allowed,file+' view action');
+      assert.equal(/<button|<a /.test(actionCell(html)),file==='purchase/grn' || allowed,file+' view action');
+      if (file==='purchase/grn') { assert(actionCell(html).includes('Print PDF')); assert(actionCell(html).includes('Download PDF')); }
     }
   }
   const jc={id:1,challan_id:1,challan_no:'JC-1',gatepass_no:'GP-1',status:'Pending',total_received:1,pending_qty:0,sender_db:'fixture',is_manual:0};

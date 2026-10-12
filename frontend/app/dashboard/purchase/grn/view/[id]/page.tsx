@@ -47,10 +47,10 @@ export default function ViewGrnPage({ params }: { params: Promise<{ id: string }
 
   const { grn, items } = data.data;
 
-  const taxExcludedAmount = (items || []).reduce((sum: number, item: any) => sum + ((Number(item.quantity) || 0) * (Number(item.rate) || 0)), 0);
+  const taxExcludedAmount = (items || []).reduce((sum: number, item: any) => sum + (Number(item.cost_price) || 0), 0);
   const totalTax = (items || []).reduce((sum: number, item: any) => sum + (Number(item.tax) || 0), 0);
   const freightCharges = Number(grn.freight) || 0; 
-  const totalAmount = taxExcludedAmount + totalTax + freightCharges;
+  const totalAmount = (items || []).reduce((sum: number, item: any) => sum + Number(item.amount || 0), 0) + freightCharges;
 
   return (
     <main className="max-w-5xl w-full mx-auto px-6 py-8 space-y-6 font-sans pb-24">
@@ -65,7 +65,7 @@ export default function ViewGrnPage({ params }: { params: Promise<{ id: string }
             <p className="text-sm text-slate-500 font-medium">Goods Received Note details and items</p>
           </div>
         </div>
-        {canAction('goodsreceived','view') && <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition cursor-pointer shadow-sm">
+        {(canAction('goodsreceived','view') || canAction('goodsreceived','index') || canAction('goodsreceived','viewgrndetail')) && <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-md text-sm font-medium transition cursor-pointer shadow-sm">
           <Printer className="w-4 h-4" /> Print / PDF
         </button>}
       </div>
@@ -119,7 +119,7 @@ export default function ViewGrnPage({ params }: { params: Promise<{ id: string }
                   <td className="p-3 text-right text-slate-600">{formatAmt(item.rate)}</td>
                   <td className="p-3 text-right text-slate-600">{formatAmt(item.tax)}</td>
                   <td className="p-3 text-right font-medium text-slate-800">
-                    {formatAmt(parseFloat(item.amount) + parseFloat(item.tax))}
+                    {formatAmt(item.amount)}
                   </td>
                 </tr>
               )) : (

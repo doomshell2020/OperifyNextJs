@@ -7,6 +7,7 @@ class GrnRepository {
       SELECT
         grn.id,
         grn.purchaseorder_id,
+        (SELECT po.id FROM st_purchaseorder po WHERE po.purchaseorder_id = grn.purchaseorder_id AND po.status != 'N' ORDER BY po.id DESC LIMIT 1) as po_record_id,
         grn.inwarddate,
         grn.bill_no,
         grn.bill_date,

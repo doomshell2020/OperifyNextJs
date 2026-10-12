@@ -78,6 +78,10 @@
 .legacy-erp table { font-size:12px; border-collapse:collapse; }
 .legacy-erp table :is(th,td) { border:1px solid #e5e5e5; }
 .legacy-erp table thead :is(tr,th) { background:#333 !important; color:white !important; text-transform:none; letter-spacing:normal; }
+.legacy-erp .receiving-details table thead :is(tr,th) { background:#fff !important; color:#333 !important; }
+.legacy-erp .receiving-details .receiving-metadata :is(th,td) { border:0; padding:5px 10px !important; }
+.receiving-details { font-size:14px; color:#333; }
+.receiving-details h4 { text-align:center; font-size:15px; font-weight:700; margin:10px 0; }
 
 .legacy-erp input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([data-date-native]), .legacy-erp select, .legacy-erp textarea { border:1px solid #d2d6de; padding:6px 12px; font-size:12px; font-weight:400; }
 .legacy-erp label { text-transform:none; }
