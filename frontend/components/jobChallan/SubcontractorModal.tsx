@@ -4,12 +4,12 @@ import {createPortal} from 'react-dom';
 import apiClient from '@/services/apiClient';
 import toast from 'react-hot-toast';
 import {buttonClass,inputClass,errorMessage,useJcAccess} from './useJcAccess';
-export default function SubcontractorModal({onAdded}:{onAdded:(vendor:{id:number;name:string})=>void}) {
+export default function SubcontractorModal({onAdded,compact=false}:{onAdded:(vendor:{id:number;name:string})=>void;compact?:boolean}) {
   const [open,setOpen]=useState(false),[busy,setBusy]=useState(false);
   const [form,setForm]=useState<Record<string,string>>({});
   const {can}=useJcAccess();
   if (!can('jobchallan','ajaxaddsubcontractor')) return null;
-  return <><button type="button" className="text-cyan-700 text-sm underline" onClick={()=>setOpen(true)}>Add Company / Party</button>
+  return <><button type="button" className={compact?'jc-receive-party-add':'text-cyan-700 text-sm underline'} title="Add Company/Party" aria-label="Add Company/Party" onClick={()=>setOpen(true)}>{compact?'+':'Add Company / Party'}</button>
     {open && createPortal(<div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
       <div role="dialog" aria-modal="true" aria-label="Add Company / Party" className="bg-white w-full max-w-[999px]">
         <div className="flex items-center justify-between p-3 bg-[#3399CC] text-white"><h2>Add Company / Party</h2><button type="button" aria-label="Close" onClick={()=>setOpen(false)}>×</button></div>

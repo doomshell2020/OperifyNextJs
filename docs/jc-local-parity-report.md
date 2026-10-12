@@ -1,5 +1,11 @@
 # JC Challan / JC Receive repair
 
+## Follow-up: simple Receive Add form from the PHP screenshot
+
+Add New Receive now opens the simple party-based form shown in the supplied PHP screenshot. Removed visible JC Type / Receive Type radios and the alternate party-name input. Restored Receive Add heading; Challan No, Reference JC No, blank Challan Date, Vehicle No, From Company / Party plus button, GST; and the Product / Receive Qty / Action table with unit beside quantity. Searchable dropdowns use the PHP Select2 appearance, row removal uses the red icon, Add Item uses the cyan button, and Save JC Receive is red and right-aligned. Existing local JC Receive links still open their pending-quantity flow without type switches.
+
+The form submits the existing manual-receive API payload with a selected party; no backend calculations or stock workflow were changed. Browser checks using existing local records verified party search/GST, product search/unit and Add/Remove rows under a GET-only API and SELECT/SHOW-only database guard. No records were saved. Frontend build and existing permission/stock transaction checks passed.
+
 ## Follow-up: access denied and missing action buttons after live restart
 
 The live screenshots showed the new layout with Add/View/PDF/Delete absent and JC Receive denied. The initial fix preserved an incorrect migration assumption: it required per-action URL labels even though the active PHP JC templates do not gate these actions and the active controller's permission-check block is commented out. The checked local permission catalogue contains no JC labels at all.

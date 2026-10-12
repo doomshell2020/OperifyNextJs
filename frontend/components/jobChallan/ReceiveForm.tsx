@@ -1,64 +1,87 @@
 'use client';
-import {DatePicker} from '@/components/ui/DatePicker';
-import {ProductSearchSelect} from '@/components/ProductSearchSelect';
-import {formatContractDate} from '@/utils/dateFormatter';
-import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import {useState} from 'react';
 import {useRouter,useSearchParams} from 'next/navigation';
-import Link from 'next/link';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
+import {Plus,Trash2} from 'lucide-react';
 import toast from 'react-hot-toast';
-import apiClient from '@/services/apiClient';
+import {DatePicker} from '@/components/ui/DatePicker';
+import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
+import {formatContractDate} from '@/utils/dateFormatter';
 import {useAuth} from '@/contexts/AuthContext';
-import {buttonClass,inputClass,useJcAccess,errorMessage,localDate} from './useJcAccess';
+import apiClient from '@/services/apiClient';
+import {inputClass,useJcAccess,errorMessage} from './useJcAccess';
 import SubcontractorModal from './SubcontractorModal';
-interface Item {item_id:string|number;item_name?:string;category?:string;unit_name?:string;original_qty?:number;received_qty?:number;pending_qty?:number;receive_qty:string;rate?:string;tax_rate?:string;remarks?:string;receive_date?:string;vehicle_no?:string;}
+import ReceiveSelect from './ReceiveSelect';
+import ReturnForm from './ReturnForm';
+
+interface Item {item_id:string|number;item_name?:string;category?:string;unit_name?:string;original_qty?:number;received_qty?:number;pending_qty?:number;receive_qty:string;}
 interface Options {manual_supported:boolean;eligible:{key:string;challan_no:string;sender_name:string}[];products:{id:number;item_name:string;unit_name:string}[];vendors:{id:number;name:string;gst_no:string}[];}
 export default function ReceiveForm({returnId,onClose}:{returnId?:string;onClose?:()=>void}) {
-  const router=useRouter(),search=useSearchParams(),{user}=useAuth(),{can,loading}=useJcAccess();
-  const queryClient=useQueryClient();
-  const [mode,setMode]=useState(returnId?'Return':search.get('challan_id')?'In JC':'Others');
-  const [form,setForm]=useState<Record<string,string>>({challan_id:search.get('challan_id') || '',manual_jc_type:'In JC',challan_date:localDate(),receive_date:localDate()});
+  return returnId?<ReturnForm id={returnId} onClose={onClose}/>:<ReceiveAddForm/>;
+}
+
+function ReceiveAddForm() {
+  const router=useRouter(),search=useSearchParams(),{user}=useAuth(),{can,loading}=useJcAccess(),cache=useQueryClient();
+  // Add New Receive is the simple manual form. The row-level Receive link
+  // retains the local JC workflow without exposing extra type switches.
+  const linked=!!search.get('challan_id');
+  const [form,setForm]=useState({challan_id:search.get('challan_id') || '',challan_no:'',reference_jc_no:'',challan_date:'',vehicle_no:'',from_company:''});
   const [manualItems,setItems]=useState<Item[]>([{item_id:'',receive_qty:''}]),[busy,setBusy]=useState(false);
-  const [edits,setEdits]=useState<Record<number,Partial<Item>>>({});
-  const options=useQuery<Options>({queryKey:['receiveOptions',user?.db],enabled:!returnId && can('jobchallan','receiveadd'),queryFn:async()=>(await apiClient.get('/jc-receive/options')).data.data});
-  const detailsEnabled=mode!=='Others' && !!(form.challan_id || returnId) && !!user && can('jobchallan',returnId?'itemreceived':'receiveadd');
-  const details=useQuery<{challan_no:string;jc_date:string;from_company:string;items:Item[]}>({queryKey:['receivePending',user?.db,returnId,form.challan_id],enabled:detailsEnabled,queryFn:async()=>(await apiClient.get('/jc-receive/details',{params:{challan_id:returnId || form.challan_id}})).data.data});
-  const loadingItems=detailsEnabled && details.isFetching;
-  const loadError=detailsEnabled && details.isError ? errorMessage(details.error):'';
-  const fromCompany=details.data?.from_company || '';
-  const items=mode==='Others'?manualItems:(details.data?.items || []).filter(i=>Number(i.pending_qty)>0).map(item=>({...item,receive_qty:'',receive_date:form.receive_date,...edits[Number(item.item_id)]}));
-  const taxes=useQuery<{id:number;tax:number}[]>({queryKey:['jcReturnTaxes',user?.db],enabled:!!returnId && can('jobchallan','itemreceived'),queryFn:async()=>(await apiClient.get('/job-challan/tax-master',{params:{context:'receive'}})).data.data});
-  const update=(key:string,value:string)=>setForm(prev=>({...prev,[key]:value}));
-  const updateItem=(index:number,key:keyof Item,value:string)=>{if(mode==='Others')setItems(prev=>prev.map((item,i)=>i===index?{...item,[key]:value}:item));else {const id=Number(items[index].item_id);setEdits(prev=>({...prev,[id]:{...prev[id],[key]:value}}));}};
-  const allowed=can('jobchallan',returnId?'itemreceived':'receiveadd');
-  if(loading) return <p className="p-6">Loading permissions...</p>;
-  if(!allowed) return <p className="p-6" role="alert">You do not have permission to receive this JC.</p>;
-  return <main className="legacy-jc-page max-w-7xl mx-auto px-6 py-8 space-y-5"><LegacyPageHeader title={returnId?'Received Item Job Challan Entry':'JC Receive'}/><form className="legacy-form legacy-form-receive space-y-5" onSubmit={async e=>{
-    e.preventDefault();if(busy || loadingItems || loadError)return;
-    const selected=items.filter(item=>item.item_id && Number(item.receive_qty)>0);
-    if(!selected.length){toast.error('Enter a receive quantity for at least one item.');return;}
-    if(mode!=='Others' && selected.some(item=>Number(item.receive_qty)>Number(item.pending_qty))){toast.error('Receive quantity cannot exceed pending quantity.');return;}
-    setBusy(true);try{await apiClient.post(returnId?`/job-challan/${returnId}/receive`:'/jc-receive',{...form,jc_type:mode==='Others'?'Others':'In JC',items:selected,manual_items:selected});
-      await Promise.all(['jobChallans','jobChallan','jcTracking','jc-receive','receiveOptions','receivePending'].map(key=>queryClient.invalidateQueries({queryKey:[key]})));
-      toast.success('JC received successfully');if(onClose)onClose();else router.push(returnId?`/dashboard/jc-challan/${returnId}/tracking`:'/dashboard/jc-receive');}catch(error){toast.error(errorMessage(error));}finally{setBusy(false);}
-  }}>
-    {mode==='Others' && options.data && !options.data.manual_supported && <p role="alert" className="text-amber-700">Manual receipts are not yet enabled for this company. Select In JC to receive a local challan.</p>}
-    <section className="bg-white border rounded-xl p-5 space-y-4">{!returnId && <div className="flex gap-6">{['In JC','Others'].map(value=><label key={value}><input type="radio" name="mode" checked={mode===value} onChange={()=>{setMode(value);setItems([{item_id:'',receive_qty:''}]);setEdits({});}}/> {value}</label>)}</div>}
-      {mode==='In JC' && <><label className="block text-sm">Created JC<select required className={inputClass} value={form.challan_id} onChange={e=>{update('challan_id',e.target.value);setEdits({});}}><option value="">Select Job Challan</option>{options.data?.eligible.map(jc=><option key={jc.key} value={jc.key}>{jc.challan_no} ({jc.sender_name})</option>)}</select></label>
-        {details.data && <div className="grid grid-cols-3 gap-4"><p>JC Number: {details.data.challan_no}</p><p>JC Date: {formatContractDate(details.data.jc_date)}</p><p>From Company: {fromCompany}</p></div>}</>}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">{mode==='Others' && <>
-        <div className="text-sm"><b>Receive Type</b><div className="flex gap-4">{['In JC','Others'].map(value=><label key={value}><input type="radio" name="manual_jc_type" checked={form.manual_jc_type===value} onChange={()=>{update('manual_jc_type',value);update('from_company','');update('other_company_name','');}} /> {value}</label>)}</div></div>
-        <label className="text-sm">Challan No.<input required className={inputClass} value={form.challan_no || ''} onChange={e=>update('challan_no',e.target.value)}/></label>
-        <label className="text-sm">Reference JC No. (optional)<input className={inputClass} value={form.reference_jc_no || ''} onChange={e=>update('reference_jc_no',e.target.value)}/></label>
-        <label className="text-sm">Challan Date<DatePicker required  className={inputClass} value={form.challan_date} onChange={e=>update('challan_date',e.target.value)}/></label>
-        {form.manual_jc_type==='In JC'?<div><label className="text-sm">From Company<select required className={inputClass} value={form.from_company || ''} onChange={e=>update('from_company',e.target.value)}><option value="">Select Company</option>{options.data?.vendors.map(v=><option key={v.id} value={v.id}>{v.name}</option>)}</select></label><SubcontractorModal onAdded={v=>{void options.refetch();update('from_company',String(v.id));}}/></div>:<label className="text-sm">Company/Party Name<input required className={inputClass} value={form.other_company_name || ''} onChange={e=>update('other_company_name',e.target.value)}/></label>}
-        <label className="text-sm">GST No.<input readOnly className={inputClass+' bg-slate-50'} value={form.manual_jc_type==='In JC' ? options.data?.vendors.find(v=>String(v.id)===form.from_company)?.gst_no || '' : ''}/></label>
-      </>}
-      {!returnId && <label className="text-sm">Vehicle No.<input className={inputClass} value={form.vehicle_no || ''} onChange={e=>update('vehicle_no',e.target.value)}/></label>}</div>
-    </section>
-    {(loadError || options.isError) && <p role="alert" className="text-red-600">{loadError || errorMessage(options.error)}</p>}
-    <section className="bg-white border rounded-xl p-5 overflow-x-auto"><table className="w-full text-sm"><thead><tr>{(mode==='Others'?['Item','Receive Quantity','Unit','']:returnId?['Item','Dispatch','Received','Pending','Receive Qty','Received Date','Vehicle No.','Rate','GST %','Tax Amt','Total','Remarks']:['Product','Category','Original Qty','Received Qty','Pending Qty','Receive Qty']).map((label,i)=><th className="p-2 text-left" key={i}>{label}</th>)}</tr></thead><tbody>{items.map((item,index)=><tr className="border-t" key={index}>{mode==='Others'?<><td className="p-2"><ProductSearchSelect products={options.data?.products || []} value={String(item.item_id)} onChange={value=>updateItem(index,'item_id',value)} /></td><td className="p-2"><input type="number" step="0.01" min="0" className={inputClass} value={item.receive_qty} onChange={e=>updateItem(index,'receive_qty',e.target.value)}/></td><td className="p-2">{options.data?.products.find(p=>String(p.id)===String(item.item_id))?.unit_name || 'Unit'}</td><td className="p-2"><button type="button" onClick={()=>setItems(items.length>1?items.filter((_,i)=>i!==index):[{item_id:'',receive_qty:''}])}>Remove</button></td></>:<><td className="p-2">{item.item_name}</td>{!returnId && <td className="p-2">{item.category}</td>}<td className="p-2">{item.original_qty}</td><td className="p-2">{item.received_qty}</td><td className="p-2">{item.pending_qty}</td><td className="p-2"><input aria-label={`Receive quantity for ${item.item_name}`} type="number" min="0" step="0.01" max={item.pending_qty} className={inputClass} value={item.receive_qty} onChange={e=>updateItem(index,'receive_qty',e.target.value)}/></td>{returnId?<><td className="p-2"><DatePicker className={inputClass} value={item.receive_date || ''} onChange={e=>updateItem(index,'receive_date',e.target.value)} /></td><td className="p-2"><input className={inputClass} value={item.vehicle_no || ''} onChange={e=>updateItem(index,'vehicle_no',e.target.value)} /></td><td className="p-2"><input type="number" min="0" step="0.01" className={inputClass} value={item.rate || ''} onChange={e=>updateItem(index,'rate',e.target.value)}/></td><td className="p-2"><select className={inputClass} value={item.tax_rate || ''} onChange={e=>updateItem(index,'tax_rate',e.target.value)}><option value="">-- Tax --</option>{taxes.data?.map(t=><option key={t.id} value={String(t.tax)}>{t.tax}%</option>)}</select></td><td className="p-2">{(Number(item.receive_qty || 0)*Number(item.rate || 0)*Number(item.tax_rate || 0)/100).toFixed(2)}</td><td className="p-2">{(Number(item.receive_qty || 0)*Number(item.rate || 0)*(1+Number(item.tax_rate || 0)/100)).toFixed(2)}</td><td className="p-2"><input className={inputClass} value={item.remarks || ''} onChange={e=>updateItem(index,'remarks',e.target.value)}/></td></>:null}</>}</tr>)}</tbody></table>{loadingItems && <p>Loading pending quantities...</p>}{mode==='Others' && <button type="button" className="text-cyan-700 mt-3" onClick={()=>setItems([...items,{item_id:'',receive_qty:''}])}>+ Add Item</button>}</section>
-    <div className="flex gap-4"><button className={buttonClass} disabled={busy || loadingItems || !!loadError || options.isError || (mode==='Others' && !options.data?.manual_supported)}>{busy?'Saving...':returnId?'Save':'Save JC Receive'}</button>{onClose?<button type="button" onClick={onClose}>Close</button>:<Link href={returnId?`/dashboard/jc-challan/${returnId}/tracking`:'/dashboard/jc-receive'}>Cancel</Link>}</div>
-  </form></main>;
+  const [edits,setEdits]=useState<Record<string,string>>({});
+  const allowed=can('jobchallan','receiveadd');
+  const options=useQuery<Options>({queryKey:['receiveOptions',user?.db],enabled:allowed,
+    queryFn:async()=>(await apiClient.get('/jc-receive/options')).data.data});
+  const details=useQuery<{challan_no:string;jc_date:string;from_company:string;items:Item[]}>({queryKey:['receivePending',user?.db,form.challan_id],enabled:allowed && linked && !!form.challan_id,
+    queryFn:async()=>(await apiClient.get('/jc-receive/details',{params:{challan_id:form.challan_id}})).data.data});
+  const items=linked?(details.data?.items || []).filter(item=>Number(item.pending_qty)>0).map(item=>({...item,receive_qty:edits[String(item.item_id)] || ''})):manualItems;
+  const update=(field:keyof typeof form,value:string)=>setForm(previous=>({...previous,[field]:value}));
+  const updateItem=(index:number,field:keyof Item,value:string)=>setItems(previous=>previous.map((item,i)=>i===index?{...item,[field]:value}:item));
+  if(loading)return <p className="p-6">Loading permissions...</p>;
+  if(!allowed)return <p className="p-6" role="alert">You do not have permission to receive this JC.</p>;
+  return <main className="legacy-jc-page space-y-5"><LegacyPageHeader title="JC Receive"/>
+    <form className="legacy-form jc-simple-receive" onSubmit={async event=>{
+      event.preventDefault();if(busy || options.isFetching || options.isError || (linked && (details.isFetching || details.isError)))return;
+      if(!linked && (!form.challan_no.trim() || !form.challan_date || !form.from_company)){toast.error('Please fill all required Challan details.');return;}
+      const selected=items.filter(item=>item.item_id && Number(item.receive_qty)>0);
+      if(!selected.length){toast.error('Enter a receive quantity for at least one item.');return;}
+      if(linked && selected.some(item=>Number(item.receive_qty)>Number(item.pending_qty))){toast.error('Receive quantity cannot exceed pending quantity.');return;}
+      setBusy(true);try{
+        await apiClient.post('/jc-receive',{...form,jc_type:linked?'In JC':'Others',manual_jc_type:'In JC',items:selected,manual_items:selected});
+        await Promise.all(['jobChallans','jobChallan','jcTracking','jc-receive','receiveOptions','receivePending'].map(key=>cache.invalidateQueries({queryKey:[key]})));
+        toast.success('JC received successfully');router.push('/dashboard/jc-receive');
+      }catch(error){toast.error(errorMessage(error));}finally{setBusy(false);}
+    }}>
+      <h2 className="jc-receive-heading">Receive Add</h2>
+      {!linked?<>
+        <div className="jc-receive-header-fields">
+          <label>Challan No <span className="text-red-600">*</span><input required className={inputClass} placeholder="Enter Challan No" value={form.challan_no} onChange={e=>update('challan_no',e.target.value)}/></label>
+          <label>Reference JC No<input className={inputClass} placeholder="Optional" value={form.reference_jc_no} onChange={e=>update('reference_jc_no',e.target.value)}/></label>
+          <label>Challan Date <span className="text-red-600">*</span><DatePicker required className={inputClass} placeholder="Select Date" value={form.challan_date} onChange={e=>update('challan_date',e.target.value)}/></label>
+          <label>Vehicle No<input className={inputClass} placeholder="Enter Vehicle No" value={form.vehicle_no} onChange={e=>update('vehicle_no',e.target.value)}/></label>
+          <div><div className="jc-receive-field-label">From Company / Party <span className="text-red-600">*</span> <SubcontractorModal compact onAdded={vendor=>{void options.refetch();update('from_company',String(vendor.id));}}/></div>
+            <ReceiveSelect label="From Company / Party" options={options.data?.vendors || []} value={form.from_company} onChange={value=>update('from_company',value)} placeholder="[ Select Company/Party ]"/>
+          </div>
+        </div>
+        <label className="jc-receive-gst">GST No.<input readOnly className={inputClass} value={options.data?.vendors.find(vendor=>String(vendor.id)===form.from_company)?.gst_no || ''}/></label>
+      </>:<div className="jc-receive-local-fields">
+        <label>Created JC<select required className={inputClass} value={form.challan_id} onChange={e=>{update('challan_id',e.target.value);setEdits({});}}><option value="">Select Job Challan</option>{options.data?.eligible.map(jc=><option key={jc.key} value={jc.key}>{jc.challan_no} ({jc.sender_name})</option>)}</select></label>
+        <label>Vehicle No<input className={inputClass} value={form.vehicle_no} onChange={e=>update('vehicle_no',e.target.value)}/></label>
+        {details.data && <div className="jc-receive-local-summary"><p>JC Number: {details.data.challan_no}</p><p>JC Date: {formatContractDate(details.data.jc_date)}</p><p>From Company: {details.data.from_company}</p></div>}
+      </div>}
+      {(options.isError || (linked && details.isError)) && <p role="alert" className="text-red-600">{errorMessage(options.error || details.error)}</p>}
+      {!linked && options.data && !options.data.manual_supported && <p role="alert" className="text-red-600">Manual receipts are not enabled for this company.</p>}
+      <div className="jc-receive-items overflow-x-auto"><table className="w-full">
+        {!linked && <colgroup><col style={{width:'70%'}}/><col style={{width:'25%'}}/><col style={{width:'5%'}}/></colgroup>}
+        <thead><tr>{(linked?['Product','Category','Original Qty','Received Qty','Pending Qty','Receive Qty']:['Product','Receive Qty','Action']).map(title=><th key={title}>{title}{!linked && title!=='Action' && <span className="text-red-600"> *</span>}</th>)}</tr></thead>
+        <tbody>{items.map((item,index)=><tr key={linked?item.item_id:index}>{!linked?<>
+          <td><ReceiveSelect label={`Product ${index+1}`} options={(options.data?.products || []).map(product=>({id:product.id,name:product.item_name}))} value={String(item.item_id)} onChange={value=>updateItem(index,'item_id',value)} placeholder="[ Select Product ]"/></td>
+          <td><div className="jc-receive-quantity"><input type="number" min="0" step="0.01" className={inputClass} placeholder="0" aria-label={`Receive quantity ${index+1}`} value={item.receive_qty} onChange={e=>updateItem(index,'receive_qty',e.target.value)}/><b>{options.data?.products.find(product=>String(product.id)===String(item.item_id))?.unit_name || 'Unit'}</b></div></td>
+          <td className="text-center"><button type="button" className="jc-receive-remove" title="Remove" aria-label={`Remove product ${index+1}`} onClick={()=>setItems(previous=>previous.length>1?previous.filter((_,i)=>i!==index):[{item_id:'',receive_qty:''}])}><Trash2 size={14}/></button></td>
+        </>:<><td>{item.item_name}</td><td>{item.category}</td><td>{item.original_qty}</td><td>{item.received_qty}</td><td>{item.pending_qty}</td><td><input aria-label={`Receive quantity for ${item.item_name}`} className={inputClass} type="number" min="0" step="0.01" max={item.pending_qty} value={item.receive_qty} onChange={e=>setEdits(previous=>({...previous,[String(item.item_id)]:e.target.value}))}/></td></>}</tr>)}</tbody>
+      </table></div>
+      {(options.isLoading || (linked && details.isFetching)) && <p>Loading items...</p>}
+      {!linked && <button type="button" className="jc-receive-add" onClick={()=>setItems(previous=>[...previous,{item_id:'',receive_qty:''}])}><Plus size={14}/> Add Item</button>}
+      <div className="jc-receive-save-row"><button type="submit" className="jc-receive-save" disabled={busy || options.isFetching || options.isError || (linked?(details.isFetching || details.isError):!options.data?.manual_supported)}>{busy?'Saving...':'Save JC Receive'}</button></div>
+    </form>
+  </main>;
 }

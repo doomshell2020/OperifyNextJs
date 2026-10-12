@@ -198,6 +198,8 @@ function loadTS(filename) {
     if(name.includes('useLegacyActionAccess'))return loadTS(path.join(root,'frontend/components/ui/useLegacyActionAccess.ts'));
     if(name.includes('ReceivingDetailsTable'))return loadTS(path.join(root,'frontend/components/ReceivingDetailsTable.tsx'));
     if(name.includes('useJcAccess'))return loadTS(path.join(root,'frontend/components/jobChallan/useJcAccess.ts'));
+    if(name==='./ReturnForm')return loadTS(path.join(root,'frontend/components/jobChallan/ReturnForm.tsx'));
+    if(name==='./ReceiveSelect')return loadTS(path.join(root,'frontend/components/jobChallan/ReceiveSelect.tsx'));
     if(name.includes('AuthContext'))return {useAuth:()=>({user:{id:1,db:'fixture',permissions:grants},loading:false})};
     if(name.includes('legacyActionDate'))return {isLegacyToday};
     if(name.includes('useListLocation'))return {useListLocation:()=>true};
@@ -243,6 +245,12 @@ function frontendTests() {
   const returnForm=render('components/jobChallan/ReceiveForm.tsx',[key('jobchallan','itemreceived')],{receivePending:{items:[{item_id:1,item_name:'Existing item',original_qty:10,received_qty:4,pending_qty:6}]},jcReturnTaxes:[]},[],{returnId:'111'});
   assert(returnForm.includes('Received Date') && returnForm.includes('Vehicle No.') && returnForm.includes('GST %'),'Return row must preserve PHP date, vehicle and valuation fields');
   assert(!returnForm.includes('linked company'));
+  const simpleReceive=render('components/jobChallan/ReceiveForm.tsx',[key('jobchallan','receiveadd')],{receiveOptions:{manual_supported:true,eligible:[],products:[],vendors:[]}});
+  assert(simpleReceive.includes('Receive Add') && simpleReceive.includes('From Company / Party'));
+  assert(simpleReceive.includes('[ Select Company/Party ]') && simpleReceive.includes('[ Select Product ]'));
+  assert(!simpleReceive.includes('type="radio"') && !simpleReceive.includes('Receive Type') && !simpleReceive.includes('Company/Party Name') && !simpleReceive.includes('>Cancel<'),'Simple PHP add form must not expose extra mode controls');
+  assert(simpleReceive.includes('>Action</th>') && !simpleReceive.includes('>Unit</th>'),'Unit belongs beside quantity, not in a separate column');
+  assert(simpleReceive.includes('jc-receive-save-row'));
   const modalForm=render('components/jobChallan/ReturnForm.tsx',[key('jobchallan','itemreceived')],{receivePending:{items:[{item_id:1,item_name:'Existing item',original_qty:10,pending_qty:6}]},jcReturnTaxes:[{id:1,tax:18}]},[],{id:'111'});
   for(const field of ['Received Item Job Challan Entry','Item Name','Qty','Received Date','Vehicle No.','GST %','Tax Amt','Total','+ Add More','Close'])assert(modalForm.includes(field),'Return modal field missing: '+field);
   const receiptPath='/dashboard/inventory/stock/received/2026-10-12/6';
