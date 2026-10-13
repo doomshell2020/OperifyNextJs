@@ -4,14 +4,35 @@ const idsOf=value=>[...new Set((Array.isArray(value)?value:String(value || '').s
 class GatepassService {
   async list(dbName,query={}) {
     const db=await getTenantSequelize(dbName);
-    const rows=await L.select(db,'SELECT g.*,s.name AS vendor_name,s.address AS vendor_address FROM gatepasses g LEFT JOIN sub_contractors s ON s.id=g.sub_contractor_id ORDER BY g.id DESC');
-    return L.paginate(L.filterRows(rows,query,'date'),query,20);
+    const page=Math.max(1,parseInt(query.page) || 1),limit=Math.min(500,Math.max(1,parseInt(query.limit) || 20));
+    const conditions=[],values={limit,offset:(page-1)*limit};
+    if(query.sub_contractor_id){conditions.push('g.sub_contractor_id=:vendor');values.vendor=L.positiveId(query.sub_contractor_id);}
+    if(query.status){conditions.push('g.status=:status');values.status=String(query.status);}
+    if(query.search){conditions.push('(g.gatepass_no LIKE :search OR g.company_name LIKE :search OR s.name LIKE :search)');values.search='%'+String(query.search)+'%';}
+    // CakePHP applies the date range only when both endpoints are supplied.
+    if(query.from_date && query.to_date){conditions.push('g.date BETWEEN :from AND :to');values.from=L.date(query.from_date);values.to=L.date(query.to_date);}
+    const where=conditions.length?' WHERE '+conditions.join(' AND '):'';
+    const [count]=await L.select(db,'SELECT COUNT(*) AS total FROM gatepasses g LEFT JOIN sub_contractors s ON s.id=g.sub_contractor_id'+where,values);
+    const total=Number(count.total),totalPages=Math.ceil(total/limit);
+    if(page>Math.max(1,totalPages))L.fail('Page not found',404);
+    const items=await L.select(db,'SELECT g.*,s.name AS vendor_name FROM gatepasses g LEFT JOIN sub_contractors s ON s.id=g.sub_contractor_id'+where+' ORDER BY g.id DESC LIMIT :limit OFFSET :offset',values);
+    return {items,total,page,limit,totalPages};
+  }
+  async vendors(dbName) {
+    const db=await getTenantSequelize(dbName);
+    return L.select(db,"SELECT id,name FROM sub_contractors WHERE status='Active' ORDER BY name LIMIT 200");
   }
   async options(dbName,editId) {
     const db=await getTenantSequelize(dbName);
     const used=await L.select(db,'SELECT jc_id FROM gatepasses WHERE jc_id IS NOT NULL AND id != :id',{id:editId?L.positiveId(editId):0});
     const usedIds=new Set(used.flatMap(row=>idsOf(row.jc_id)));
     const jcs=(await L.select(db,"SELECT id,challan_no,sub_contractors_id FROM job_challans WHERE status != 'Deleted' ORDER BY id DESC")).filter(row=>!usedIds.has(Number(row.id)));
+    if(editId){
+      const [current]=await L.select(db,'SELECT jc_id FROM gatepasses WHERE id=:id',{id:L.positiveId(editId)});
+      if(!current)L.fail('Gate Pass not found',404);
+      const missing=idsOf(current.jc_id).filter(id=>!jcs.some(jc=>Number(jc.id)===id));
+      if(missing.length)jcs.push(...await L.select(db,'SELECT id,challan_no,sub_contractors_id FROM job_challans WHERE id IN (:ids)',{ids:missing}));
+    }
     const vendors=await L.select(db,"SELECT id,name FROM sub_contractors WHERE status='Active' ORDER BY name LIMIT 200");
     const products=await L.select(db,"SELECT a.id,a.item_name,u.unit_name FROM st_additem a LEFT JOIN st_measurementunits u ON u.id=a.uom WHERE a.status='Y' AND a.itemtype='RawMaterial' ORDER BY a.item_name");
     const field=(await L.columns(db,'gatepasses')).find(col=>col.Field==='jc_id');
@@ -56,14 +77,19 @@ class GatepassService {
           const item_id=L.positiveId(row.item_id),quantity=L.number(row.quantity,'Quantity',true);
           const [item]=await L.select(db,"SELECT a.id,u.unit_name FROM st_additem a LEFT JOIN st_measurementunits u ON u.id=a.uom WHERE a.id=:id AND a.itemtype='RawMaterial'",{id:item_id},t);
           if (!item) L.fail('Only Raw Material items are allowed in MISCELLANEOUS mode.');
-          valid.push({...row,item_id,quantity,unit:item.unit_name || 'KG'});
+          valid.push({...row,item_id,quantity,unit:row.unit || item.unit_name || 'KG'});
         }
         items=valid;
       } else {
         const ids=idsOf(payload.jc_id);
         const field=(await L.columns(db,'gatepasses')).find(col=>col.Field==='jc_id');
         if (ids.length>1 && /^(int|bigint|smallint)/.test(field?.Type || '')) L.fail('Multiple JCs require the reviewed gatepasses.jc_id migration. No records were changed.',409);
-        const data=await this.jcData(dbName,ids,t);
+        if(!ids.length)L.fail('Please select a Job Challan.');
+        const sameJcs=existing && idsOf(existing.jc_id).length===ids.length && idsOf(existing.jc_id).every(id=>ids.includes(id));
+        // A Gate Pass is a saved dispatch snapshot. Editing remarks must not
+        // replace its material quantities with later changes to a JC.
+        const savedItems=sameJcs?await L.select(db,'SELECT * FROM gatepass_items WHERE gatepass_id=:id ORDER BY id',{id:existing.id},t):null;
+        const data=sameJcs?{sub_contractor_id:existing.sub_contractor_id,items:savedItems}:await this.jcData(dbName,ids,t);
         const passes=await L.select(db,'SELECT id,jc_id FROM gatepasses WHERE jc_id IS NOT NULL AND id != :id FOR UPDATE',{id:existing?.id || 0},t);
         if (passes.some(row=>idsOf(row.jc_id).some(id=>ids.includes(id)))) L.fail('A Gate Pass has already been created for one of these Job Challans.',409);
         header.jc_id=ids.join(',');header.company_name=null;header.sub_contractor_id=L.positiveId(payload.sub_contractor_id || data.sub_contractor_id);
@@ -72,8 +98,9 @@ class GatepassService {
         // description/remarks are editable in the PHP form.
         const remaining=[...items];
         items=data.items.map(line=>{
-          const idx=remaining.findIndex(row=>Number(row.item_id)===Number(line.item_id) && (!row.jc_no || String(row.jc_no)===String(line.jc_no)));
+          const idx=remaining.findIndex(row=>sameJcs?Number(row.id)===Number(line.id):Number(row.item_id)===Number(line.item_id) && (!row.jc_no || String(row.jc_no)===String(line.jc_no)));
           const supplied=idx>=0?remaining.splice(idx,1)[0]:{};
+          if(sameJcs)return {...line,description:supplied.description ?? line.description,remarks:supplied.remarks ?? line.remarks};
           const description=String(supplied.description || '').replace(/^JC No: [^\n]+\n?/,'');
           return {...line,description:`JC No: ${line.jc_no}${description?'\n'+description:''}`,remarks:supplied.remarks || ''};
         });

@@ -1,6 +1,7 @@
 const { centralModels, getTenantModels } = require('../../config/sequelize');
 const { legacyJcPermissions } = require('./legacyJcAccess');
 const { legacyStockPermissions } = require('./legacyStockAccess');
+const { legacyGatepassPermissions } = require('./legacyGatepassAccess');
 
 /**
  * AuthRepository executes database operations for authentication
@@ -184,7 +185,7 @@ class AuthRepository {
       const configuredLabels = await centralModels.permission_label.findAll({
         attributes: ['url'], raw: true
       });
-      return legacyStockPermissions(configuredLabels, legacyJcPermissions(configuredLabels, permissions));
+      return legacyGatepassPermissions(configuredLabels, legacyStockPermissions(configuredLabels, legacyJcPermissions(configuredLabels, permissions)));
     } catch (err) {
       console.error('Error fetching user permissions:', err);
       return [];

@@ -238,8 +238,9 @@ export default function GrnIndexPage() {
                           disabled={downloadingPdf === grn.id}
                           className="text-red-500 hover:text-red-700 transition disabled:opacity-50"
                           title="Download PDF"
+                          aria-label="Download PDF"
                         >
-                          {downloadingPdf === grn.id ? <Loader className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />} Download PDF
+                          {downloadingPdf === grn.id ? <Loader className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
                         </button></>}
                         {canAction('goodsreceived','viewgrndetail') && <button onClick={() => router.push(`/dashboard/purchase/grn/view/${grn.id}`)} className="text-green-600 hover:text-green-800 transition" title="View GRN">
                           <Eye className="w-5 h-5" />

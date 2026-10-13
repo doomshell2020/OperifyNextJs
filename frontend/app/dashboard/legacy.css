@@ -220,3 +220,29 @@
 .jc-receive-local-fields { display:grid; grid-template-columns:1fr 1fr; gap:15px; }
 .jc-receive-local-summary { grid-column:1/-1; display:flex; justify-content:space-between; }
 @media(max-width:767px) { .jc-receive-header-fields { grid-template-columns:1fr 1fr; gap:15px; } .jc-simple-receive .jc-receive-gst { width:50%; } }
+
+/* Gatepasses add/edit/view.ctp: plain bordered boxes and four-column details. */
+.legacy-gatepass-form { border-top:3px solid #3c8dbc; }
+.legacy-gatepass .legacy-box-heading { font-size:18px; font-weight:400; border-bottom:1px solid #f4f4f4; padding:0 0 10px; }
+.legacy-gatepass table { border-collapse:collapse; }
+.legacy-gatepass :is(th,td) { border:1px solid #ddd; text-align:left; }
+.legacy-gatepass-form th:nth-child(2), .legacy-gatepass-form th:nth-child(3) { width:15%; }
+.legacy-gatepass-form th:nth-child(4) { width:30%; }
+.legacy-gatepass .gatepass-details th { width:20%; }
+.legacy-gatepass .gatepass-details td { width:30%; }
+.legacy-erp .legacy-gatepass .gatepass-details tr { background:white !important; }
+.legacy-gatepass h3 { font-size:18px; font-weight:400; }
+.legacy-gatepass-form table textarea { margin-top:5px; min-height:60px; }
+.legacy-gatepass a:not([class]) { color:#3c8dbc; }
+.gatepass-footer { border-top:1px solid #f4f4f4; padding:10px; display:flex; gap:5px; }
+.gatepass-default-button, .gatepass-print-button, .gatepass-add-item, .gatepass-remove { display:inline-flex; align-items:center; padding:6px 12px; border:1px solid #ddd; border-radius:3px; font-size:12px; }
+.gatepass-default-button { background:#f4f4f4; color:#444; }
+.gatepass-print-button { background:#f39c12; color:white; border-color:#e08e0b; }
+.gatepass-add-item { background:#00a65a; color:white; border-color:#008d4c; }
+.gatepass-remove { background:#dd4b39; color:white; border-color:#d73925; }
+
+.legacy-erp .gatepass-select__input { height:auto !important; }
+.legacy-gatepass .gatepass-select__control { min-height:32px; border-radius:0; }
+.legacy-gatepass .gatepass-select__value-container { padding:0 8px; }
+.legacy-gatepass .gatepass-select__input-container { padding:0; margin:0; }
+.legacy-gatepass .gatepass-select__indicator { padding:4px; }

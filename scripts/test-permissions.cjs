@@ -64,7 +64,7 @@ const routes = [
   ['jobChallan','post','/:id/receive','jobchallan','itemreceived'],['jobChallan','get','/:id/pdf','jobchallan','viewpdf'],
   ['jobReceive','post','/','jobchallan','receiveadd'],['jobReceive','get','/','jobchallan','receiveindex'],['jobReceive','get','/:id/pdf','jobchallan','viewreturnpdf'],
   ['gatepass','post','/','gatepasses','add'],['gatepass','put','/:id','gatepasses','edit'],['gatepass','get','/:id/pdf','gatepasses','gatepasspdf'],
-  ['gatepass','get','/:id/edit-data','gatepasses','edit'],
+  ['gatepass','get','/:id/edit-data','gatepasses','edit'],['gatepass','get','/vendors','gatepasses','index'],
   ['reverseIndent','post','/','reverseindent','add'],['reverseIndent','delete','/:id','reverseindent','delete'],['reverseIndent','get','/:id/pdf','reverseindent','viewreverseindentpdf'],
   ['stockRegister','get','/daily/export','stockregister','dailystockexcel'],
   ['stockRegister','get','/details/dispatched','stockregister','dispatchedstock'],
@@ -157,7 +157,7 @@ async function permissionLoadingTests() {
     return [{url:'admin/contracts/edit_other'},{url:'admin/designsheet/edit'}];
   }}};
   vm.runInNewContext(fs.readFileSync(path.join(root,'backend/src/modules/auth/auth.repository.js'),'utf8'),
-    {module,exports:module.exports,require:name=>name==='./legacyJcAccess'?require('../backend/src/modules/auth/legacyJcAccess'):name==='./legacyStockAccess'?require('../backend/src/modules/auth/legacyStockAccess'):({centralModels:db}),console});
+    {module,exports:module.exports,require:name=>name==='./legacyJcAccess'?require('../backend/src/modules/auth/legacyJcAccess'):name==='./legacyStockAccess'?require('../backend/src/modules/auth/legacyStockAccess'):name==='./legacyGatepassAccess'?require('../backend/src/modules/auth/legacyGatepassAccess'):({centralModels:db}),console});
   const result=await module.exports.getUserPermissions('fixture-role');
   assert(!result.includes('contracts:edit'),'A similarly named URL must not grant Edit');
   assert(result.includes('designsheet:edit'));
@@ -181,6 +181,15 @@ async function permissionLoadingTests() {
   assert(!partial.includes('legacy:admin/jobchallan/delete'),'Explicit denied Delete must not inherit index access');
   assert(partial.includes('legacy:admin/jobchallan/receiveindex'));
   assert(!partial.some(grant=>grant.includes('gatepasses') || grant.includes('contracts')),'JC fallback must not expand other modules');
+  const {legacyGatepassPermissions,actions:gatepassActions}=require('../backend/src/modules/auth/legacyGatepassAccess');
+  const gatepassLabels=gatepassActions.map(action=>({url:`admin/gatepasses/${action}`}));
+  assert.deepEqual(legacyGatepassPermissions(gatepassLabels,[]),[],'Configured ungranted Gate Pass actions stay denied');
+  assert.equal(legacyGatepassPermissions([],[]).length,gatepassActions.length);
+  for(const action of gatepassActions){
+    const grant=key('gatepasses',action);
+    assert.deepEqual(legacyGatepassPermissions(gatepassLabels,[grant]),[grant]);
+    assert(!legacyGatepassPermissions([{url:` Admin/Gatepasses/${action} `}],[]).includes(grant));
+  }
   console.log('Permission loading: central role/allowed-label join and exact alias matching passed.');
 }
 
