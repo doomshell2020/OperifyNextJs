@@ -107,6 +107,7 @@ export default function StockRegisterPage() {
     <main className="stock-register-page max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
 
       <LegacyPageHeader title="Stock Register" breadcrumb="Goods Received Manager"/>
+      {canAction('stockregister','index') && <Link href="/dashboard/inventory/stock/monthly" className="legacy-button inline-flex">Month-wise Total Stock Report</Link>}
       <div className="stock-register-box bg-white border border-slate-200">
         {/* Filters */}
         <div className="stock-register-filters">

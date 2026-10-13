@@ -1,4 +1,5 @@
 const { QueryTypes } = require('sequelize');
+const rules = require('./stockRules');
 
 class StockRegisterRepository {
   async getCategories(dbPool) {
@@ -19,7 +20,7 @@ class StockRegisterRepository {
       FROM st_additem p
       LEFT JOIN st_categorymaster c ON p.category_id = c.id
       LEFT JOIN st_measurementunits u ON p.uom = u.id
-      WHERE p.itemtype = 'RawMaterial' AND p.status = 'Y' AND p.category_id != 25
+      WHERE ${rules.eligibleProduct('p.')}
     `;
     const pReplacements = {};
 
@@ -62,7 +63,7 @@ class StockRegisterRepository {
       FROM st_additem p
       LEFT JOIN st_categorymaster c ON p.category_id = c.id
       LEFT JOIN st_measurementunits u ON p.uom = u.id
-      WHERE p.itemtype = 'RawMaterial' AND p.status = 'Y' AND p.category_id != 25
+      WHERE ${rules.eligibleProduct('p.')}
     `;
     const pReplacements = {};
     if (product_id) {
@@ -87,8 +88,8 @@ class StockRegisterRepository {
     // 2. Fetch all stock movements for these products
     let sql = `
       SELECT item_id, store_type,
-             DATE(COALESCE(delivery_date, issue_date, created)) as grn_date,
-             DATE(COALESCE(issue_date, created)) as indent_date,
+             ${rules.receiptDate('')} as grn_date,
+             ${rules.dispatchDate('')} as indent_date,
              SUM(quantity) as total_qty
       FROM st_stock_register
       WHERE status != 'N' AND item_id IN (:productIds)
@@ -153,7 +154,7 @@ class StockRegisterRepository {
             const indentDate = formatDbDate(row.indent_date);
 
             // GRN / Received
-            if (storeType === '0' || storeType === '1' || storeType === '3') {
+            if (rules.RECEIPT_TYPES.includes(storeType)) {
               if (grnDate && grnDate < currDateStr) {
                 openingStock += qty;
               } else if (grnDate === currDateStr) {
@@ -162,7 +163,7 @@ class StockRegisterRepository {
             }
 
             // Indent / Dispatched
-            if (storeType === '2' || storeType === '4') {
+            if (rules.DISPATCH_TYPES.includes(storeType)) {
               if (indentDate && indentDate < currDateStr) {
                 openingStock -= qty;
               } else if (indentDate === currDateStr) {

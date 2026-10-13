@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import type { Category } from '../../../../services/settings.service';
 
 export function CategoryCheckboxSelect({ categories, value, onChange }: {
-  categories: Category[];
+  categories: Pick<Category, 'id' | 'category_name'>[];
   value: string[];
   onChange: (value: string[]) => void;
 }) {

@@ -63,4 +63,24 @@ async function daily(db,filters,rows,res) {
   }
   await send(workbook,res,`Stock_report-${filters.date}.xlsx`);
 }
-module.exports={detailed,daily};
+function monthLabel(value) {
+  const [year,month] = value.split('-').map(Number);
+  const start = new Date(Date.UTC(year,month-1,1));
+  return `${start.toLocaleString('en-US',{month:'short',timeZone:'UTC'})}(1-${new Date(Date.UTC(year,month,0)).getUTCDate()})`;
+}
+async function monthly(db,filters,rows,res) {
+  const columns=[['#','sno',5],['Item ID','item_id',15],['Month','month',15],['Product Name','item_name',30],['Category','category_name',20],
+    ['Opening Stock','opening',15],['Received Stock','received',15],['Dispatched Stock','dispatched',15],['Closing Stock','closing',15],['Physical Stock','physical',15]];
+  const {workbook,sheet}=await workbookFor(db,'Stock Register',columns);
+  sheet.getCell('A1').font = {name:'Calibri',...sheet.getCell('A1').font};
+  sheet.getRow(2).font = {name:'Calibri',size:11,bold:true};
+  rows.forEach((row,index) => {
+    const added=sheet.addRow({sno:index+1,item_id:row.item_id,month:monthLabel(row.month),item_name:row.item_name,category_name:row.category_name,
+      opening:Number(row.opening_stock),received:Number(row.received_stock),dispatched:Number(row.dispatched_stock),closing:Number(row.closing_stock),physical:null});
+    added.font={name:'Calibri',size:11};
+  });
+  sheet.autoFilter={from:'A2',to:`J${Math.max(2,sheet.rowCount)}`};
+  sheet.views=[{state:'frozen',ySplit:2}];
+  await send(workbook,res,`Month_wise_Stock_Register_${filters.year}${filters.month ? '_'+String(filters.month).padStart(2,'0') : ''}.xlsx`);
+}
+module.exports={detailed,daily,monthly,monthLabel};
