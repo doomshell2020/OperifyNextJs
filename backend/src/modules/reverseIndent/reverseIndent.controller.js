@@ -13,7 +13,7 @@ class ReverseIndentController {
   async getReverseIndents(req, res, next) {
     try {
       const filters = req.query;
-      const data = await reverseIndentService.getReverseIndents(req.dbPool, filters);
+      const data = filters.page ? await reverseIndentService.getPage(req.dbPool, filters) : await reverseIndentService.getReverseIndents(req.dbPool, filters);
       res.json(data);
     } catch (err) {
       next(err);
@@ -41,6 +41,46 @@ class ReverseIndentController {
     } catch (err) {
       next(err);
     }
+  }
+
+  async updateReverseIndent(req, res, next) {
+    try {
+      const id = await reverseIndentService.saveReverseIndent(req.dbPool, req.body, req.params.id);
+      res.json({ message: 'Reverse Indent updated successfully', id });
+    } catch (error) { next(error); }
+  }
+
+  async lookup(req, res, next) {
+    try {
+      const methods = {contracts:'searchContracts', machines:'searchMachines', products:'searchProducts', 'semi-products':'getSemiProducts'};
+      const args=req.params.kind==='semi-products' ? [req.dbPool] : [req.dbPool,String(req.query.q || '')];
+      res.json(await reverseIndentService[methods[req.params.kind]](...args));
+    } catch (error) { next(error); }
+  }
+  async contractProducts(req, res, next) {
+    try { res.json(await reverseIndentService.getContractProducts(req.dbPool,req.params.contractId)); }
+    catch (error) { next(error); }
+  }
+  async designSheet(req, res, next) {
+    try { res.json(await reverseIndentService.getDesignSheetDetails(req.dbPool,req.params.contractId,req.params.productId)); }
+    catch (error) { next(error); }
+  }
+  async exportExcel(req, res, next) {
+    try {
+      const ExcelJS = require('exceljs');
+      const rows = await reverseIndentService.getExportRows(req.dbPool,req.query);
+      const book = new ExcelJS.Workbook();
+      const sheet = book.addWorksheet('Reverse Indent Summary');
+      sheet.columns = ['Issued Date','Received Id.','Contract','Finished Product','Machine Name','Raw Material','Received Qty','Received By'].map((header,i)=>({header,width:[12,14,30,30,30,30,15,20][i]}));
+      const { date, ucfirst } = require('../../utils/legacyPdf');
+      for (const row of rows) {
+        sheet.addRow([date(row.issue_date),String(row.reverse_id),`${row.contract_name || ''}(${row.workorder || ''})`,row.product_name,row.machine_name,row.item_name,Number(row.quantity),ucfirst(row.received_name)]);
+      }
+      sheet.getRow(1).font={bold:true};
+      res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition','attachment; filename="Reverse_Indent_Summary.xlsx"');
+      res.end(Buffer.from(await book.xlsx.writeBuffer()));
+    } catch (error) { next(error); }
   }
 
   async deleteReverseIndent(req, res, next) {

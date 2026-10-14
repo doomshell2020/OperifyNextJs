@@ -209,6 +209,12 @@ function initModels(sequelize) {
   job_challan_items.belongsTo(st_additem, { as: "item", foreignKey: "item_id"});
   st_additem.hasMany(job_challan_items, { as: "job_challan_items", foreignKey: "item_id"});
 
+  // Reverse stock lines use a business number (reverse_id), not the header PK.
+  // Keep stock reads explicit: historical business numbers have no unique key.
+  reverseindent.belongsTo(contracts, { as: 'contract', foreignKey: 'contract_id', constraints: false });
+  reverseindent.belongsTo(st_additem, { as: 'product', foreignKey: 'finishedproduct_id', constraints: false });
+  reverseindent.belongsTo(machine_master, { as: 'machine', foreignKey: 'machine_id', constraints: false });
+
   return {
     job_challans,
     job_challan_items,

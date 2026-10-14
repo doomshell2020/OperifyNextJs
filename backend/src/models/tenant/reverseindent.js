@@ -19,6 +19,11 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.STRING(255),
       allowNull: true
     },
+    status: {
+      type: DataTypes.ENUM('draft', 'finalized'),
+      allowNull: true,
+      defaultValue: 'finalized'
+    },
     product_qty: {
       type: DataTypes.FLOAT,
       allowNull: true

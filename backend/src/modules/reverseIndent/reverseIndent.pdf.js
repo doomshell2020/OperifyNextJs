@@ -6,7 +6,7 @@ function buildReverseIndentHtml(details) {
       <tr><td><b>Reverse Id :-</b> ${e(details.reverse_id)}</td><td><b>Contract name :-</b> ${e(details.contract_name)}(${e(details.workorder)})</td></tr>
       <tr><td><b>Product :-</b> ${e(details.product_name)}</td><td><b>Machine Name :-</b> ${e(details.machine_name)}</td></tr>
       <tr><td><b>Received By :-</b> ${e(details.received_name)}</td><td><b>Received Date :-</b> ${date(details.issue_date)}</td></tr>
-      <tr><td><b>Last Updated Date :-</b> ${date(details.updated)}</td><td></td></tr>
+      <tr><td><b>Last Updated Date :-</b> ${details.updated ? date(details.updated) : ''}</td><td></td></tr>
     </tbody></table></div>
     <h6 class="section-title">Raw Material</h6>
     <table class="grid"><colgroup><col style="width:8%"><col style="width:62%"><col style="width:20%"><col style="width:10%"></colgroup>

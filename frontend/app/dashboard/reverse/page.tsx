@@ -2,24 +2,29 @@
 
 import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
-import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { useState, useEffect, useRef } from "react";
 import { reverseIndentService, ReverseIndent } from "../../../services/reverseIndent.service";
-import { indentpoService } from "../../../services/indentpo.service";
 import AsyncSelect from "react-select/async";
 import { Search, Plus, Printer, RefreshCw, X, FileSpreadsheet } from "lucide-react";
 import Link from "next/link";
 import { ContractDetailsModal } from "../../../components/dashboard/ContractDetailsModal";
 import { formatDate, formatContractDate } from '../../../utils/dateFormatter';
 import { DatePicker } from "../../../components/ui/DatePicker";
-import { API_URL } from '../../../services/apiConfig';
+import { openModulePdf } from '@/services/pdf.service';
+import { isLegacyToday } from '@/utils/legacyActionDate';
+import { useRouter } from 'next/navigation';
 
 export default function ReverseIndentListPage() {
   const canAction = useLegacyActionAccess();
+  const router = useRouter();
   const [indents, setIndents] = useState<ReverseIndent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIndentId, setSelectedIndentId] = useState<string | null>(null);
   const [selectedContractId, setSelectedContractId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const appliedFilters = useRef<any>({});
+  const fetchGeneration = useRef(0);
 
   // Filters
   const [filters, setFilters] = useState({
@@ -35,39 +40,46 @@ export default function ReverseIndentListPage() {
   const [productSelectValue, setProductSelectValue] = useState<any>(null);
   const [machineSelectValue, setMachineSelectValue] = useState<any>(null);
   
-  const [productOptions, setProductOptions] = useState<any[]>([]);
-
   useEffect(() => {
-    fetchIndents();
+    const params=new URLSearchParams(window.location.search);
+    const initial={contract_id:params.get('contract_id')?Number(params.get('contract_id')):null,
+      item_id:params.get('item_id')?Number(params.get('item_id')):null,machine_id:params.get('machine_id')?Number(params.get('machine_id')):null,
+      datefrom:params.get('datefrom') || '',dateto:params.get('dateto') || ''};
+    setFilters(initial);
+    for(const [kind,value,setValue] of [['contracts',initial.contract_id,setContractSelectValue],['products',initial.item_id,setProductSelectValue],['machines',initial.machine_id,setMachineSelectValue]] as const) {
+      if(value) void reverseIndentService.lookup(kind).then(rows=>{const row=rows.find((r: any)=>Number(r.id)===value);if(row)setValue({value,label:kind==='contracts'?`${row.title} (${row.workorder})`:kind==='machines'?row.machine_name:row.item_name});}).catch(()=>{});
+    }
+    void fetchIndents(Number(params.get('page')) || 1,{...initial,date_mode:params.get('date_mode') || ''});
   }, []);
 
-  const fetchIndents = async () => {
+  const fetchIndents = async (nextPage = 1, selectedFilters: any = filters) => {
+    const request=++fetchGeneration.current;
     setIsLoading(true);
     try {
-      const queryParams: any = {};
-      if (filters.contract_id) queryParams.contract_id = filters.contract_id;
-      if (filters.item_id) queryParams.item_id = filters.item_id;
-      if (filters.machine_id) queryParams.machine_id = filters.machine_id;
-      if (filters.datefrom) queryParams.datefrom = filters.datefrom;
-      if (filters.dateto) queryParams.dateto = filters.dateto;
+      const queryParams: any = {page: nextPage, limit: 50};
+      Object.entries(selectedFilters).forEach(([key,value])=>{if(value) queryParams[key]=value;});
 
       const data = await reverseIndentService.listReverseIndents(queryParams);
-      setIndents(data);
+      if(request!==fetchGeneration.current) return;
+      setIndents(data.data); setTotal(data.total); setPage(nextPage); appliedFilters.current=selectedFilters;
+      const params=new URLSearchParams();
+      Object.entries(queryParams).forEach(([key,value])=>{if(key!=='limit' && value)params.set(key,String(value));});
+      router.replace(`/dashboard/reverse?${params}`,{scroll:false});
     } catch (error) {
       alert("Failed to load Reverse Indents");
     } finally {
-      setIsLoading(false);
+      if(request===fetchGeneration.current) setIsLoading(false);
     }
   };
 
   const loadContracts = (inputValue: string) => {
-    return indentpoService.searchContracts(inputValue).then(data => 
+    return reverseIndentService.lookup('contracts',inputValue).then(data =>
       data.map((c: any) => ({ label: `${c.title} (${c.workorder})`, value: c.id }))
     );
   };
 
   const loadMachines = (inputValue: string) => {
-    return indentpoService.searchMachines(inputValue).then(data =>
+    return reverseIndentService.lookup('machines',inputValue).then(data =>
       data.map((m: any) => ({ label: m.machine_name, value: m.id }))
     );
   };
@@ -75,15 +87,7 @@ export default function ReverseIndentListPage() {
   const handleContractChange = (selected: any) => {
     setContractSelectValue(selected);
     const cid = selected?.value || null;
-    setFilters(prev => ({ ...prev, contract_id: cid, item_id: null }));
-    setProductSelectValue(null);
-    setProductOptions([]);
-    
-    if (cid) {
-      indentpoService.getContractProducts(cid).then(data => {
-        setProductOptions(data.map((p: any) => ({ label: p.item_name, value: p.id })));
-      });
-    }
+    setFilters(prev => ({ ...prev, contract_id: cid }));
   };
 
   const handleReset = () => {
@@ -97,19 +101,15 @@ export default function ReverseIndentListPage() {
     setContractSelectValue(null);
     setProductSelectValue(null);
     setMachineSelectValue(null);
-    setProductOptions([]);
-    setTimeout(() => {
-      // Small delay to ensure state updates before fetch
-      fetchIndents(); // Wait actually I'll just rely on the user clicking search after reset, or I can fetch immediately.
-    }, 10);
+    void fetchIndents(1, {});
   };
 
-  // We should fetch indents when handleReset triggers, but let's do it cleanly
-  useEffect(() => {
-    if (filters.contract_id === null && filters.item_id === null && filters.machine_id === null && filters.datefrom === "" && filters.dateto === "") {
-      fetchIndents();
-    }
-  }, [filters]);
+  const loadProducts = async (q: string) => (await reverseIndentService.lookup('products',q)).map((row: any)=>({label:row.item_name,value:row.id}));
+  const deleteIndent = async (id: string) => {
+    if(!confirm('Are you sure do you want to delete this Indent?')) return;
+    try { await reverseIndentService.deleteReverseIndent(id); await fetchIndents(page,appliedFilters.current); }
+    catch(e: any) {alert(e?.response?.data?.error?.message || 'Failed to delete Reverse Indent.');}
+  };
 
   return (
     <div className="space-y-6">
@@ -137,19 +137,9 @@ export default function ReverseIndentListPage() {
           </div>
           <div className="space-y-1">
             <label className="text-xs font-semibold text-slate-500">Product Name</label>
-            <select
-              className="w-full px-3 py-[9px] border border-slate-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-              value={filters.item_id || ""}
-              onChange={(e) => {
-                const val = e.target.value ? Number(e.target.value) : null;
-                setFilters(prev => ({ ...prev, item_id: val }));
-              }}
-            >
-              <option value="">Enter Product Name</option>
-              {productOptions.map((p: any) => (
-                <option key={p.value} value={p.value}>{p.label}</option>
-              ))}
-            </select>
+            <AsyncSelect value={productSelectValue} loadOptions={loadProducts} isClearable
+              onChange={(row: any)=>{setProductSelectValue(row);setFilters(old=>({...old,item_id:row?.value || null}));}}
+              placeholder="Enter Product Name" className="text-sm" />
           </div>
           <div className="space-y-1">
             <label className="text-xs font-semibold text-slate-500">Machine Name</label>
@@ -187,15 +177,15 @@ export default function ReverseIndentListPage() {
         </div>
         
         <div className="mt-4 flex gap-2">
-          <Button onClick={fetchIndents} disabled={isLoading}>
+          <Button onClick={()=>void fetchIndents(1,{...filters,date_mode:'search'})} disabled={isLoading}>
             Search
           </Button>
           <Button variant="outline" onClick={handleReset}>
             Reset
           </Button>
-          <Button variant="outline" className="ml-auto" title="Export Excel">
+          {canAction('reverseindent','excel') && <Button variant="outline" className="ml-auto" title="Export Excel" onClick={()=>void reverseIndentService.exportExcel(appliedFilters.current).catch(()=>alert('Failed to export Reverse Indents.'))}>
              <FileSpreadsheet className="w-5 h-5 text-green-600" />
-          </Button>
+          </Button>}
         </div>
       </div>
 
@@ -233,9 +223,10 @@ export default function ReverseIndentListPage() {
               ) : (
                 indents.map((indent, idx) => (
                   <tr key={indent.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 text-slate-600">{idx + 1}</td>
+                    <td className="px-4 py-3 text-slate-600">{(page-1)*50 + idx + 1}</td>
                     <td className="px-4 py-3 font-medium text-blue-600 cursor-pointer hover:underline" onClick={() => { if(canAction('reverseindent','viewreverseindent')) setSelectedIndentId(indent.reverse_id); }}>
                       {indent.reverse_id}
+                      {indent.status==='draft' && <span className="ml-2 text-xs text-amber-700">{indent.draft_stock_clean?'Draft':'Review required'}</span>}
                     </td>
                     <td className="px-4 py-3">
                       <div 
@@ -252,6 +243,8 @@ export default function ReverseIndentListPage() {
                       {formatContractDate(indent.issue_date)}
                     </td>
                     <td className="px-4 py-3 text-right">
+                      {isLegacyToday(indent.issue_date) && indent.status==='draft' && !!indent.draft_stock_clean && canAction('reverseindent','edit') && <Link className="text-green-700 mr-3" href={`/dashboard/reverse/${indent.reverse_id}/edit`}>Edit</Link>}
+                      {isLegacyToday(indent.issue_date) && canAction('reverseindent','delete') && <button className="text-red-600 mr-3" onClick={()=>void deleteIndent(indent.reverse_id)}>Delete</button>}
                       {canAction('reverseindent','viewreverseindent') && <Link href={`/dashboard/reverse/${indent.reverse_id}`}>
                         <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View / Print">
                           <Printer className="h-4 w-4" />
@@ -266,6 +259,10 @@ export default function ReverseIndentListPage() {
         </div>
       </div>
 
+      <div className="flex items-center justify-between p-4 border text-sm bg-white">
+        <span>{total} records · Page {page} of {Math.max(1,Math.ceil(total/50))}</span>
+        <div className="flex gap-3"><Button variant="outline" disabled={isLoading || page<=1} onClick={()=>void fetchIndents(page-1,appliedFilters.current)}>Previous</Button><Button variant="outline" disabled={isLoading || page*50>=total} onClick={()=>void fetchIndents(page+1,appliedFilters.current)}>Next</Button></div>
+      </div>
       {selectedIndentId && (
         <ReverseDetailsModal 
           id={selectedIndentId} 
@@ -328,7 +325,7 @@ function ReverseDetailsModal({ id, onClose }: { id: string, onClose: () => void 
           <div className="flex items-center gap-4">
             {canAction('reverseindent','viewreverseindentpdf') && <button
               onClick={() => {
-                window.open(`${API_URL}/reverse-indent/${id}/pdf?token=${localStorage.getItem('accessToken')}`, '_blank');
+                void openModulePdf(`/reverse-indent/${encodeURIComponent(id)}/pdf`);
               }}
               className="flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded font-bold shadow-sm transition cursor-pointer text-sm"
             >
@@ -340,11 +337,12 @@ function ReverseDetailsModal({ id, onClose }: { id: string, onClose: () => void 
         </div>
         <div className="p-6 overflow-y-auto space-y-6">
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <div><span className="font-semibold text-slate-500">Contract:</span> {details?.contract_name}</div>
+            <div><span className="font-semibold text-slate-500">Contract:</span> {details?.contract_name}({details?.workorder})</div>
             <div><span className="font-semibold text-slate-500">Product:</span> {details?.product_name}</div>
             <div><span className="font-semibold text-slate-500">Machine:</span> {details?.machine_name}</div>
             <div><span className="font-semibold text-slate-500">Received By:</span> {details?.received_name}</div>
             <div><span className="font-semibold text-slate-500">Issue Date:</span> {formatContractDate(details?.issue_date)}</div>
+            {details?.updated && <div><span className="font-semibold text-slate-500">Last Updated Date:</span> {formatContractDate(details.updated)}</div>}
           </div>
           
           <div>
@@ -361,7 +359,7 @@ function ReverseDetailsModal({ id, onClose }: { id: string, onClose: () => void 
                 {details?.items?.map((item: any, idx: number) => (
                   <tr key={idx}>
                     <td className="border border-slate-200 p-2">{item.item_name}</td>
-                    <td className="border border-slate-200 p-2 text-right">{item.quantity}</td>
+                    <td className="border border-slate-200 p-2 text-right">{Number(item.quantity).toFixed(2)}</td>
                     <td className="border border-slate-200 p-2">{item.uom}</td>
                   </tr>
                 ))}

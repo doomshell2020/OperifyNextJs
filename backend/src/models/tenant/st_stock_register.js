@@ -99,7 +99,7 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true
     },
     store_type: {
-      type: DataTypes.ENUM('0','1','2','3','4','5','6'),
+      type: DataTypes.ENUM('0','1','2','3','4','5','6','99'),
       allowNull: true,
       defaultValue: "0"
     },
