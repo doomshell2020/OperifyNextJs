@@ -7,6 +7,7 @@ const express=require('express');
 const config=require('../src/config/sequelize');
 const L=require('../src/modules/jobChallan/legacyStore');
 const auth=require('../src/modules/auth/auth.service');
+const {formatQty}=require('../src/utils/formatters');
 (async()=>{
   const name='tirupati_tppl',db=await config.getTenantSequelize(name);
   for(const connection of [db,config.centralSequelize]){const query=connection.query.bind(connection);connection.query=(sql,options)=>{assert.match(sql.trim(),/^(SELECT|SHOW)\b/i);return query(sql,options);};}
@@ -48,7 +49,7 @@ const auth=require('../src/modules/auth/auth.service');
     await go('/'+g.id+'/edit');await page.waitForSelector('#gatepass-jcs');
     assert.equal(await page.$$eval('.gatepass-select__multi-value',values=>values.length),String(g.jc_id).split(',').length);
     const quantities=await page.$$eval('input[type="number"]',inputs=>inputs.map(input=>input.value));
-    assert.deepEqual(quantities,detail.gatepass.items.map(i=>i.quantity));
+    assert.deepEqual(quantities,detail.gatepass.items.map(i=>formatQty(i.quantity)));
     assert.deepEqual(await page.$$eval('table textarea',inputs=>inputs.map(input=>input.value)),detail.gatepass.items.map(i=>i.description || ''));
     assert.equal(await page.$$eval('input[type="number"]',inputs=>inputs.every(i=>i.readOnly)),true);
     await page.screenshot({path:path.join(folder,'edit.png'),fullPage:true});
@@ -59,7 +60,7 @@ const auth=require('../src/modules/auth/auth.service');
     assert(await page.$eval('input[type="number"]',input=>input.readOnly));
     await page.type('#gatepass-jcs',options.jcs[1].challan_no);await page.keyboard.press('Enter');await page.waitForNetworkIdle();
     const combined=await require('../src/modules/gatepass/gatepass.service').jcData(name,[options.jcs[0].id,options.jcs[1].id]);
-    assert.deepEqual(await page.$$eval('input[type="number"]',inputs=>inputs.map(i=>i.value)),combined.items.map(i=>i.quantity));
+    assert.deepEqual(await page.$$eval('input[type="number"]',inputs=>inputs.map(i=>i.value)),combined.items.map(i=>formatQty(i.quantity)));
     await page.$$eval('input[name="gatepass_type"]',inputs=>inputs[1].click());
     await page.waitForSelector('#gatepass-material-0');await page.type('#gatepass-material-0',options.products[0].item_name);await page.waitForSelector('[role="listbox"]');assert(await page.$eval('[role="listbox"]',el=>el.getBoundingClientRect().height>0));await page.keyboard.press('Enter');
     await page.waitForFunction(()=>document.querySelector('table input[readonly]')?.value);

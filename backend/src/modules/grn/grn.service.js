@@ -67,6 +67,7 @@ class GrnService {
       { header: 'GRN Total Amount', key: 'total_amt', width: 20 },
     ];
 
+    require('../../utils/quantityExcel').formatQuantityColumns(worksheet,['total_qty','received_qty','scheduled_qty']);
     let sno = 1;
     for (const row of rows) {
       const inwardDateObj = row.inwarddate ? new Date(row.inwarddate) : null;
@@ -90,9 +91,9 @@ class GrnService {
         bill_date: row.bill_date ? formatDate(billDateObj) : 'N/A',
         product_name: row.product_name,
         vendor_name: row.vendor_name,
-        total_qty: Number(row.po_total_qty || 0).toFixed(2),
-        received_qty: Number(row.received_qty || 0).toFixed(2),
-        scheduled_qty: row.scheduled_qty ? formatQty(row.scheduled_qty) : 'N/A',
+        total_qty: Number(row.po_total_qty || 0),
+        received_qty: Number(row.received_qty || 0),
+        scheduled_qty: row.scheduled_qty ? Number(row.scheduled_qty) : 'N/A',
         scheduled_date: row.scheduled_date ? formatDate(scheduledDateObj) : 'N/A',
         total_amt: Number(row.total_amt || 0).toFixed(2)
       });

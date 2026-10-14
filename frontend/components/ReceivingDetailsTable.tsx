@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 import React from 'react';
 
 export const receivingMoney = (value: unknown) => Number(value || 0).toLocaleString('en-IN', {
@@ -16,8 +17,8 @@ export function ReceivingDetailsTable({items, purchaseOrder = false}: {items: an
       const taxAmount = Number(item.tax_amt ?? item.tax ?? 0);
       return <tr key={item.id ?? index}>
         <td>{index + 1}.</td><td>{item.item_name}</td>
-        <td>{item.order_qty ?? ''} {item.uom}</td>
-        <td>{purchaseOrder ? receivingMoney(item.pending_qty) : (item.quantity ?? item.item_qty)} {item.uom}</td>
+        <td>{item.order_qty == null ? '' : formatQty(item.order_qty)} {item.uom}</td>
+        <td>{formatQty(purchaseOrder ? item.pending_qty : (item.quantity ?? item.item_qty))} {item.uom}</td>
         <td className="text-right">{receivingMoney(item.rate)}</td>
         <td className="text-right">{receivingMoney(item.price ?? item.cost_price)}</td>
         <td>{taxes.map((tax,index)=><div key={index}>{String(tax)}</div>)}</td>

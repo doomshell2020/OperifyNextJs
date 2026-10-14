@@ -76,6 +76,7 @@ class ReverseIndentController {
       for (const row of rows) {
         sheet.addRow([date(row.issue_date),String(row.reverse_id),`${row.contract_name || ''}(${row.workorder || ''})`,row.product_name,row.machine_name,row.item_name,Number(row.quantity),ucfirst(row.received_name)]);
       }
+      require('../../utils/quantityExcel').formatQuantityColumns(sheet,[7]);
       sheet.getRow(1).font={bold:true};
       res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition','attachment; filename="Reverse_Indent_Summary.xlsx"');

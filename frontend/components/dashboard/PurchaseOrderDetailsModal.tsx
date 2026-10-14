@@ -1,4 +1,5 @@
 "use client";
+import { formatQty } from '@/utils/formatters';
 
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -130,8 +131,8 @@ export function PurchaseOrderDetailsModal({ poId, onClose }: PurchaseOrderDetail
                     <tr key={idx}>
                       <td className="border border-gray-300">{s}.</td>
                       <td className="border border-gray-300 capitalize">{item.item_name}</td>
-                      <td className="border border-gray-300">{item.order_qty} {item.uom}</td>
-                      <td className="border border-gray-300">{formatCurrency(qty)} {item.uom}</td>
+                      <td className="border border-gray-300">{formatQty(item.order_qty)} {item.uom}</td>
+                      <td className="border border-gray-300">{formatQty(qty)} {item.uom}</td>
                       <td className="border border-gray-300 text-right">{formatCurrency(item.rate)}</td>
                       <td className="border border-gray-300 text-right">{formatCurrency(price)}</td>
                       <td className="border border-gray-300">{item.tax_percentage}%</td>
@@ -190,8 +191,8 @@ export function PurchaseOrderDetailsModal({ poId, onClose }: PurchaseOrderDetail
                             <tr key={iIdx}>
                               <td className="border border-gray-300">{iIdx + 1}.</td>
                               <td className="border border-gray-300 capitalize">{gItem.item_name}</td>
-                              <td className="border border-gray-300">{poItem?.order_qty} {gItem.uom}</td>
-                              <td className="border border-gray-300">{gItem.item_qty} {gItem.uom}</td>
+                              <td className="border border-gray-300">{formatQty(poItem?.order_qty)} {gItem.uom}</td>
+                              <td className="border border-gray-300">{formatQty(gItem.item_qty)} {gItem.uom}</td>
                               <td className="border border-gray-300 text-right">{formatCurrency(gItem.rate)}</td>
                               <td className="border border-gray-300 text-right">{formatCurrency(gItem.price)}</td>
                               <td className="border border-gray-300">{gItem.tax_percentage}%</td>
@@ -239,7 +240,7 @@ export function PurchaseOrderDetailsModal({ poId, onClose }: PurchaseOrderDetail
                           return (
                             <React.Fragment key={i}>
                               <td className="border border-gray-300">{new Date(date).toLocaleDateString('en-GB').replace(/\//g, '-')}</td>
-                              <td className="border border-gray-300">{qty} {item.uom}</td>
+                              <td className="border border-gray-300">{formatQty(qty)} {item.uom}</td>
                             </React.Fragment>
                           )
                         })}

@@ -1,4 +1,5 @@
 "use client";
+import { formatQty } from '@/utils/formatters';
 
 import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
@@ -359,7 +360,7 @@ function ReverseDetailsModal({ id, onClose }: { id: string, onClose: () => void 
                 {details?.items?.map((item: any, idx: number) => (
                   <tr key={idx}>
                     <td className="border border-slate-200 p-2">{item.item_name}</td>
-                    <td className="border border-slate-200 p-2 text-right">{Number(item.quantity).toFixed(2)}</td>
+                    <td className="border border-slate-200 p-2 text-right">{formatQty(item.quantity)}</td>
                     <td className="border border-slate-200 p-2">{item.uom}</td>
                   </tr>
                 ))}

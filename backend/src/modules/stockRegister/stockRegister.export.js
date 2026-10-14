@@ -1,4 +1,5 @@
 const ExcelJS = require('exceljs');
+const {formatQuantityColumns}=require('../../utils/quantityExcel');
 const { QueryTypes } = require('sequelize');
 const { logoSrc, date } = require('../../utils/legacyPdf');
 
@@ -27,7 +28,7 @@ async function workbookFor(db, name, columns, dailyDate) {
     sheet.getCell('B2').font = {bold:true};
     sheet.views = [{state:'frozen',ySplit:3}];
   }
-  for(const column of sheet.columns) if(['opening','received','issued','reverse','return_qty','dispatched','closing'].includes(column.key))column.numFmt='0.00';
+  formatQuantityColumns(sheet,sheet.columns.filter(column=>['opening','received','issued','reverse','return_qty','dispatched','closing'].includes(column.key)).map(column=>column.key));
   return {workbook,sheet};
 }
 async function send(workbook,res,filename) {

@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 
 import { LegacyPageHeader } from '@/components/ui/LegacyPageHeader';
 import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
@@ -226,8 +227,8 @@ export default function GrnIndexPage() {
                     <td className="p-4 text-slate-600">{grn.bill_no}</td>
                     <td className="p-4 text-slate-600">{formatContractDate(grn.bill_date)}</td>
                     <td className="p-4 text-slate-600">{grn.vendor_name}</td>
-                    <td className="p-4 text-right font-medium">{grn.order_qty ?? ''}</td>
-                    <td className="p-4 text-right font-medium">{grn.total_qty}</td>
+                    <td className="p-4 text-right font-medium">{grn.order_qty == null ? '' : formatQty(grn.order_qty)}</td>
+                    <td className="p-4 text-right font-medium">{formatQty(grn.total_qty)}</td>
                     <td className="p-4 text-right font-bold">{parseFloat(grn.total_amt).toLocaleString('en-IN')}</td>
                     <td className="p-4 text-center">
                       <div className="flex items-center justify-center space-x-3">

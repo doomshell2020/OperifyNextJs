@@ -22,6 +22,7 @@ import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { DatePicker } from '../../../../components/ui/DatePicker';
 import { formatContractDate } from '../../../../utils/dateFormatter';
+import { formatQty } from '@/utils/formatters';
 import { usePermission } from '../../../../contexts/PermissionContext';
 
 export default function PurchaseOrdersPage() {
@@ -172,10 +173,10 @@ export default function PurchaseOrdersPage() {
                       {po.vendor_name}
                     </td>
                     <td className="p-4 text-slate-600">{po.mobile}</td>
-                    <td className="p-4 text-right text-slate-700 font-medium">{po.quantity}</td>
+                    <td className="p-4 text-right text-slate-700 font-medium">{formatQty(po.quantity)}</td>
                     <td className="p-4 text-right text-slate-700 font-medium">
                       <span className={po.received_qty > 0 ? "text-green-600 font-semibold bg-green-50 px-2 py-0.5 rounded" : ""}>
-                        {po.received_qty}
+                        {formatQty(po.received_qty)}
                       </span>
                     </td>
                     <td className="p-4 text-right text-slate-800 font-bold">

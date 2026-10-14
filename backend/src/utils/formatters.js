@@ -1,7 +1,7 @@
 const formatQty = (value) => {
   if (value === undefined || value === null || value === '') return '0.000';
   const num = Number(value);
-  return isNaN(num) ? '0.000' : num.toFixed(3);
+  return Number.isFinite(num) ? num.toFixed(3) : '0.000';
 };
 
 const formatAmt = (value) => {

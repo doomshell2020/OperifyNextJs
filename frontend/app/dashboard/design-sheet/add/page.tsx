@@ -382,7 +382,7 @@ export default function AddDesignSheetPage() {
             </div>
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Quantity (in KM) <span className="text-rose-500">*</span></label>
-              <input type="text" required readOnly value={formData.quantity} placeholder="Enter Quantity(in KM)" className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-500 cursor-not-allowed" />
+              <input type="text" required readOnly value={formatQty(formData.quantity)} placeholder="Enter Quantity(in KM)" className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-500 cursor-not-allowed" />
             </div>
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Date <span className="text-rose-500">*</span></label>
@@ -429,7 +429,7 @@ export default function AddDesignSheetPage() {
                                <input type="checkbox" checked={row.is_group === '1'} onChange={e => handleDetailChange(idx, 'is_group', e.target.checked ? '1' : '0')} className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500" />
                              </td>
                              <td className="p-2"><input type="number" step="any" value={row.km_item_qty} onChange={e => handleDetailChange(idx, 'km_item_qty', e.target.value)} className="w-full p-2 border border-slate-200 rounded text-xs focus:border-cyan-500 focus:outline-none" required /></td>
-                             <td className="p-2"><input type="text" readOnly value={row.pitemquantity} className="w-full p-2 border border-slate-200 rounded text-xs bg-slate-100 outline-none" required /></td>
+                             <td className="p-2"><input type="text" readOnly value={formatQty(row.pitemquantity)} className="w-full p-2 border border-slate-200 rounded text-xs bg-slate-100 outline-none" required /></td>
                              <td className="p-2"><input type="text" readOnly value={row.unit_name} className="w-full p-2 border border-slate-200 rounded text-xs bg-slate-100 outline-none" required /></td>
                              <td className="p-2 text-center">
                                 <button type="button" onClick={() => removeDetailRow(idx)} className="p-1.5 text-rose-500 hover:bg-rose-50 rounded"><Trash2 className="w-4 h-4" /></button>

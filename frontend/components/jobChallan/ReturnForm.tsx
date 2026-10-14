@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 import {useState} from 'react';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
 import {useRouter} from 'next/navigation';
@@ -43,8 +44,8 @@ export default function ReturnForm({id,onClose}:{id:string;onClose?:()=>void}) {
     {!pending.isLoading && !items.length && <p>No items are pending for this challan.</p>}
     {rows.map((row,index)=>{const item=items.find(item=>String(item.item_id)===row.item_id),base=Number(row.receive_qty || 0)*Number(row.rate || 0),tax=base*Number(row.tax_rate || 0)/100;
       return <div className="grid grid-cols-2 md:grid-cols-6 gap-3 border-b pb-4" key={index}>
-        <label className="md:col-span-2">Item Name<ProductSearchSelect products={items.map(item=>({id:item.item_id,item_name:`${item.item_name} (Pending: ${item.pending_qty})`}))} value={row.item_id} onChange={value=>update(index,'item_id',value)} />
-          {item && <small className="text-cyan-700">JC Qty: {item.original_qty} | Pending: {item.pending_qty}</small>}</label>
+        <label className="md:col-span-2">Item Name<ProductSearchSelect products={items.map(item=>({id:item.item_id,item_name:`${item.item_name} (Pending: ${formatQty(item.pending_qty)})`}))} value={row.item_id} onChange={value=>update(index,'item_id',value)} />
+          {item && <small className="text-cyan-700">JC Qty: {formatQty(item.original_qty)} | Pending: {formatQty(item.pending_qty)}</small>}</label>
         <label>Qty<input className={inputClass} type="number" min="0" step="0.01" max={item?.pending_qty} value={row.receive_qty} onChange={e=>update(index,'receive_qty',e.target.value)} /></label>
         <label>Received Date<DatePicker className={inputClass} value={row.receive_date} required={Number(row.receive_qty)>0} onChange={e=>update(index,'receive_date',e.target.value)} /></label>
         <label>Vehicle No.<input className={inputClass} value={row.vehicle_no} onChange={e=>update(index,'vehicle_no',e.target.value)} /></label>

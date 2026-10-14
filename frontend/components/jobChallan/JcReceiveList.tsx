@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
@@ -33,7 +34,7 @@ export default function JcReceiveList() {
       <div className="overflow-x-auto p-3"><table className="w-full text-left"><thead><tr>{['#','Challan No','Ref JC No','From Company','Vehicle No','JC Date','Item Name','Received Qty','Action'].map(h=><th className="p-2" key={h}>{h}</th>)}</tr></thead>
         <tbody>{query.data?.items.map((row:any,index:number)=><tr key={`${row.is_manual?'manual':'jc'}:${row.receive_id || row.challan_id}:${row.item_id}`}>
           <td className="p-2">{(page-1)*50+index+1}</td><td className="p-2">{row.is_manual?row.challan_no:<Link className="text-cyan-700" href={`/dashboard/jc-challan/${row.challan_id}/tracking`}>{row.challan_no}</Link>}</td>
-          <td className="p-2">{row.reference_jc_no || ''}</td><td className="p-2">{row.sender_name}</td><td className="p-2">{row.vehicle_no}</td><td className="p-2">{formatContractDate(row.jc_date)}</td><td className="p-2">{row.item_name}</td><td className="p-2">{row.total_received}</td>
+          <td className="p-2">{row.reference_jc_no || ''}</td><td className="p-2">{row.sender_name}</td><td className="p-2">{row.vehicle_no}</td><td className="p-2">{formatContractDate(row.jc_date)}</td><td className="p-2">{row.item_name}</td><td className="p-2">{formatQty(row.total_received)}</td>
           <td className="p-2 space-x-2">{row.is_manual || Number(row.pending_qty)<=0 ? <span className="legacy-status">Completed</span> : can('jobchallan','receiveadd') && <Link className="legacy-button" href={`/dashboard/jc-receive/create?challan_id=${row.challan_id}`}>Receive</Link>}
             {!row.is_manual && can('jobchallan','viewpdf') && <Link className="text-red-700" href={`/dashboard/jc-challan/${row.challan_id}/pdf`} title="Download PDF" target="_blank" rel="noopener noreferrer">PDF</Link>}
           </td>

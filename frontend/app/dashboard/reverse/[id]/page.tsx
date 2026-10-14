@@ -1,4 +1,5 @@
 "use client";
+import { formatQty } from '@/utils/formatters';
 
 import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import { useState, useEffect } from "react";
@@ -107,7 +108,7 @@ export default function ViewReverseIndentPage() {
                 <tr key={idx}>
                   <td className="border border-slate-200 print:border-black p-3 w-16">{idx + 1}</td>
                   <td className="border border-slate-200 print:border-black p-3">{item.item_name}</td>
-                  <td className="border border-slate-200 print:border-black p-3 text-right font-medium">{Number(item.quantity).toFixed(2)}</td>
+                  <td className="border border-slate-200 print:border-black p-3 text-right font-medium">{formatQty(item.quantity)}</td>
                   <td className="border border-slate-200 print:border-black p-3 w-24">{item.uom}</td>
                 </tr>
               ))}

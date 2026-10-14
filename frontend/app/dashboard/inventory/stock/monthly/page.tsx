@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -93,7 +94,7 @@ function MonthlyStockReport({ company }: { company: string }) {
             : applied && report.data?.data.length ? report.data.data.map((row,index) => <tr key={`${row.month}:${row.item_id}`} className="border-t border-slate-100 hover:bg-slate-50">
               <td className="p-3">{(page-1)*pageSize+index+1}</td><td className="p-3">{row.item_id}</td><td className="p-3 whitespace-nowrap" title={row.month}>{monthLabel(row.month)}</td>
               <td className="p-3">{row.item_name}</td><td className="p-3">{row.category_name}</td>
-              {[row.opening_stock,row.received_stock,row.dispatched_stock,row.closing_stock].map((value,column) => <td key={column} className="p-3 text-right tabular-nums">{Number(value).toFixed(2)}</td>)}
+              {[row.opening_stock,row.received_stock,row.dispatched_stock,row.closing_stock].map((value,column) => <td key={column} className="p-3 text-right tabular-nums">{formatQty(value)}</td>)}
             </tr>) : <tr><td colSpan={headers.length} className="p-8 text-center">{applied ? 'No Record Found' : 'Select filters and search to view monthly stock.'}</td></tr>}</tbody>
         </table>
       </div>

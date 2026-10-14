@@ -1,5 +1,6 @@
 const {QueryTypes}=require('sequelize');
 const ExcelJS=require('exceljs');
+const {formatQuantityColumns}=require('../../utils/quantityExcel');
 const repo=require('./purchaseOrder.repository');
 const select=(db,sql,replacements={})=>db.query(sql,{replacements,type:QueryTypes.SELECT});
 const date=value=>{if(!value)return '';const iso=value instanceof Date?value.toISOString().slice(0,10):String(value).slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(iso)?iso.split('-').reverse().join('-'):'';};
@@ -54,7 +55,7 @@ async function workbook(db,filters){
  const headers=type==='deli'?['S.No.','Delivery Date','PO No','Supplier Name','Mobile No.','PO Date']:type==='comp'?['S.No.','PO Date','PO No','PO Vendor Name','Item Name','Price1','Price2','Price3','Price4','Price5','Vendor Name','PO No.','PO Date.']:['PO No','PO Date','Delivery Date','Supplier Name','Mobile No.','GRN No.','GRN Date','Producat Name','Producat Price','PO Qty.','Received Qty.','Balance','Tax'];
  const rows=type==='deli'?await delivery(db,filters):type==='comp'?await comparison(db,filters):await summary(db,filters);
  const book=new ExcelJS.Workbook(),sheet=book.addWorksheet('Sheet1');sheet.columns=headers.map(header=>({header,width:/Name/.test(header)?35:15}));sheet.getRow(1).font={bold:true};sheet.getRow(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF808080'}};sheet.autoFilter={from:{row:1,column:1},to:{row:1,column:headers.length}};
- if(type==='po')sheet.views=[{state:'frozen',ySplit:1}];
+ if(type==='po'){sheet.views=[{state:'frozen',ySplit:1}];formatQuantityColumns(sheet,[10,11,12]);}
  for(const entry of rows){const row=sheet.addRow(Array.isArray(entry)?entry:entry.values);if(type==='comp' && entry.lowest>=0)row.getCell(6+entry.lowest).font={bold:true,color:{argb:'FFFF0000'}};}
  return book;
 }

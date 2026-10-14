@@ -1,3 +1,4 @@
+const { formatQty } = require('../../utils/formatters');
 
 function plain(value) {
   if (!value) return {};
@@ -161,7 +162,7 @@ async function generateJobChallanPDF(payload) {
           <tr><td colspan="2" class="part bl br bb">PART - I</td></tr>
           <tr><td width="60%" class="bl">1. Description of Goods</td><td width="40%" class="br">${escapeHtml(item.item_name || firstItem.item_name || '')}</td></tr>
           <tr><td class="bl">2. Identification marks and numbers if any</td><td class="br">${escapeHtml(workDescription)}</td></tr>
-          <tr><td class="bl">3. Quantity (Nos./Weight/Litre/Metre)</td><td class="br">${money(firstItem.quantity)} ${escapeHtml(firstItem.unit_name || item.unit_name || 'KG')}</td></tr>
+          <tr><td class="bl">3. Quantity (Nos./Weight/Litre/Metre)</td><td class="br">${formatQty(firstItem.quantity)} ${escapeHtml(firstItem.unit_name || item.unit_name || 'KG')}</td></tr>
           <tr><td class="bl">4. HSN/SAC</td><td class="br">${escapeHtml(firstItem.hsn_code || '')}</td></tr>
           <tr><td class="bl">5. Estimated value of inputs</td><td class="br">${money(challan.estimated_values)}</td></tr>
           <tr>

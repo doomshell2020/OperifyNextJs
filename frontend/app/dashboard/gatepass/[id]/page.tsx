@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 import {useParams} from 'next/navigation';
 import {useQuery} from '@tanstack/react-query';
 import Link from 'next/link';
@@ -36,7 +37,7 @@ export default function Page(){
         <tbody>{g.items.map((item:Item,index:number)=>{
           let description=item.description || '';
           if(singleJc && !description.includes('JC No'))description+=(description?'\n':'')+'JC No: '+singleJc;
-          return <tr key={item.id}><td>{index+1}</td><td>{item.item_id}</td><td className="whitespace-pre-line"><strong>{item.item_name}</strong>{description && <p>{description}</p>}</td><td>{item.quantity}</td><td>{item.unit}</td><td>{item.remarks}</td></tr>;
+          return <tr key={item.id}><td>{index+1}</td><td>{item.item_id}</td><td className="whitespace-pre-line"><strong>{item.item_name}</strong>{description && <p>{description}</p>}</td><td>{formatQty(item.quantity)}</td><td>{item.unit}</td><td>{item.remarks}</td></tr>;
         })}{!g.items.length && <tr><td colSpan={6} className="text-center">No items found.</td></tr>}</tbody>
       </table></div>
       <div className="gatepass-footer"><Link className="gatepass-default-button" href="/dashboard/gatepass">Back to List</Link></div>

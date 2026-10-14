@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import purchaseOrderService from '../services/purchaseOrder.service';
@@ -34,7 +35,7 @@ export const PurchaseOrderDetailsModal: React.FC<PurchaseOrderDetailsModalProps>
           <table className="receiving-metadata w-full"><tbody><tr><td><b>GRN No. :-</b> {grn.id}</td><td><b>Bill No :-</b> {grn.bill_no}</td></tr><tr><td><b>Inward Date :-</b> {formatContractDate(grn.inward_date)}</td><td><b>Bill Date :-</b> {formatContractDate(grn.bill_date)}</td></tr></tbody></table>
           <ReceivingDetailsTable items={grn.items}/>
         </div>)}</>}
-        {!!days.length && <><h4>Delivery Schedule</h4><div className="overflow-x-auto p-2"><table className="w-full"><thead><tr><th>Item</th>{days.map(day=><React.Fragment key={day}><th>Date</th><th>Qty</th></React.Fragment>)}</tr></thead><tbody>{data.items.map(item=><tr key={item.id}><td>{item.item_name}</td>{days.map(day=>{const qty=data.schedules!.filter(row=>String(row.item_id)===String(item.item_id) && row.delivery_date===day).reduce((sum,row)=>sum+Number(row.item_qty || 0),0);return <React.Fragment key={day}><td>{qty?formatContractDate(day):''}</td><td>{qty?`${qty} ${item.uom || ''}`:''}</td></React.Fragment>;})}</tr>)}</tbody></table></div></>}
+        {!!days.length && <><h4>Delivery Schedule</h4><div className="overflow-x-auto p-2"><table className="w-full"><thead><tr><th>Item</th>{days.map(day=><React.Fragment key={day}><th>Date</th><th>Qty</th></React.Fragment>)}</tr></thead><tbody>{data.items.map(item=><tr key={item.id}><td>{item.item_name}</td>{days.map(day=>{const qty=data.schedules!.filter(row=>String(row.item_id)===String(item.item_id) && row.delivery_date===day).reduce((sum,row)=>sum+Number(row.item_qty || 0),0);return <React.Fragment key={day}><td>{qty?formatContractDate(day):''}</td><td>{qty?`${formatQty(qty)} ${item.uom || ''}`:''}</td></React.Fragment>;})}</tr>)}</tbody></table></div></>}
       </div>}
     </div>
   </div>;

@@ -1,4 +1,5 @@
 "use client";
+import { formatQty } from '@/utils/formatters';
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -422,7 +423,7 @@ export function PrintPurchaseOrder({ poId, documentData, printMode = 'current' }
                               <tr key={idx}>
                                 <td style={{ borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '12px', lineHeight: '9px', fontSize: '8px', textAlign: 'center' }}>{idx + 1}.</td>
                                 <td style={{ borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '12px', lineHeight: '9px', fontSize: '8px', textAlign: 'left', paddingLeft: '4px' }}>{item.item_name}</td>
-                                <td style={{ borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '12px', lineHeight: '9px', fontSize: '8px', textAlign: 'right', paddingRight: '4px' }}>{qty} {item.uom}</td>
+                                <td style={{ borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '12px', lineHeight: '9px', fontSize: '8px', textAlign: 'right', paddingRight: '4px' }}>{formatQty(qty)} {item.uom}</td>
                                 <td style={{ borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '12px', lineHeight: '9px', fontSize: '8px', textAlign: 'right', paddingRight: '4px' }}>{formatCurrency(rate)}</td>
                                 <td style={{ borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '12px', lineHeight: '9px', fontSize: '8px', textAlign: 'right', paddingRight: '4px' }}>{formatCurrency(basePrice)}</td>
                                 <td style={{ borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '12px', lineHeight: '9px', fontSize: '8px', textAlign: 'right', paddingRight: '4px' }}>{taxPct}</td>
@@ -722,13 +723,13 @@ export function PrintPurchaseOrder({ poId, documentData, printMode = 'current' }
                             return (
                               <tr key={idx}>
                                 <td style={{ borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '12px', lineHeight: '9px', fontSize: '8px', textAlign: 'left', paddingLeft: '4px' }}>{item.item_name}</td>
-                                <td style={{ borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '12px', lineHeight: '9px', fontSize: '8px', textAlign: 'center' }}>{qty}</td>
+                                <td style={{ borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '12px', lineHeight: '9px', fontSize: '8px', textAlign: 'center' }}>{formatQty(qty)}</td>
                                 {(() => {
                                   if (uniqueDates.length === 0) {
                                     return (
                                       <>
                                         <td style={{ borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '12px', lineHeight: '9px', fontSize: '8px', textAlign: 'center' }}>{data.po.delivery_date ? data.po.delivery_date.split('T')[0].split('-').reverse().join('-') : '-'}</td>
-                                        <td style={{ borderBottom: '1px solid #000', color: '#000', height: '12px', lineHeight: '9px', fontSize: '8px', textAlign: 'center' }}>{qty}</td>
+                                        <td style={{ borderBottom: '1px solid #000', color: '#000', height: '12px', lineHeight: '9px', fontSize: '8px', textAlign: 'center' }}>{formatQty(qty)}</td>
                                       </>
                                     );
                                   }
@@ -739,7 +740,7 @@ export function PrintPurchaseOrder({ poId, documentData, printMode = 'current' }
                                     return (
                                       <React.Fragment key={i}>
                                         <td style={{ borderRight: '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '12px', lineHeight: '9px', fontSize: '8px', textAlign: 'center' }}>{scheduleQty ? new Date(date).toLocaleDateString('en-GB').replace(/\//g, '-') : ''}</td>
-                                        <td style={{ borderRight: i === uniqueDates.length - 1 ? 'none' : '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '12px', lineHeight: '9px', fontSize: '8px', textAlign: 'center' }}>{scheduleQty || ''}</td>
+                                        <td style={{ borderRight: i === uniqueDates.length - 1 ? 'none' : '1px solid #000', borderBottom: '1px solid #000', color: '#000', height: '12px', lineHeight: '9px', fontSize: '8px', textAlign: 'center' }}>{scheduleQty ? formatQty(scheduleQty) : ''}</td>
                                       </React.Fragment>
                                     )
                                   });

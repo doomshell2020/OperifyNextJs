@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import {useLegacyActionAccess} from '@/components/ui/useLegacyActionAccess';
@@ -34,7 +35,7 @@ import {
 // ─── Nested Item Dropdown ────────────────────────────────────────────────────
 
 function ItemsDropdown({items}:{items:IndentSummary['items']}) {
- return <table className="w-full"><thead><tr><th>Name</th><th>Qty</th><th>PO In-Stock</th></tr></thead><tbody>{items.map(item=><tr key={item.id}><td>{item.item_name}{item.size_name?` (${item.size_name})`:''}</td><td className="text-red-600">{item.quantity}</td><td className="text-green-600">{item.stock_in_hand ?? ''}</td></tr>)}</tbody></table>;
+ return <table className="w-full"><thead><tr><th>Name</th><th>Qty</th><th>PO In-Stock</th></tr></thead><tbody>{items.map(item=><tr key={item.id}><td>{item.item_name}{item.size_name?` (${item.size_name})`:''}</td><td className="text-red-600">{formatQty(item.quantity)}</td><td className="text-green-600">{item.stock_in_hand == null ? '' : formatQty(item.stock_in_hand)}</td></tr>)}</tbody></table>;
 }
 
 // ─── Search Bar ───────────────────────────────────────────────────────────────
@@ -235,7 +236,7 @@ export default function IndentsListPage() {
                     <ItemsDropdown items={indent.items} />
                   </td>
                   <td className="px-5 py-4 text-center">
-                    <span className="font-bold text-rose-600 text-sm">{indent.total_qty}</span>
+                    <span className="font-bold text-rose-600 text-sm">{formatQty(indent.total_qty)}</span>
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-1.5 text-xs text-slate-600">

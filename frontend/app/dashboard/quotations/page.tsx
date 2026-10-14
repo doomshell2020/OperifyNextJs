@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 
 import {useLegacyActionAccess} from '@/components/ui/useLegacyActionAccess';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
@@ -94,7 +95,7 @@ function DetailModal({ id, onClose }: { id: number; onClose: () => void }) {
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-slate-50 rounded-xl p-4 text-center">
                   <p className="text-xs text-slate-500 font-medium">Total Qty</p>
-                  <p className="text-xl font-bold text-slate-800 mt-1">{data.total_qty ?? '—'}</p>
+                  <p className="text-xl font-bold text-slate-800 mt-1">{data.total_qty == null ? '—' : formatQty(data.total_qty)}</p>
                 </div>
                 <div className="bg-amber-50 rounded-xl p-4 text-center">
                   <p className="text-xs text-amber-600 font-medium">Total Tax</p>
@@ -127,7 +128,7 @@ function DetailModal({ id, onClose }: { id: number; onClose: () => void }) {
                               <p className="font-medium text-slate-800">{item.item_name}</p>
                               {item.item_description && <p className="text-xs text-slate-500 mt-0.5">{item.item_description}</p>}
                             </td>
-                            <td className="px-4 py-2.5 font-semibold text-slate-700">{item.item_qty}</td>
+                            <td className="px-4 py-2.5 font-semibold text-slate-700">{formatQty(item.item_qty)}</td>
                             <td className="px-4 py-2.5 text-slate-500">{item.uom_name || item.uom || '—'}</td>
                             <td className="px-4 py-2.5 text-slate-700">{formatAmt(item.item_amt)}</td>
                             <td className="px-4 py-2.5 text-amber-600">{formatAmt(item.item_tax_amt)}</td>
@@ -270,7 +271,7 @@ export default function QuotationsPage() {
                     <td className="px-4 py-3 font-mono text-sm font-semibold text-blue-600">{row.quotation_id}</td>
                     <td className="px-4 py-3 text-sm font-medium text-slate-800 max-w-[160px] truncate">{row.vendor_name || '—'}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{formatDate(row.delivery_date)}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{row.total_qty}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700">{formatQty(row.total_qty)}</td>
                     <td className="px-4 py-3 text-sm text-amber-600 font-medium">{formatAmt(row.total_tax)}</td>
                     <td className="px-4 py-3 text-sm font-bold text-slate-800">{formatAmt(row.total_amt)}</td>
                     <td className="px-4 py-3"><AwardBadge is_award={row.is_award} /></td>

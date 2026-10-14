@@ -1,9 +1,10 @@
+const { formatQty } = require('../../utils/formatters');
 const {escapeHtml:e, ucfirst, date, letterhead, document, render}=require('../../utils/legacyPdf');
 const money=value=>Number(value || 0).toLocaleString('en-US',{minimumFractionDigits:Number(value)%1?2:0,maximumFractionDigits:2});
 const total=items=>money(items.reduce((sum,item)=>sum+Number(item.amount || 0),0));
 function buildDetailsHtml(data){
  const {po:p,items=[],grns=[],schedules=[],site_details={}}=data;
- const qty=(value,uom)=>`${e(value ?? '')} ${e(uom || '')}`;
+ const qty=(value,uom)=>`${formatQty(value)} ${e(uom || '')}`;
  const heads=labels=>`<tr>${labels.map(label=>`<th>${label}</th>`).join('')}</tr>`;
  const columns=widths=>`<colgroup>${widths.map(width=>`<col style="width:${width}%">`).join('')}</colgroup>`;
  const products=items.map((item,index)=>`<tr><td>${index+1}</td><td>${e(ucfirst(item.item_name))}</td><td>${qty(item.order_qty,item.uom)}</td><td>${qty(item.pending_qty,item.uom)}</td><td class="right">${money(item.rate)}</td><td class="right">${money(item.price)}</td><td>${e(item.tax_percentage ?? '')}%</td><td class="right">${money(item.tax_amt)}</td><td class="right">${money(item.amount)}</td></tr>`).join('');

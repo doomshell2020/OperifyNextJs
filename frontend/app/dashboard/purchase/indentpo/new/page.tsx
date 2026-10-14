@@ -404,13 +404,13 @@ export default function CreateIndentPoPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-center text-slate-700 font-medium">
-                      {item.design_qty !== undefined ? formatQty(item.design_qty) : 0}
+                      {formatQty(item.design_qty)}
                     </td>
                     <td className="px-6 py-4 text-center font-bold text-blue-600">
-                      {item.pending_qty !== undefined ? formatQty(item.pending_qty) : 0}
+                      {formatQty(item.pending_qty)}
                     </td>
                     <td className="px-6 py-4 text-center font-bold text-green-600">
-                      {Number(item.is_group) === 1 ? "--" : (item.inhand_stock !== undefined ? formatQty(item.inhand_stock) : 0)}
+                      {Number(item.is_group) === 1 ? "--" : (formatQty(item.inhand_stock))}
                     </td>
                     <td className="px-6 py-4 text-right">
                       {Number(item.is_group) === 1 ? (

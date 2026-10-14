@@ -268,7 +268,7 @@ function IndentDetailsModal({ id, onClose }: { id: number, onClose: () => void }
                     <tr key={idx} className="border-b last:border-0">
                       <td className="px-4 py-2 border-r">{idx + 1}.</td>
                       <td className="px-4 py-2 border-r font-medium">{item.item_name}</td>
-                      <td className="px-4 py-2 border-r text-right">{item.issue_qty ? formatQty(item.issue_qty) : 0}</td>
+                      <td className="px-4 py-2 border-r text-right">{formatQty(item.issue_qty)}</td>
                       <td className="px-4 py-2">{item.uom}</td>
                     </tr>
                   ))}

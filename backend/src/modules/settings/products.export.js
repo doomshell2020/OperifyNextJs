@@ -1,4 +1,5 @@
 const ExcelJS=require('exceljs');
+const {formatQuantityColumns}=require('../../utils/quantityExcel');
 const {QueryTypes}=require('sequelize');
 module.exports=async(db,input,res)=>{
   const {data}=await require('./products.list')(db,input,true);
@@ -10,6 +11,7 @@ module.exports=async(db,input,res)=>{
   const quantities=new Map(stock.map(row=>[String(row.item_id),Number(row.quantity)||0]));
   const workbook=new ExcelJS.Workbook(),sheet=workbook.addWorksheet('Items');
   sheet.columns=[{header:'Unique Id',key:'id',width:10},{header:'Product Name',key:'item_name',width:40},{header:'Category',key:'category_name',width:25},{header:'Item Type',key:'itemtype',width:15},{header:'UOM',key:'uom_name',width:15},{header:'Current Stock',key:'stock',width:15}];
+  formatQuantityColumns(sheet,['stock']);
   for(const row of data)sheet.addRow({...row,category_name:String(row.category_name||'').replace(/^./,char=>char.toUpperCase()),stock:quantities.get(String(row.id))||0});
   const now=new Date();
   const date=`${String(now.getDate()).padStart(2,'0')}-${String(now.getMonth()+1).padStart(2,'0')}-${now.getFullYear()}`;

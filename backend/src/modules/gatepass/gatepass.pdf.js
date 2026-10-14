@@ -1,3 +1,4 @@
+const { formatQty } = require('../../utils/formatters');
 const {escapeHtml:e,date,letterhead,document,render}=require('../../utils/legacyPdf');
 function build(data) {
   const g=data.gatepass;
@@ -5,7 +6,7 @@ function build(data) {
   const rows=g.items.map((item,index)=>{
     let description=item.description || '';
     if(singleJc && !description.includes('JC No'))description+=(description?'\n':'')+'JC No: '+singleJc;
-    return `<tr><td class="center">${index+1}</td><td class="center"><b>${e(item.item_id)}</b></td><td><b>${e(item.item_name)}</b>${description?'<br>'+e(description).replace(/\n/g,'<br>'):''}</td><td class="center"><b>${e(item.quantity)}</b></td><td class="center"><b>${e(item.unit)}</b></td><td><b>${e(item.remarks).replace(/\n/g,'<br>')}</b></td></tr>`;
+    return `<tr><td class="center">${index+1}</td><td class="center"><b>${e(item.item_id)}</b></td><td><b>${e(item.item_name)}</b>${description?'<br>'+e(description).replace(/\n/g,'<br>'):''}</td><td class="center"><b>${formatQty(item.quantity)}</b></td><td class="center"><b>${e(item.unit)}</b></td><td><b>${e(item.remarks).replace(/\n/g,'<br>')}</b></td></tr>`;
   }).join('');
   return document(`<div class="document-heading">${letterhead(data.site_details,data.sitesetting)}<h3 class="document-title">RETURNABLE GATE PASS</h3>
     <table class="metadata"><tr><td style="width:10%">No.</td><td style="width:50%"><b>${e(g.gatepass_no)}</b></td><td class="right" style="width:15%">Date</td><td><b>${date(g.date).replace(/-/g,'/')}</b></td></tr>

@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 import {DatePicker} from '@/components/ui/DatePicker';
 
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
@@ -415,7 +416,7 @@ export default function AddJobChallan() {
                       />
                     </td>
                     <td className="p-2">
-                      <input type="text" readOnly value={row.in_hand_qty}
+                      <input type="text" readOnly value={formatQty(row.in_hand_qty)}
                         className="w-full border border-slate-200 rounded-md p-2 text-sm text-center bg-slate-50 outline-none" />
                     </td>
                     <td className="p-2">

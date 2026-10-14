@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 import {DatePicker} from '@/components/ui/DatePicker';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import {useRef,useState} from 'react';
@@ -92,7 +93,7 @@ function Editor({id,initial,initialItems,number,vendorName}:{id?:string;initial?
               value={item.item_id?{value:String(item.item_id),label:options.data?.products.find(p=>String(p.id)===String(item.item_id))?.item_name || item.item_name || String(item.item_id)}:null}
               onChange={p=>{updateItem(index,'item_id',p?.value || '');updateItem(index,'unit',options.data?.products.find(item=>String(item.id)===p?.value)?.unit_name || 'KG');}}/>:
               <><strong>{item.item_name || 'Unknown Item'}</strong><textarea className={inputClass} rows={3} placeholder="Item Description / Calculations (e.g. 1+2=3 KM)" value={item.description || ''} onChange={e=>updateItem(index,'description',e.target.value)}/></>}</td>
-            <td><input required type="number" min={misc?'0.01':undefined} step="0.01" readOnly={!misc} className={inputClass} value={item.quantity} onChange={e=>updateItem(index,'quantity',e.target.value)}/></td>
+            <td><input required type="number" min={misc?'0.01':undefined} step="0.01" readOnly={!misc} className={inputClass} value={misc ? item.quantity : formatQty(item.quantity)} onChange={e=>updateItem(index,'quantity',e.target.value)}/></td>
             <td><input readOnly className={inputClass} value={item.unit || ''}/></td>
             <td><input className={inputClass} value={item.remarks || ''} onChange={e=>updateItem(index,'remarks',e.target.value)}/></td>
             {misc && <td><button type="button" className="gatepass-remove" aria-label={`Remove item ${index+1}`} onClick={()=>setItems(items.filter((_,i)=>i!==index))}>&times;</button></td>}

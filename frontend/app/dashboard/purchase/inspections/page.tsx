@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 import { LegacyAutocompleteInput } from '@/components/ui/LegacyAutocompleteInput';
 
 import { LegacyPageHeader } from '@/components/ui/LegacyPageHeader';
@@ -124,7 +125,7 @@ export default function GrnInspectionPage() {
                     <td className="p-4 text-slate-600">{grn.bill_no}</td>
                     <td className="p-4 text-slate-600">{formatContractDate(grn.bill_date)}</td>
                     <td className="p-4 text-slate-600">{grn.supplier}</td>
-                    <td className="p-4 text-right font-medium">{grn.total_qty}</td>
+                    <td className="p-4 text-right font-medium">{formatQty(grn.total_qty)}</td>
                     <td className="p-4 text-right font-bold">{parseFloat(grn.total_amt).toLocaleString('en-IN')}</td>
                   </tr>
                 ))

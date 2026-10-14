@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 
 import { LegacyPageHeader } from '@/components/ui/LegacyPageHeader';
 import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
@@ -90,7 +91,7 @@ export default function ProductsPage() {
                   <td className="px-4 py-2.5 text-sm text-slate-500">{row.category_name || '—'}</td>
                   <td className="px-4 py-2.5">{row.itemtype}</td>
                   <td className="px-4 py-2.5 text-sm text-slate-500">{row.uom_name || '—'}</td>
-                  <td>{Number(row.current_stock || 0).toFixed(2)}</td>
+                  <td>{formatQty(row.current_stock)}</td>
                   <td className="px-4 py-2.5 flex items-center gap-1">
                     {hasPermission('legacy:admin/additem/edit') && <Link href={`/dashboard/admin/products/edit/${row.id}`} className="p-1.5 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors" title="Edit"><Edit className="w-4 h-4" /></Link>}
                     {hasPermission('legacy:admin/additem/delete') && <button title="Delete" className="p-1.5 text-rose-500" onClick={()=>{if(window.confirm(`Delete ${row.item_name}?`)) del.mutate(row.id);}}><Trash2 className="w-4 h-4" /></button>}

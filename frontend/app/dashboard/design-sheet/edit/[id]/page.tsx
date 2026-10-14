@@ -285,7 +285,7 @@ export default function EditDesignSheetPage() {
             </div>
             <div>
               <label className="text-xs font-bold text-slate-500 block mb-2">Quantity(in KM)<span className="text-rose-500">*</span></label>
-              <input type="text" readOnly value={formData.quantity} className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-500 cursor-not-allowed" />
+              <input type="text" readOnly value={formatQty(formData.quantity)} className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-500 cursor-not-allowed" />
             </div>
             <div>
               <label className="text-xs font-bold text-slate-500 block mb-2">Date<span className="text-rose-500">*</span></label>
@@ -338,10 +338,10 @@ export default function EditDesignSheetPage() {
                                <input type="checkbox" checked={row.is_group === '1'} disabled={indentPoCount > 0} onChange={e => handleExistingDetailChange(idx, 'is_group', e.target.checked)} className="w-4 h-4 text-slate-400 bg-slate-100 border-slate-300 rounded" />
                            </td>
                            <td className="p-2 border-r border-slate-200">
-                               <input type="number" step="any" value={row.km_item_qty} readOnly className="w-full p-2 border border-slate-200 rounded text-xs bg-slate-100 text-slate-500 outline-none cursor-not-allowed" />
+                               <input type="number" step="any" value={formatQty(row.km_item_qty)} readOnly className="w-full p-2 border border-slate-200 rounded text-xs bg-slate-100 text-slate-500 outline-none cursor-not-allowed" />
                            </td>
                            <td className="p-2 border-r border-slate-200">
-                               <input type="text" readOnly value={row.item_qty} className="w-full p-2 border border-slate-200 rounded text-xs bg-slate-100 text-slate-500 outline-none cursor-not-allowed" />
+                               <input type="text" readOnly value={formatQty(row.item_qty)} className="w-full p-2 border border-slate-200 rounded text-xs bg-slate-100 text-slate-500 outline-none cursor-not-allowed" />
                            </td>
                            <td className="p-2 border-r border-slate-200">
                                <input type="text" readOnly value={row.uom} className="w-full p-2 border border-slate-200 rounded text-xs bg-slate-100 text-slate-500 outline-none cursor-not-allowed" />
@@ -369,7 +369,7 @@ export default function EditDesignSheetPage() {
                                <input type="number" step="any" value={row.km_item_qty} onChange={e => handleNewDetailChange(idx, 'km_item_qty', e.target.value)} className="w-full p-2 border border-emerald-200 rounded text-xs bg-white text-slate-900 outline-none focus:border-emerald-500" required />
                            </td>
                            <td className="p-2 border-r border-slate-200">
-                               <input type="text" readOnly value={row.pitemquantity} className="w-full p-2 border border-slate-200 rounded text-xs bg-slate-100 text-slate-500 outline-none" />
+                               <input type="text" readOnly value={formatQty(row.pitemquantity)} className="w-full p-2 border border-slate-200 rounded text-xs bg-slate-100 text-slate-500 outline-none" />
                            </td>
                            <td className="p-2 border-r border-slate-200">
                                <input type="text" readOnly value={row.unit_name} className="w-full p-2 border border-slate-200 rounded text-xs bg-slate-100 text-slate-500 outline-none" />

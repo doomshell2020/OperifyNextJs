@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 
 import React from 'react';
 import { useLegacyActionAccess } from './ui/useLegacyActionAccess';
@@ -106,7 +107,7 @@ export const PurchaseOrderHoverCard: React.FC<PurchaseOrderHoverCardProps> = ({
         <div>
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Quantity</span>
           <span className="text-xs font-bold text-slate-800 mt-0.5 block">
-            {Number(data.quantity).toLocaleString()} units
+            {formatQty(data.quantity)} units
           </span>
         </div>
         <div>

@@ -1,3 +1,4 @@
+import { formatQty } from '@/utils/formatters';
 import React from 'react';
 import { API_ASSET_URL } from '../services/apiConfig';
 import { formatDate, formatContractDate } from '../utils/dateFormatter';
@@ -92,8 +93,8 @@ export const PurchaseOrderDetailsPrint: React.FC<PurchaseOrderDetailsPrintProps>
             <tr key={idx}>
               <td className="border border-black p-1 text-center">{idx + 1}</td>
               <td className="border border-black p-1">{item.item_name}</td>
-              <td className="border border-black p-1 text-right">{Number(item.order_qty)} {item.uom}</td>
-              <td className="border border-black p-1 text-right">{Number(item.pending_qty)} {item.uom}</td>
+              <td className="border border-black p-1 text-right">{formatQty(item.order_qty)} {item.uom}</td>
+              <td className="border border-black p-1 text-right">{formatQty(item.pending_qty)} {item.uom}</td>
               <td className="border border-black p-1 text-right">{Number(item.rate)}</td>
               <td className="border border-black p-1 text-right">{Number(item.price).toLocaleString('en-IN')}</td>
               <td className="border border-black p-1 text-center">{item.tax_percentage}%</td>
@@ -144,8 +145,8 @@ export const PurchaseOrderDetailsPrint: React.FC<PurchaseOrderDetailsPrintProps>
                     <tr key={i}>
                       <td className="border border-black p-1 text-center">{i + 1}</td>
                       <td className="border border-black p-1">{item.item_name}</td>
-                      <td className="border border-black p-1 text-right">{orderQty} {item.uom}</td>
-                      <td className="border border-black p-1 text-right">{Number(item.item_qty)} {item.uom}.</td>
+                      <td className="border border-black p-1 text-right">{formatQty(orderQty)} {item.uom}</td>
+                      <td className="border border-black p-1 text-right">{formatQty(item.item_qty)} {item.uom}.</td>
                       <td className="border border-black p-1 text-right">{Number(item.price)}</td>
                       <td className="border border-black p-1 text-right">{Number(item.rate).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
                       <td className="border border-black p-1 text-center">{item.tax_percentage}%</td>

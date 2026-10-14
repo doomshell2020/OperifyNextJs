@@ -1,4 +1,5 @@
 "use client";
+import { formatQty } from '@/utils/formatters';
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -116,7 +117,7 @@ export function ReverseIndentForm({ reverseId }: { reverseId?: string }) {
           </div>
           {(edit || form.design_product_id) && <div className="overflow-x-auto"><table className="w-full border-collapse text-sm"><thead className="bg-slate-200"><tr><th className="p-2 text-left">Semi-Finished Product *</th><th>UOM</th><th>Pending Qty</th><th>Received Qty *</th></tr></thead><tbody><tr>
             <td className="border p-2">{edit?<input readOnly className={fieldClass} value={form.product_name || ''} />:<select id="reverse-semi-product" required className={fieldClass} value={form.finishedproduct_id} onChange={e=>{setField('finishedproduct_id',e.target.value);setProductUom(semiProducts.find(row=>String(row.id)===e.target.value)?.uom || '');}}><option value="">-- Select Semi-Finished Product --</option>{semiProducts.map(row=><option key={row.id} value={row.id}>{row.item_name}</option>)}</select>}</td>
-            <td className="border p-2">{productUom}</td><td className="border p-2">{pending==null?'N/A':pending.toFixed(2)}</td>
+            <td className="border p-2">{productUom}</td><td className="border p-2">{pending==null?'N/A':formatQty(pending)}</td>
             <td className="border p-2"><input required type="number" min="0.01" step="0.01" className={fieldClass} value={form.finished_qty} onChange={e=>setField('finished_qty',e.target.value)} /></td>
           </tr></tbody></table>
           <table className="w-full border-collapse text-sm mt-4"><thead className="bg-slate-200"><tr><th className="p-2 text-left w-[55%]">Raw Material</th><th className="p-2 text-left">Received Qty</th><th>UOM</th><th></th></tr></thead><tbody>

@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -147,7 +148,7 @@ function CartRow({
         )}
       </td>
       <td className="px-5 py-3.5 text-xs text-slate-500">{item.unit_name || '—'}</td>
-      <td className="px-5 py-3.5 text-center font-bold text-cyan-700">{item.quantity}</td>
+      <td className="px-5 py-3.5 text-center font-bold text-cyan-700">{formatQty(item.quantity)}</td>
       <td className="px-5 py-3.5 text-center text-xs text-slate-500">
         {item.sale_price ? `₹${formatAmt(item.sale_price)}` : '—'}
       </td>

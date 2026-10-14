@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 
 import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
@@ -159,12 +160,12 @@ export default function DailyStockPage() {
                     <td className="px-3 py-3 text-center align-top">{index + 1}</td>
                     <td className="px-3 py-3 font-medium text-slate-800 break-words align-top">{row.item_name}</td>
                     <td className="px-3 py-3 break-words align-top">{row.category_name}</td>
-                    <td className="px-3 py-3 text-right align-top">{row.opening_stock}</td>
-                    <td className="px-3 py-3 text-right text-emerald-600 align-top">{row.received_stock}</td>
-                    <td className="px-3 py-3 text-right text-rose-600 align-top">{row.issued_stock}</td>
-                    <td className="px-3 py-3 text-right text-amber-600 align-top">{row.reverse_stock}</td>
-                    <td className="px-3 py-3 text-right text-emerald-600 align-top">{row.return_stock}</td>
-                    <td className="px-3 py-3 text-right font-bold text-cyan-700 align-top">{row.closing_stock}</td>
+                    <td className="px-3 py-3 text-right align-top">{formatQty(row.opening_stock)}</td>
+                    <td className="px-3 py-3 text-right text-emerald-600 align-top">{formatQty(row.received_stock)}</td>
+                    <td className="px-3 py-3 text-right text-rose-600 align-top">{formatQty(row.issued_stock)}</td>
+                    <td className="px-3 py-3 text-right text-amber-600 align-top">{formatQty(row.reverse_stock)}</td>
+                    <td className="px-3 py-3 text-right text-emerald-600 align-top">{formatQty(row.return_stock)}</td>
+                    <td className="px-3 py-3 text-right font-bold text-cyan-700 align-top">{formatQty(row.closing_stock)}</td>
                   </tr>
                 ))
               )}

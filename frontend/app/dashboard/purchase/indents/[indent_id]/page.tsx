@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 
 import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import React, { useEffect } from 'react';
@@ -156,7 +157,7 @@ export default function IndentDetailPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-slate-600">{item.category_name || '—'}</td>
-                  <td className="px-4 py-3 text-center font-bold text-rose-600">{item.quantity}</td>
+                  <td className="px-4 py-3 text-center font-bold text-rose-600">{formatQty(item.quantity)}</td>
                 </tr>
               ))}
             </tbody>
@@ -166,7 +167,7 @@ export default function IndentDetailPage() {
                   Total Quantity
                 </td>
                 <td className="px-4 py-3 text-center font-extrabold text-slate-900 text-base">
-                  {totalQty}
+                  {formatQty(totalQty)}
                 </td>
               </tr>
             </tfoot>

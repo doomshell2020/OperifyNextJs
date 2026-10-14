@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 
 import {useLegacyActionAccess} from '@/components/ui/useLegacyActionAccess';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
@@ -210,7 +211,7 @@ export default function StockRegisterPage() {
                   <tr key={i} className="border-b border-slate-100 hover:bg-slate-50/50 transition">
                     <td className="p-3">{i + 1}</td>
                     <td className="p-3 font-semibold text-slate-700">{r.date_range}</td>
-                    <td className="p-3 font-medium text-cyan-600">{r.opening_stock}</td>
+                    <td className="p-3 font-medium text-cyan-600">{formatQty(r.opening_stock)}</td>
                     <td className="p-3 text-green-600">
                       {parseFloat(r.received_stock.toString()) > 0 && (canAction('stockregister','index') || canAction('stockregister','receivedstock')) ? (
                         <Link
@@ -219,7 +220,7 @@ export default function StockRegisterPage() {
                           rel="noopener noreferrer"
                           className="hover:underline text-left"
                         >
-                          {r.received_stock}
+                          {formatQty(r.received_stock)}
                         </Link>
                       ) : (
                         r.received_stock
@@ -231,13 +232,13 @@ export default function StockRegisterPage() {
                           onClick={() => openModal('dispatched', r.date_range, r.item_id, r.item_name)}
                           className="hover:underline text-left"
                         >
-                          {r.dispatched_stock}
+                          {formatQty(r.dispatched_stock)}
                         </button>
                       ) : (
                         r.dispatched_stock
                       )}
                     </td>
-                    <td className="p-3 font-bold text-slate-900">{r.closing_stock}</td>
+                    <td className="p-3 font-bold text-slate-900">{formatQty(r.closing_stock)}</td>
                   </tr>
                 ))
               ) : records && records.length === 0 ? (

@@ -17,6 +17,8 @@ class GrnInspectionController {
       };
       rows.forEach((row, index) => sheet.addRow([index+1, row.inspection_id, row.po_id, date(row.inwarddate), row.bill_no, date(row.bill_date), row.supplier, Number(row.total_qty), Number(row.total_amt)]));
       sheet.columns.forEach(column => { column.width = 18; });
+      require('../../utils/quantityExcel').formatQuantityColumns(sheet,[8]);
+      sheet.getColumn(9).numFmt='0.00'; // Legacy column contains total_amt, not a quantity.
       sheet.getRow(1).font = { bold: true };
       res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition','attachment; filename="GRN_Inspection.xlsx"');

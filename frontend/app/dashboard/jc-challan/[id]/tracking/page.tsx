@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 import Link from 'next/link';
 import { useState } from 'react';
 import ReturnForm from '@/components/jobChallan/ReturnForm';
@@ -39,11 +40,11 @@ export default function JcTracking() {
       </table></div>
       <h3 className="jc-section-heading">Production & Return Tracking</h3>
       <div className="overflow-x-auto"><table className="w-full"><thead className="jc-green"><tr>{['Raw Material Item','Dispatched','Received','Consumed (Indents)','RM Balance'].map(h=><th className="p-2" key={h}>{h}</th>)}</tr></thead>
-        <tbody>{Array.from(grouped).map(([itemId,item])=><tr key={itemId}><td className="p-2">{item.name}</td><td className="p-2">{item.dispatched}</td><td className="p-2">{item.received}</td><td className="p-2">{tracking[itemId]?.consumed || 0}</td><td className="p-2">{tracking[itemId]?.balance || 0}</td></tr>)}</tbody>
+        <tbody>{Array.from(grouped).map(([itemId,item])=><tr key={itemId}><td className="p-2">{item.name}</td><td className="p-2">{formatQty(item.dispatched)}</td><td className="p-2">{formatQty(item.received)}</td><td className="p-2">{formatQty(tracking[itemId]?.consumed)}</td><td className="p-2">{formatQty(tracking[itemId]?.balance)}</td></tr>)}</tbody>
       </table></div>
       <h3 className="jc-section-heading">Returned Items (Finished Goods / Unused RM)</h3>
       <table className="w-full"><thead className="jc-red"><tr>{['Returned Item','Return Type','Production Output (If FG)','Returned Qty'].map(h=><th className="p-2" key={h}>{h}</th>)}</tr></thead>
-        <tbody>{Object.entries(returnedItems || {}).map(([name,value]: [string, any])=><tr key={name}><td className="p-2">{name}</td><td className="p-2">{value.type}</td><td className="p-2">{value.output}</td><td className="p-2">{value.quantity}</td></tr>)}
+        <tbody>{Object.entries(returnedItems || {}).map(([name,value]: [string, any])=><tr key={name}><td className="p-2">{name}</td><td className="p-2">{value.type}</td><td className="p-2">{value.output == null || value.output === '' ? '' : Number.isFinite(Number(value.output)) ? formatQty(value.output) : value.output}</td><td className="p-2">{formatQty(value.quantity)}</td></tr>)}
           {!Object.keys(returnedItems || {}).length && <tr><td colSpan={4} className="p-4 text-center">No returns initiated yet</td></tr>}</tbody>
       </table>
       <div className="flex gap-3 mt-5"><Link className="legacy-button" href="/dashboard/jc-challan">Back</Link>
@@ -60,7 +61,7 @@ export default function JcTracking() {
 
 function JcHistory({id,name,dispatched,history,canPrint}: {id:number;name:string;dispatched:number;history:any[];canPrint:boolean}) {
   const receipts = history.filter(row=>Number(row.item_id)===id);
-  return <><tr><td colSpan={6} className="p-2"><b>{name} (Dispatch: {dispatched})</b></td></tr>
-    {receipts.map((row,index)=><tr key={row.id}><td className="p-2">{index+1}</td><td className="p-2">{row.item_name}</td><td className="p-2">{formatContractDate(row.receive_date)}</td><td className="p-2">{row.received_qty}</td><td className="p-2">{row.vehicle_no}</td><td className="p-2">{canPrint && <Link className="legacy-button" href={`/dashboard/jc-receive/${row.id}/pdf`} target="_blank" rel="noopener noreferrer">Print Return Challan</Link>}</td></tr>)}
+  return <><tr><td colSpan={6} className="p-2"><b>{name} (Dispatch: {formatQty(dispatched)})</b></td></tr>
+    {receipts.map((row,index)=><tr key={row.id}><td className="p-2">{index+1}</td><td className="p-2">{row.item_name}</td><td className="p-2">{formatContractDate(row.receive_date)}</td><td className="p-2">{formatQty(row.received_qty)}</td><td className="p-2">{row.vehicle_no}</td><td className="p-2">{canPrint && <Link className="legacy-button" href={`/dashboard/jc-receive/${row.id}/pdf`} target="_blank" rel="noopener noreferrer">Print Return Challan</Link>}</td></tr>)}
     {!receipts.length && <tr><td colSpan={6} className="p-4 text-center">No Receive Data for this item</td></tr>}</>;
 }

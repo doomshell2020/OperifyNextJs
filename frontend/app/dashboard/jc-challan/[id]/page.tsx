@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -35,7 +36,7 @@ export default function ViewJobChallan() {
         {['#','Item Name','Quantity','Rate','Tax','Tax Amount','Total Amount'].map(h => <th key={h} className="p-2">{h}</th>)}
       </tr></thead><tbody>{jc.job_challan_items.map((item: any, index: number) => <tr key={item.id}>
         <td className="p-2">{index + 1}</td><td className="p-2">{item.item?.item_name || item.item_name}</td>
-        <td className="p-2">{money(item.quantity)}</td><td className="p-2">{money(item.rate)}</td><td className="p-2">{item.tax_rate}%</td>
+        <td className="p-2">{formatQty(item.quantity)}</td><td className="p-2">{money(item.rate)}</td><td className="p-2">{item.tax_rate}%</td>
         <td className="p-2">{money(item.tax_amount)}</td><td className="p-2">{money(item.total_amount ?? item.total)}</td>
       </tr>)}</tbody><tfoot><tr><th colSpan={6} className="p-2 text-right">Total</th>
         <th className="p-2">{money(jc.job_challan_items.reduce((sum: number, item: any) => sum + Number(item.total_amount ?? item.total ?? 0), 0))}</th>

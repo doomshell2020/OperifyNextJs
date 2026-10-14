@@ -37,7 +37,7 @@ async function exportRows(db, filters, expected) {
     assert.equal(actual.getCell(4).value,row.item_name);
     for(const [offset,key] of ['opening_stock','received_stock','dispatched_stock','closing_stock'].entries()) {
       assert.equal(actual.getCell(offset+6).value,Number(row[key]));
-      assert.equal(actual.getCell(offset+6).numFmt,'0.00');
+      assert.equal(actual.getCell(offset+6).numFmt,'0.000');
     }
     assert.ok(actual.getCell(10).value == null || actual.getCell(10).value==='');
   }

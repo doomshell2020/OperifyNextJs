@@ -1,3 +1,4 @@
+import { formatQty } from '@/utils/formatters';
 import { formatDate } from '../../../../utils/dateFormatter';
 import React, { useEffect, useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
@@ -123,13 +124,13 @@ export function StockDetailModal({ type, date, productId, productName, onClose }
                           </td>
                           <td className="p-3 border border-slate-200">{formatDate(row.inwarddate || row.issue_date)}</td>
                           <td className="p-3 border border-slate-200">{row.bill_no ? `${row.bill_no} / ${formatDate(row.inwarddate)}` : '-'}</td>
-                          <td className="p-3 border border-slate-200 font-medium text-cyan-700">{row.quantity}</td>
+                          <td className="p-3 border border-slate-200 font-medium text-cyan-700">{formatQty(row.quantity)}</td>
                         </>
                       ) : (
                         <>
                           <td className="p-3 border border-slate-200">{row.indent_id || '-'}</td>
                           <td className="p-3 border border-slate-200">
-                            {row.quantity}<br/>
+                            {formatQty(row.quantity)}<br/>
                             {row.subcontractor_name && (
                               <div className="mt-1 text-xs">
                                 <b>Sub Contractors Name:</b> {row.subcontractor_name}<br/>

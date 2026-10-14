@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 
 import React, { useState } from 'react';
 import { ProductionRecord } from '../../services/dashboard.service';
@@ -64,7 +65,7 @@ export const RecentProductionTable: React.FC<RecentProductionTableProps> = ({ da
               filteredData.map((record) => (
                 <tr key={record.id} className="hover:bg-slate-50/50 transition cursor-pointer">
                   <td className="px-6 py-4 text-slate-900 font-bold">{record.machine_name || `Machine #${record.id}`}</td>
-                  <td className="px-6 py-4 text-slate-600 font-semibold">{record.plan_qty || 'N/A'}</td>
+                  <td className="px-6 py-4 text-slate-600 font-semibold">{record.plan_qty == null ? 'N/A' : formatQty(record.plan_qty)}</td>
                   <td className="px-6 py-4 text-slate-500">{record.manpower_day || '-'}</td>
                   <td className="px-6 py-4 text-slate-400">
                     {record.date ? formatDate(record.date) : '-'}

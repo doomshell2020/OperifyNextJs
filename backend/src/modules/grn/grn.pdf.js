@@ -1,3 +1,4 @@
+const { formatQty } = require('../../utils/formatters');
 const {escapeHtml:e, amount, ucfirst, date, logoSrc, document, render} = require('../../utils/legacyPdf');
 function words(value) {
   const units = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
@@ -25,7 +26,7 @@ function buildGrnHtml(data) {
   const rows = items.map((item,i)=> {
     const rates=item.tax_rates || [];
     const taxAmounts=rates.length===2 ? [Number(item.tax || 0)/2,Number(item.tax || 0)/2] : [item.tax];
-    return `<tr><td>${i+1}.</td><td>${e(ucfirst(item.item_name))}</td><td class="center">${e(item.order_qty)} ${e(item.uom)}</td><td class="center">${e(item.quantity)} ${e(item.uom)}</td><td class="right">${amount(item.rate)}</td><td class="right">${amount(item.cost_price)}</td><td class="center">${rates.map(e).join('<br>')}</td><td class="right">${taxAmounts.map(amount).join('<br>')}</td><td class="right">${amount(item.amount)}</td></tr>`;
+    return `<tr><td>${i+1}.</td><td>${e(ucfirst(item.item_name))}</td><td class="center">${formatQty(item.order_qty)} ${e(item.uom)}</td><td class="center">${formatQty(item.quantity)} ${e(item.uom)}</td><td class="right">${amount(item.rate)}</td><td class="right">${amount(item.cost_price)}</td><td class="center">${rates.map(e).join('<br>')}</td><td class="right">${taxAmounts.map(amount).join('<br>')}</td><td class="right">${amount(item.amount)}</td></tr>`;
   }).join('');
   return document(`<div class="grn-box"><div class="grn-header">${logo?`<img src="${logo}" alt="">`:''}<b class="grn-company">${e(setting.first_name || s.company_name)}</b><div class="grn-address">${e(s.address1)}<br><b>Phone</b> : ${e(s.phone)}<br><b>Email</b> : <u>${e(s.email)}</u><br><b>Website</b> : ${e(s.website)}</div></div>
     <h5 class="grn-title">GOOD RECEIPT NOTE (GRN)</h5>

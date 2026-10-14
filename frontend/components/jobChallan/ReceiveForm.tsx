@@ -1,4 +1,5 @@
 'use client';
+import { formatQty } from '@/utils/formatters';
 import {useState} from 'react';
 import {useRouter,useSearchParams} from 'next/navigation';
 import {useQuery,useQueryClient} from '@tanstack/react-query';
@@ -77,7 +78,7 @@ function ReceiveAddForm() {
           <td><ReceiveSelect label={`Product ${index+1}`} options={(options.data?.products || []).map(product=>({id:product.id,name:product.item_name}))} value={String(item.item_id)} onChange={value=>updateItem(index,'item_id',value)} placeholder="[ Select Product ]"/></td>
           <td><div className="jc-receive-quantity"><input type="number" min="0" step="0.01" className={inputClass} placeholder="0" aria-label={`Receive quantity ${index+1}`} value={item.receive_qty} onChange={e=>updateItem(index,'receive_qty',e.target.value)}/><b>{options.data?.products.find(product=>String(product.id)===String(item.item_id))?.unit_name || 'Unit'}</b></div></td>
           <td className="text-center"><button type="button" className="jc-receive-remove" title="Remove" aria-label={`Remove product ${index+1}`} onClick={()=>setItems(previous=>previous.length>1?previous.filter((_,i)=>i!==index):[{item_id:'',receive_qty:''}])}><Trash2 size={14}/></button></td>
-        </>:<><td>{item.item_name}</td><td>{item.category}</td><td>{item.original_qty}</td><td>{item.received_qty}</td><td>{item.pending_qty}</td><td><input aria-label={`Receive quantity for ${item.item_name}`} className={inputClass} type="number" min="0" step="0.01" max={item.pending_qty} value={item.receive_qty} onChange={e=>setEdits(previous=>({...previous,[String(item.item_id)]:e.target.value}))}/></td></>}</tr>)}</tbody>
+        </>:<><td>{item.item_name}</td><td>{item.category}</td><td>{formatQty(item.original_qty)}</td><td>{formatQty(item.received_qty)}</td><td>{formatQty(item.pending_qty)}</td><td><input aria-label={`Receive quantity for ${item.item_name}`} className={inputClass} type="number" min="0" step="0.01" max={item.pending_qty} value={item.receive_qty} onChange={e=>setEdits(previous=>({...previous,[String(item.item_id)]:e.target.value}))}/></td></>}</tr>)}</tbody>
       </table></div>
       {(options.isLoading || (linked && details.isFetching)) && <p>Loading items...</p>}
       {!linked && <button type="button" className="jc-receive-add" onClick={()=>setItems(previous=>[...previous,{item_id:'',receive_qty:''}])}><Plus size={14}/> Add Item</button>}

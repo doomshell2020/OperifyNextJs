@@ -1,3 +1,4 @@
+const { formatQty } = require('../../utils/formatters');
 const { escapeHtml:e, amount, ucfirst, date, letterhead, document, render } = require('../../utils/legacyPdf');
 function buildReverseIndentHtml(details) {
   return document(`<div class="document-heading">${letterhead(details.site_details, details.sitesetting)}
@@ -11,7 +12,7 @@ function buildReverseIndentHtml(details) {
     <h6 class="section-title">Raw Material</h6>
     <table class="grid"><colgroup><col style="width:8%"><col style="width:62%"><col style="width:20%"><col style="width:10%"></colgroup>
       <thead><tr><th>S.No.</th><th>Item</th><th>Received Qty</th><th>UOM</th></tr></thead>
-      <tbody>${(details.items || []).map((item,i)=>`<tr><td>${i+1}.</td><td>${e(ucfirst(item.item_name))}</td><td class="right">${amount(item.quantity)}</td><td>${e(item.uom)}</td></tr>`).join('')}</tbody>
+      <tbody>${(details.items || []).map((item,i)=>`<tr><td>${i+1}.</td><td>${e(ucfirst(item.item_name))}</td><td class="right">${formatQty(item.quantity)}</td><td>${e(item.uom)}</td></tr>`).join('')}</tbody>
     </table>
     <table class="signatures" style="margin-top:30pt"><tbody><tr><td style="width:33%"><b>INDENTER</b></td><td style="width:33%" class="center"><b>ISSUED BY</b></td><td style="width:34%" class="right"><b>RECEIVED BY</b></td></tr></tbody></table>`);
 }

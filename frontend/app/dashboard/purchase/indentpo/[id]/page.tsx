@@ -1,4 +1,5 @@
 "use client";
+import { formatQty } from '@/utils/formatters';
 
 import { useLegacyActionAccess } from '@/components/ui/useLegacyActionAccess';
 import { useEffect, useState } from "react";
@@ -150,8 +151,8 @@ export default function IndentPoDetailPage() {
                 <td className="px-4 py-3 border-r border-slate-300 text-center">{idx + 1}</td>
                 <td className="px-4 py-3 border-r border-slate-300 font-medium">{item.raw_material_name}</td>
                 <td className="px-4 py-3 border-r border-slate-300 text-center">{item.unit_name}</td>
-                <td className="px-4 py-3 border-r border-slate-300 text-center">{item.design_qty}</td>
-                <td className="px-4 py-3 text-right font-bold bg-slate-50">{item.quantity}</td>
+                <td className="px-4 py-3 border-r border-slate-300 text-center">{formatQty(item.design_qty)}</td>
+                <td className="px-4 py-3 text-right font-bold bg-slate-50">{formatQty(item.quantity)}</td>
               </tr>
             ))}
           </tbody>

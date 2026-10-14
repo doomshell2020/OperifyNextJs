@@ -1,4 +1,5 @@
 "use client";
+import { formatQty } from '@/utils/formatters';
 
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
@@ -108,7 +109,7 @@ export function DeliveryNoteModal({ poId, onClose }: DeliveryNoteModalProps) {
     const totalQty = Number(item?.order_qty) || 0;
 
     if (sum > totalQty) {
-      alert(`Total schedule quantity can not be greater then ${totalQty}`);
+      alert(`Total schedule quantity can not be greater then ${formatQty(totalQty)}`);
       const maxQty = totalQty - (sum - qty);
       const newSchedules = [...schedules];
       newSchedules[dateIndex].items[itemId] = maxQty;
@@ -141,7 +142,7 @@ export function DeliveryNoteModal({ poId, onClose }: DeliveryNoteModalProps) {
         sum += qty;
       }
       if (dateValid && sum < Number(item.order_qty)) {
-        alert(`Total quantity cannot be less than ${item.order_qty}`);
+        alert(`Total quantity cannot be less than ${formatQty(item.order_qty)}`);
         formValid = false;
       }
     });
@@ -228,7 +229,7 @@ export function DeliveryNoteModal({ poId, onClose }: DeliveryNoteModalProps) {
                         <input type="text" readOnly value={item.item_name} className="w-full px-2 py-1 border border-gray-300 rounded bg-gray-100 outline-none" />
                       </td>
                       <td className="border border-gray-300 p-2 w-[9%]">
-                         <input type="text" readOnly value={Number(item.order_qty).toFixed(2)} className="w-full px-2 py-1 border border-gray-300 rounded bg-gray-100 outline-none" />
+                         <input type="text" readOnly value={formatQty(item.order_qty)} className="w-full px-2 py-1 border border-gray-300 rounded bg-gray-100 outline-none" />
                       </td>
                       {[0, 1, 2, 3].map(i => (
                         <React.Fragment key={i}>

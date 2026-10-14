@@ -384,8 +384,8 @@ export default function AddGrnInspectionPage() {
                           <input type="hidden" {...register(`items.${idx}.tax_rate` as const, { valueAsNumber: true })} />
                           <input type="hidden" {...register(`items.${idx}.uom` as const)} />
                         </td>
-                        <td className="p-3 text-right text-slate-600">{field.order_qty}</td>
-                        <td className="p-3 text-right text-orange-600 font-medium">{field.pending_qty}</td>
+                        <td className="p-3 text-right text-slate-600">{formatQty(field.order_qty)}</td>
+                        <td className="p-3 text-right text-orange-600 font-medium">{formatQty(field.pending_qty)}</td>
                         <td className="p-3 align-top">
                           <input
                             type="number"
@@ -398,7 +398,7 @@ export default function AddGrnInspectionPage() {
                               const val = Number(e.target.value);
                               if (val > Math.max(0, field.pending_qty)) {
                                 setValue(`items.${idx}.received_qty`, Math.max(0, field.pending_qty), { shouldValidate: true });
-                                toast.error(`Quantity cannot exceed pending quantity (${field.pending_qty})`);
+                                toast.error(`Quantity cannot exceed pending quantity (${formatQty(field.pending_qty)})`);
                               }
                             }}
                             className={`w-full text-right h-8 border rounded px-2 text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500 bg-white ${hasError ? 'border-red-500 bg-red-50' : 'border-slate-300'}`}
