@@ -67,6 +67,8 @@ const routes = [
   ['gatepass','get','/:id/edit-data','gatepasses','edit'],['gatepass','get','/vendors','gatepasses','index'],
   ['reverseIndent','put','/:id','reverseindent','edit'],['reverseIndent','get','/:id/edit-data','reverseindent','edit'],['reverseIndent','get','/export','reverseindent','excel'],['reverseIndent','post','/','reverseindent','add'],['reverseIndent','delete','/:id','reverseindent','delete'],['reverseIndent','get','/:id/pdf','reverseindent','viewreverseindentpdf'],
   ['stockRegister','get','/daily/export','stockregister','dailystockexcel'],
+  ['stockRegister','get','/','stockregister','index'],
+  ['stockRegister','get','/options','stockregister','index'],
   ['stockRegister','get','/details/dispatched','stockregister','dispatchedstock'],
   ['settings','post','/products','additem','add'],['settings','put','/products/:id','additem','edit'],['settings','delete','/products/:id','additem','delete'],
   ['settings','patch','/products/:id/status','additem','status'],['settings','get','/products/export','additem','viewitemexcel'],
@@ -274,7 +276,7 @@ function frontendTests() {
   const stockRow={item_id:6,item_name:'COPPER ROD (CCR)',date_range:'2026-10-12',opening_stock:'5688.40',received_stock:'80.00',dispatched_stock:'0.00',closing_stock:'5768.40'};
   for (const permissions of [[],[key('stockregister','index')],[key('stockregister','summaryexcel')],[key('stockregister','receivedstock')],[key('stockregister','dailystock')],[key('contracts','index')]]) {
     const allowed=permissions.some(grant=>[key('stockregister','index'),key('stockregister','receivedstock')].includes(grant));
-    const html=render('app/dashboard/inventory/stock/page.tsx',permissions,{},[],{},[[],[],'6',[],'2026-10-12','2026-10-12',false,'',[stockRow],false,'received','','','']);
+    const html=render('app/dashboard/inventory/stock/page.tsx',permissions,{},[],{},[[],[],'6',[],'2026-10-12','2026-10-12',false,'',[stockRow],{product_id:'6',date_from:'2026-10-12',date_to:'2026-10-12'},false,false,'received','','','']);
     assert.equal(html.includes(`href="${receiptPath}"`),allowed,'Received quantity must link for stock list or detail readers');
     assert.equal(html.includes('aria-label="Export Summary Excel"'),permissions.some(grant=>[key('stockregister','index'),key('stockregister','summaryexcel')].includes(grant)),'Export must be visible to register readers, matching PHP and the API');
     if (allowed) assert(html.includes('target="_blank"'),'Opening receipt must preserve index filters');

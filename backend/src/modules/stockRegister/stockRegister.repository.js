@@ -2,6 +2,20 @@ const { QueryTypes } = require('sequelize');
 const rules = require('./stockRules');
 
 class StockRegisterRepository {
+  async getRegisterOptions(dbPool) {
+    // index() lists every category; getitemname() lists all active products,
+    // even those subsequently excluded by the report's RawMaterial rules.
+    const [categories, products] = await Promise.all([
+      dbPool.query('SELECT id, category_name FROM st_categorymaster ORDER BY id', { type: QueryTypes.SELECT }),
+      dbPool.query(`SELECT p.id, p.item_name, p.size_id, s.size_name
+        FROM st_additem p LEFT JOIN st_sizemanager s ON s.id=p.size_id
+        WHERE p.status='Y' ORDER BY p.id`, { type: QueryTypes.SELECT })
+    ]);
+    return { categories, products: products.map(product => ({
+      id: product.id,
+      item_name: product.item_name + (product.size_name && Number(product.size_id) !== 6 ? ` (${product.size_name})` : '')
+    })) };
+  }
   async getCategories(dbPool) {
     const sql = `
       SELECT id, category_name
@@ -85,19 +99,27 @@ class StockRegisterRepository {
 
     const productIds = products.map(p => p.item_id);
 
-    // 2. Fetch all stock movements for these products
+    // Collapse history to one opening bucket per type and only retain daily
+    // movements in the requested range. This bounds transfer/memory by products
+    // and report days rather than the tenant's entire transaction history.
     let sql = `
       SELECT item_id, store_type,
-             ${rules.receiptDate('')} as grn_date,
-             ${rules.dispatchDate('')} as indent_date,
+             CASE WHEN effective_date IS NULL OR effective_date < :date_from THEN 'opening' ELSE effective_date END AS movement_date,
              SUM(quantity) as total_qty
-      FROM st_stock_register
-      WHERE status != 'N' AND item_id IN (:productIds)
-      GROUP BY item_id, store_type, grn_date, indent_date
+      FROM (
+        SELECT item_id, store_type, quantity,
+          CASE WHEN store_type IN ('0','1','3') THEN ${rules.receiptDate('')}
+               ELSE ${rules.dispatchDate('')} END AS effective_date
+        FROM st_stock_register
+        WHERE status != 'N' AND item_id IN (:productIds)
+          AND store_type IN ('0','1','2','3','4')
+      ) movements
+      WHERE effective_date IS NULL OR effective_date <= :date_to
+      GROUP BY item_id, store_type, movement_date
     `;
 
     const stockData = await dbPool.query(sql, {
-      replacements: { productIds },
+      replacements: { productIds, date_from, date_to },
       type: QueryTypes.SELECT
     });
 
@@ -143,40 +165,35 @@ class StockRegisterRepository {
             const storeType = String(row.store_type);
             const qty = parseFloat(row.total_qty) || 0;
 
-            const formatDbDate = (dbVal) => {
-              if (!dbVal) return null;
-              const d = dbVal instanceof Date ? dbVal : new Date(dbVal);
-              if (isNaN(d.getTime())) return null;
-              return formatDate(d);
-            };
-
-            const grnDate = formatDbDate(row.grn_date);
-            const indentDate = formatDbDate(row.indent_date);
+            const movementDate = row.movement_date;
+            const before = movementDate === 'opening' || movementDate < currDateStr;
 
             // GRN / Received
             if (rules.RECEIPT_TYPES.includes(storeType)) {
-              if (grnDate && grnDate < currDateStr) {
+              if (before) {
                 openingStock += qty;
-              } else if (grnDate === currDateStr) {
+              } else if (movementDate === currDateStr) {
                 receivedStock += qty;
               }
             }
 
             // Indent / Dispatched
             if (rules.DISPATCH_TYPES.includes(storeType)) {
-              if (indentDate && indentDate < currDateStr) {
+              if (before) {
                 openingStock -= qty;
-              } else if (indentDate === currDateStr) {
+              } else if (movementDate === currDateStr) {
                 dispatchedStock += qty;
               }
             }
           }
         }
 
-        openingStock = Math.round(openingStock * 100) / 100;
-        receivedStock = Math.round(receivedStock * 100) / 100;
-        dispatchedStock = Math.round(dispatchedStock * 100) / 100;
-        const closingStock = Math.round((openingStock + receivedStock - dispatchedStock) * 100) / 100;
+        // PHP round() uses half away from zero, including negative balances.
+        const round = value => Math.sign(value) * Math.round((Math.abs(value) + Number.EPSILON * Math.abs(value)) * 100) / 100;
+        openingStock = round(openingStock);
+        receivedStock = round(receivedStock);
+        dispatchedStock = round(dispatchedStock);
+        const closingStock = round(openingStock + receivedStock - dispatchedStock);
 
         if (openingStock === 0 && receivedStock === 0 && dispatchedStock === 0 && closingStock === 0) {
           continue; // The current PHP skips rows with no stock or movements.

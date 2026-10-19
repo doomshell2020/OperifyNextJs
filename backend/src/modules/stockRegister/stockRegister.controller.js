@@ -1,6 +1,11 @@
 const stockRegisterService = require('./stockRegister.service');
 
 class StockRegisterController {
+  async getRegisterOptions(req, res, next) {
+    try {
+      res.json({ success: true, data: await stockRegisterService.getRegisterOptions(req.dbPool) });
+    } catch (error) { next(error); }
+  }
   async getCategories(req, res, next) {
     try {
       const data = await stockRegisterService.getCategories(req.dbPool);

@@ -44,8 +44,22 @@ async function detailed(db,filters,rows,res) {
     ['Opening Stock','opening',15],['Received Stock','received',15],['Dispatched Stock','dispatched',15],['Closing Stock','closing',15],
     ...(!filters.product_id ? [['Physical Stock','physical',15]] : [])];
   const {workbook,sheet}=await workbookFor(db,'Stock Register',columns);
-  rows.forEach((row,index)=>sheet.addRow({sno:index+1,item_id:row.item_id,date:date(row.date_range),item_name:row.item_name,category_name:row.category_name,opening:Number(row.opening_stock),received:Number(row.received_stock),dispatched:Number(row.dispatched_stock),closing:Number(row.closing_stock),physical:''}));
-  await send(workbook,res,filters.product_id ? 'Export_Summary_Stock_Item.xlsx' : 'Export_Consolidated_Stock_Register.xlsx');
+  for (const key of ['opening','received','dispatched','closing']) {
+    sheet.getColumn(key).numFmt = '0.00';
+    sheet.getColumn(key).alignment = {horizontal:'left'};
+  }
+  rows.forEach((row,index)=>sheet.addRow({sno:index+1,item_id:row.item_id,date:date(row.date_range).replace(/\d{4}$/, year => year.slice(-2)),item_name:row.item_name,category_name:row.category_name,opening:Number(row.opening_stock),received:Number(row.received_stock),dispatched:Number(row.dispatched_stock),closing:Number(row.closing_stock),physical:''}));
+  let filename = 'Export_Consolidated_Stock_Register.xlsx';
+  if (filters.product_id) {
+    const [product] = await db.query(`SELECT p.item_name,p.size_id,s.size_name FROM st_additem p
+      LEFT JOIN st_sizemanager s ON s.id=p.size_id WHERE p.id=:id`, {
+      replacements:{id:filters.product_id},type:QueryTypes.SELECT
+    });
+    const name = product ? product.item_name + (Number(product.size_id)!==6 && product.size_name ? ` (${product.size_name})` : '') : '';
+    // Header-safe filename while preserving the legacy product-specific name.
+    filename = `Export_Summary_Stock_Item${name ? '-'+name : ''}.xlsx`.replace(/[^\x20-\x7e]|["\\/]/g,'_');
+  }
+  await send(workbook,res,filename);
 }
 async function daily(db,filters,rows,res) {
   // PHP's export helpers use created < midnight for reverse/return, unlike its daily page.

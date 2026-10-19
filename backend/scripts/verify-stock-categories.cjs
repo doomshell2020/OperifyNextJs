@@ -31,10 +31,11 @@ const controller = require('../src/modules/stockRegister/stockRegister.controlle
     assert.ok(multi.length);
     assert.deepEqual(sort(multi), sort(singles));
     assert.deepEqual(await service.getStockRegister(db, { ...filters, category_ids: [...ids, ids[0]] }), multi);
-    assert.deepEqual(await service.getStockRegister(db, { ...filters, category_ids: [] }), await service.getStockRegister(db, filters));
+    await assert.rejects(service.getStockRegister(db, { ...filters, category_ids: [] }), error => error.status === 400);
     const product_id = String(multi[0].item_id);
     const product = await service.getStockRegister(db, { ...filters, product_id, category_ids: ids });
     assert.deepEqual(product, multi.filter(row => String(row.item_id) === product_id));
+    assert.deepEqual(await service.getStockRegister(db, { ...filters, product_id, category_ids: ['25'] }), product);
     await assert.rejects(service.getStockRegister(db, { ...filters, category_ids: '1 OR 1=1' }), error => error.status === 400);
     let response;
     await controller.getStockRegister({ dbPool: db, query: { ...filters, category_ids: ids.join(',') } },

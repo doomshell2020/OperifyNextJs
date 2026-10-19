@@ -1,6 +1,6 @@
 import apiClient from './apiClient';
 
-interface StockRegisterFilters {
+export interface StockRegisterFilters {
   date_from: string;
   date_to: string;
   product_id?: string;
@@ -19,10 +19,15 @@ export interface StockRecord {
   item_name: string;
   category_name: string;
   date_range: string;
-  opening_stock: number;
-  received_stock: number;
-  dispatched_stock: number;
-  closing_stock: number;
+  opening_stock: string;
+  received_stock: string;
+  dispatched_stock: string;
+  closing_stock: string;
+}
+
+export interface StockRegisterOptions {
+  products: { id: number; item_name: string }[];
+  categories: { id: number; category_name: string }[];
 }
 
 export interface DailyStockRecord {
@@ -54,7 +59,23 @@ export interface ReceivedStockDetail {
   quantity: number;
 }
 
+export interface DispatchedStockDetail {
+  indent_id: string | null;
+  quantity: number;
+  issue_date: string | null;
+  created: string | null;
+  sub_contractors_id: number | null;
+  subcontractor_name: string | null;
+  subcontractor_mobile: string | null;
+  subcontractor_email: string | null;
+  indent_status: string | null;
+}
+
 export const stockRegisterService = {
+  async getRegisterOptions(): Promise<StockRegisterOptions> {
+    const res = await apiClient.get('/stock-register/options');
+    return res.data.data;
+  },
   async getCategories(): Promise<{id: number, category_name: string}[]> {
     const res = await apiClient.get('/stock-register/categories');
     return res.data.data;
@@ -93,17 +114,25 @@ export const stockRegisterService = {
 
   async exportExcel(filters: StockRegisterFilters) {
     const params = stockRegisterParams(filters);
-    const res = await apiClient.get('/stock-register/export', { params, responseType: 'blob' });
+    const res = await apiClient.get('/stock-register/export', { params, responseType: 'blob' }).catch(async error => {
+      if (error.response?.data instanceof Blob) {
+        try { error.response.data = JSON.parse(await error.response.data.text()); } catch { /* Preserve original error. */ }
+      }
+      throw error;
+    });
     const url = window.URL.createObjectURL(new Blob([res.data]));
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', 'Stock_Register.xlsx');
+    const disposition = res.headers['content-disposition'] || '';
+    const filename = disposition.match(/filename="([^"]+)"/)?.[1];
+    link.setAttribute('download', filename || (filters.product_id ? 'Export_Summary_Stock_Item.xlsx' : 'Export_Consolidated_Stock_Register.xlsx'));
     document.body.appendChild(link);
     link.click();
     link.parentNode?.removeChild(link);
+    window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
   },
 
-  async getReceivedStockDetails(filters: { date: string; product_id: string }): Promise<any[]> {
+  async getReceivedStockDetails(filters: { date: string; product_id: string }): Promise<ReceivedStockDetail[]> {
     const res = await apiClient.get('/stock-register/details/received', { params: filters });
     return res.data.data;
   },
@@ -113,7 +142,7 @@ export const stockRegisterService = {
     return res.data;
   },
 
-  async getDispatchedStockDetails(filters: { date: string; product_id: string }): Promise<any[]> {
+  async getDispatchedStockDetails(filters: { date: string; product_id: string }): Promise<DispatchedStockDetail[]> {
     const res = await apiClient.get('/stock-register/details/dispatched', { params: filters });
     return res.data.data;
   }

@@ -22,6 +22,7 @@ router.get('/monthly/export', permission('stockregister','index'), async (req,re
 });
 
 router.get('/categories', stockRegisterController.getCategories);
+router.get('/options', permission('stockregister','index'), stockRegisterController.getRegisterOptions);
 router.get('/daily', permission('stockregister','dailystock'), stockRegisterController.getDailyStock);
 router.get('/daily/export', permission('stockregister','dailystockexcel'), stockRegisterController.exportDailyStockExcel);
 router.get('/', permission('stockregister','index'), stockRegisterController.getStockRegister);
