@@ -50,6 +50,9 @@ app.use('/public', express.static(path.join(__dirname, '../public')));
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/purchase-orders', purchaseOrderRoutes);
+app.use('/api/reports/po-raw-material-pending', require('./modules/purchaseOrder/pendingReport.routes'));
+app.use('/api/reports/jc-material', require('./modules/jcReport/jcMaterial.routes'));
+app.use('/api/reports/raw-material-tracking', require('./modules/jcReport/rawMaterialTracking.routes'));
 app.use('/api/vendors', vendorRoutes);
 app.use('/api/contracts', contractRoutes);
 app.use('/api/emd', emdRoutes);
@@ -66,6 +69,9 @@ app.use('/api/job-challan', jobChallanRoutes);
 app.use('/api/jc-receive', require('./modules/jobReceive/jobReceive.routes'));
 app.use('/api/gatepass', require('./modules/gatepass/gatepass.routes'));
 app.use('/api/reverse-indent', require('./modules/reverseIndent/reverseIndent.routes'));
+app.use('/api/production-orders', require('./modules/productionOrder/productionOrder.routes'));
+app.use('/api/daily-sheets', require('./modules/dailySheet/dailySheet.routes'));
+app.use('/api/maintenance', require('./modules/maintenance/maintenance.routes'));
 app.use('/api/permission', require('./modules/permission/permission.routes'));
 
 // Health check endpoint

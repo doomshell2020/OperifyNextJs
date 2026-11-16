@@ -48,6 +48,10 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.STRING(255),
       allowNull: true
     },
+    complete_date: {
+      type: DataTypes.DATEONLY,
+      allowNull: true
+    },
     status: {
       type: DataTypes.ENUM('O','C'),
       allowNull: true,

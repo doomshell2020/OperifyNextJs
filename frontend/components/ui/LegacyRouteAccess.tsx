@@ -39,9 +39,14 @@ export function LegacyRouteAccess({ children }: { children: ReactNode }) {
     controller = 'stockregister'; action = pathname.includes('/stock/received/') ? 'receivedstock' : pathname.endsWith('/daily') ? 'dailystock' : 'index';
   } else if (pathname.startsWith('/dashboard/production/')) {
     controller = 'production'; action = pathname.includes('/viewcontractdetailspdf/') ? 'viewcontractdetailspdf'
+      : pathname.endsWith('/sheet/datewise/add') ? 'add_datewise_dailysheet'
+      : pathname.includes('/sheet/datewise/') ? 'edit_datewise_dailysheet'
+      : pathname.includes('/sheet/edit/') ? 'edit'
+      : pathname.endsWith('/sheet/add') ? 'add'
+      : pathname.endsWith('/entry/add') ? 'addproductionorders'
       : pathname.endsWith('/entry') ? 'productionorders' : 'index';
   } else if (pathname.startsWith('/dashboard/maintenance/')) {
-    controller = 'maintenance'; action = 'index';
+    controller = 'maintenance'; action = pathname.endsWith('/add') ? 'add' : pathname.includes('/edit/') ? 'edit' : 'index';
   }
   // JC/Receive/Gate Pass pages already check the individual operation using
   // useJcAccess. Dashboard and own-profile pages require authentication only.

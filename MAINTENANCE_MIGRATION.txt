@@ -1,0 +1,63 @@
+# Maintenance Manager migration
+
+Entry: `/dashboard/maintenance/breakdowns`. API: `/api/maintenance`.
+
+## Source and behavior
+
+Source: `operify-cake-php-old-project/src/Controller/Admin/MaintenanceController.php`, `src/Model/Table/MaintenanceTable.php`, `MachinemasterTable.php`, `PermissionModulesTable.php`, `src/Template/Admin/Maintenance/{index,searchitem,add,edit,viewpdf}.ctp`, `src/View/Helper/CommanHelper.php`, `src/Controller/Admin/ProductionController.php::getname`, `src/Controller/AppController.php`, and `config/routes.php` (admin fallback routes).
+
+- Active records only (`status='Y'`); left join `machine_master`; datefrom descending; 50 records per page. A secondary ID order keeps equal-date pagination consistent. Neither legacy header has sorting links, so no new sorting controls were added.
+- Machine filter uses the selected machine ID. Assigned To uses LIKE on the stored `assigned_to` value, usually an ID, exactly as PHP does. Start/end dates inclusively filter DATE(datefrom). The epoch sentinel is ignored as in PHP.
+- Listing resolves four personnel fields through users. Breakdown, personnel names and remark use PHP-style ucfirst(strtolower()). Total Time is stored input, without invented calculations.
+- Create dropdown roles: Assigned To 104/23; Shift 111; Maintenance Incharge 104/112; Production Head 102. No extra active-user restriction. Machine autocomplete uses active machines sorted by name.
+- Edit uses personnel text fields as in the PHP template. Machine selection is validated but the stored machine_id is retained, as in the PHP controller. Only editable fields are updated; emoji removal matches AppController's ranges.
+- Delete only changes status to N. Status cannot regress from assigned to pending or from completed to assigned/pending. Status changes lock the record in a transaction. The literal `complete` is distinct in the PHP source and does not trigger its `completed` transition guard; that legacy distinction is preserved.
+- Completion modal: date, optional free-text time, required remarks. Submit is available regardless of cached local schema metadata; the backend checks the current database schema on every request and returns a clear error if required fields are missing. Fields manually added by the owner are recognized on the next submit without a code change. No duration or completion calculations are introduced.
+- Edit audit time follows the source bootstrap's Asia/Kolkata timezone. A DATETIME/TIMESTAMP updated column receives the full current date/time; an older DATE column receives its date portion, matching Cake's schema-based conversion.
+- PDF only; no legacy Excel implementation exists. Landscape A4 report with all filtered rows, original eleven columns, stored personnel IDs/values (the PHP PDF differs from the listing), dates, filter summary, print date, repeated table headings, and escaped content. Filters are sent explicitly on every export instead of relying on PHP's one-use session state.
+- Layout, date picker, autocomplete, API client, session handling and pagination reuse existing frontend conventions.
+
+## Access
+
+Existing tenant/auth middleware and saved role grants remain authoritative. When an action has no catalogue label, an index grant supplies the module's visible actions. An explicitly configured denied action stays denied. Edit/delete additionally check the tenant's first `permission_module` row for the current user, Maintenance controller and index action; no row means no edit/delete. There is no administrator bypass. All query values use Sequelize replacements. No schema sync or automatic DDL is performed.
+
+## Database blocker and review proposal
+
+Connection clarification: these findings and tests used backend/.env's LOCAL `DB_HOST=localhost`, port 3306, MariaDB 10.4.11. They are not findings about live RDS. The user reports the complete database is already installed on live RDS. No RDS endpoint/connection was available in the inspected project configuration, so live schema compatibility has not yet been verified. Do not apply the local schema proposal to live RDS without first comparing its actual schema; it may require no changes.
+
+Read-only inspection found the connected databases have an older maintenance schema: no assigned_date, completion_date, completion_time or remarks fields; status supports `complete`, whereas the PHP completion controller writes `completed`. Assignment/completion return a clear 409 before a write. Existing historical `complete` rows remain visible as stored; no status normalization is performed. The Completed search and backward-transition guard retain PHP's exact `completed` comparison rather than silently including a different stored value.
+
+`backend/scripts/maintenance-schema-proposal.sql` is a review-only proposal, not applied. It adds the four required nullable columns and adds `completed` to the status enum while retaining `complete`. Applying DDL requires the user's explicit approval. Exact completion-time column type must also be checked against the deployed PHP schema if it differs from this repository.
+
+The central `operify` database has no machine_master table; the machinery module belongs in the tenant databases. An unavailable table returns a controlled 409 with a company-configuration message. No replacement table, schema change or fabricated machine data was introduced.
+
+## Notifications
+
+PHP add sends a push to user 1 and a WhatsApp template to the assigned user. The adapter preserves those recipients, the WhatsApp template parameters, push message and the old helper's key1/key2 data fields; it runs only after successful creation. Configure `MAINTENANCE_WHATSAPP_URL` and `MAINTENANCE_WHATSAPP_KEY` for the existing WhatsApp provider. For Firebase HTTP v1, point `MAINTENANCE_FIREBASE_CREDENTIALS` (or `GOOGLE_APPLICATION_CREDENTIALS`) to the existing service-account JSON. Alternatively configure `MAINTENANCE_FIREBASE_PROJECT_ID`, `MAINTENANCE_FIREBASE_CLIENT_EMAIL`, and `MAINTENANCE_FIREBASE_PRIVATE_KEY`. Settings are listed in backend/.env.example. No embedded PHP credentials were copied. Missing credentials or delivery failure returns warnings without undoing the saved maintenance record. Provider calls have timeouts. No notifications were sent during development or verification.
+
+## Verification
+
+`node scripts/test-maintenance.cjs`: pure and mocked CRUD, validation, injection inputs, backward status rejection, transaction queries, soft deletion, completion writes on a compatible mocked schema, mismatch refusal before writes, PDF escaping, HTTP role denial and per-user edit/delete denial. No database access.
+
+`node scripts/verify-maintenance-readonly.cjs tirupati_tppl tirupati_kcpl`: SELECT/SHOW-only comparisons with the PHP workflow, date/machine/status/assignee filters, personnel joins, role dropdowns, pagination and PDF data parity. Snapshots verify maintenance records are unchanged. This does not claim live mutation testing.
+
+Verified on 20 October 2026:
+
+- 43 read-only list/PDF cases passed for tirupati_tppl (28 total rows, 25 active); 7 passed for tirupati_kcpl (empty maintenance table). MySQL's case-insensitive LIKE behavior is reflected in the comparison.
+- Pure/mocked CRUD, status/schema guards, notification payloads and HTTP permission tests passed. Providers were mocked; no real notifications or database mutations were executed.
+- Existing permission regression suite passed: 1,272 backend grant/route checks plus permission loading and frontend navigation/form checks.
+- Backend syntax checks, TypeScript and git diff whitespace checks passed.
+- Production build passed with webpack and a temporary offline Google Fonts fixture. The ordinary Turbopack build could not fetch the existing external Roboto font in the restricted network. No application font/configuration files were changed for this workaround.
+- Read-only browser QA passed: list, search/reset and reload persistence, real machine autocomplete, add/edit forms, completion blocker, intercepted status error, denied access, desktop/mobile layouts, PDF rendering and no page errors. The database snapshot was unchanged.
+- PDF generation was also invoked through the real export generator; report column proportions match viewpdf.ctp. A missing company table returns a controlled 409.
+
+Schema is managed manually by the project owner, as requested. No automatic migration or DDL is executed. Assignment/completion code is implemented for the full CakePHP schema; live RDS access is not a prerequisite for completing the code. Existing-row mutation tests and real notification delivery were not performed; compatible-schema API tests use in-memory database/provider fixtures. Live operation still requires the expected columns and notification environment configuration.
+
+Follow-up completion verification:
+
+- Removed the client-side schema gate from the completion Submit button. Required remarks are validated, errors keep the modal open, and success closes it and refreshes the listing.
+- Real route handlers passed mocked HTTP success tests for create, edit, soft delete, assigned_date updates and completion date/time/remarks. Validation, backward transitions, role/per-user permissions, old-schema refusal and a subsequent full-schema success were checked without database writes.
+- Edit updated values were checked for both DATE and DATETIME-style schemas and against the old Asia/Kolkata bootstrap behavior.
+- Firebase notification data matches AppController::sendNotification, including key1/key2. Generated test-only JSON credentials exercised the service-account file path option; mocked provider failures produced warnings. No real messages were sent.
+- Production webpack build and TypeScript passed using the temporary offline font fixture.
+- Browser QA passed simulated create/edit/delete/assignment/completion submissions, required remarks, failed-submit recovery, backward-status rejection, filters, URL persistence, autocomplete, denied access, desktop/mobile layouts and PDF rendering. All mutation responses were in-memory fixtures, and the actual maintenance database snapshot was unchanged.

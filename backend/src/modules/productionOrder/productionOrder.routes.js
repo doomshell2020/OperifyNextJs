@@ -1,0 +1,24 @@
+const router = require('express').Router();
+const S = require('./productionOrder.service');
+const R = require('./productionOrder.repository');
+const permission = require('../jobChallan/legacyPermission');
+const {requireAnyPermission} = require('../../middleware/permission');
+const any = (...actions)=>requireAnyPermission(actions.map(a=>'legacy:admin/production/'+a));
+const handle = fn=>async(req,res,next)=>{try{res.json({success:true,data:await fn(req)});}catch(error){next(error);}};
+router.use(require('../../middleware/auth'),require('../../middleware/tenant'));
+router.get('/contracts',any('productionorders','addproductionorders'),handle(req=>S.contracts(req.dbPool,req.query)));
+router.get('/form',permission('production','addproductionorders'),handle(req=>S.form(req.dbPool,req.query.contract_id)));
+router.get('/export',permission('production','productionorders'),async(req,res,next)=>{try{await require('./productionOrder.export').excel(req.dbPool,req.query,res);}catch(error){if(res.headersSent)res.destroy(error);else next(error);}});
+router.get('/',permission('production','productionorders'),handle(req=>S.list(req.dbPool,req.query)));
+router.post('/',permission('production','addproductionorders'),handle(req=>S.create(req.dbPool,req.body)));
+router.get('/:poId/details',any('productionorders','viewproductiondetails'),handle(req=>S.detail(req.dbPool,req.params.poId)));
+router.get('/:poId/pdf',any('productionorders','viewproductiondetails','viewproductionpdf'),async(req,res,next)=>{try{
+  const data=await S.detail(req.dbPool,req.params.poId);
+  [data.site_details]=await R.select(req.dbPool,"SELECT * FROM sitesettings_details WHERE status='Y' LIMIT 1");
+  [data.sitesetting]=await R.select(req.dbPool,'SELECT * FROM sitesettings LIMIT 1');
+  const buffer=await require('./productionOrder.pdf').generate(data);
+  res.type('pdf').set('Content-Disposition','inline; filename="Production_order_'+data.order.po_id+'.pdf"').end(buffer);
+}catch(error){next(error);}});
+router.patch('/:id/status',permission('production','status'),handle(req=>S.changeStatus(req.dbPool,req.params.id,req.body.status)));
+router.delete('/:id',permission('production','delete'),handle(req=>S.remove(req.dbPool,req.params.id)));
+module.exports = router;

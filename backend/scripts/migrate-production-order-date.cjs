@@ -1,0 +1,5 @@
+// Add the field used by the current Cake controller but missing from its SQL dump.
+// Explicit tenant arguments only; never update/backfill order data.
+const {getTenantSequelize,centralSequelize}=require('../src/config/sequelize');
+const {QueryTypes}=require('sequelize');
+(async()=>{const pools=[];try{const tenants=process.argv.slice(2);if(!tenants.length)throw new Error('Usage: node backend/scripts/migrate-production-order-date.cjs TENANT_DB [...]');for(const name of tenants){if(!/^[a-zA-Z0-9_]+$/.test(name))throw new Error('Invalid tenant database');const db=await getTenantSequelize(name);pools.push(db);const columns=await db.query('SHOW COLUMNS FROM productionorder',{type:QueryTypes.SELECT});if(!columns.some(c=>c.Field==='complete_date')){await db.query('ALTER TABLE productionorder ADD COLUMN complete_date DATE NULL DEFAULT NULL');console.log(name+': added nullable complete_date; no order data updated.');}else console.log(name+': complete_date already exists.');}}catch(error){console.error(error.message);process.exitCode=1;}finally{await Promise.all([...new Set([...pools,centralSequelize])].map(db=>db.close()));}})();

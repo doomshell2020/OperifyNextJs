@@ -1,38 +1,43 @@
 'use client';
-
+import {useState} from 'react';
+import Link from 'next/link';
+import {useQuery,useQueryClient} from '@tanstack/react-query';
+import {FileSpreadsheet,Pencil,Trash2} from 'lucide-react';
+import apiClient from '@/services/apiClient';
+import {useAuth} from '@/contexts/AuthContext';
 import {LegacyPageHeader} from '@/components/ui/LegacyPageHeader';
-import React from 'react';
-import { useAuth } from '../../../../contexts/AuthContext';
-import { AlertCircle, RefreshCw, Layers } from 'lucide-react';
-
-export default function PlaceHolderPage() {
-  const { user } = useAuth();
-  
-  return (
-    <main className="max-w-7xl w-full mx-auto px-6 py-8 space-y-6 select-none font-sans">
-<LegacyPageHeader title="Daily Sheet"/>
-      
-      {/* Dynamic Filters Context */}
-{/* Module Card Shell */}
-      <div className="legacy-page-actions"><div className="h-px bg-slate-100"></div>
-{/* Informative placeholder text */}
-<div className="p-6 rounded-xl bg-slate-50 border border-slate-100 flex flex-col items-center justify-center text-center py-16">
-          <div className="p-3.5 bg-cyan-50/20 rounded-full text-cyan-600 mb-3">
-            <AlertCircle className="w-8 h-8" />
-          </div>
-          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Module Shell Under Migration</h3>
-          <p className="text-xs text-slate-500 mt-1.5 max-w-lg leading-relaxed">
-            The backend database structures and credentials cache for this module have been successfully initialized. The transactional UI components will be migrated sequentially as outlined in the project roadmap.
-          </p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="mt-6 flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white rounded-lg text-xs font-semibold shadow-md transition cursor-pointer"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Refresh Layout
-          </button>
-        </div></div>
-
-    </main>
-  );
+import {DatePicker} from '@/components/ui/DatePicker';
+import {ListPagination} from '@/components/ui/ListPagination';
+import {useListLocation} from '@/components/ui/useListLocation';
+import {useLegacyActionAccess} from '@/components/ui/useLegacyActionAccess';
+import {ContractDetailsModal} from '@/components/dashboard/ContractDetailsModal';
+import {DailyRow,Lookup,useMetadata,inputClass,errorMessage} from '@/components/dailySheet/shared';
+import DailyOrderDetails from '@/components/dailySheet/DailyOrderDetails';
+import {DailySheetLink} from '@/components/dailySheet/DailySheetLink';
+import {formatContractDate as date} from '@/utils/dateFormatter';
+import './daily-sheet.css';
+const initial={po_id:'',contractname:'',contract_id:'',item_name:'',item_id:'',machine_name:'',machines_id:'',productprocess_id:'',datefrom:'',dateto:'',sort:'',direction:''};
+export default function DailySheetPage(){
+  const {user}=useAuth(),can=useLegacyActionAccess(),client=useQueryClient(),meta=useMetadata();
+  const [draft,setDraft]=useState(initial),[filters,setFilters]=useState(initial),[page,setPage]=useState(1),[po,setPo]=useState(''),[contract,setContract]=useState(0),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false);
+  const ready=useListLocation(filters,page,Object.keys(initial),(next,p)=>{setFilters(next);setDraft(next);setPage(p);});
+  const query=useQuery<{items:DailyRow[];total:number;limit:number}>({queryKey:['daily-sheets',user?.db,filters,page],enabled:ready && can('production','index'),queryFn:async({signal})=>(await apiClient.get('/daily-sheets',{params:{...filters,page},signal})).data.data});
+  const admin=String(user?.role_id)==='105',actions=admin && (can('production','edit') || can('production','deletedailysheet'));
+  async function download(){setBusy(true);setError('');try{const response=await apiClient.get('/daily-sheets/export',{params:filters,responseType:'blob'}),url=URL.createObjectURL(response.data),a=document.createElement('a');a.href=url;a.download=String(response.headers['content-disposition'] || '').match(/filename="?([^";]+)/)?.[1] || 'Daily_Sheet.xlsx';a.click();window.setTimeout(()=>URL.revokeObjectURL(url),60000);}catch(e){const data=(e as {response?:{data?:Blob}}).response?.data;if(data instanceof Blob){try{const body=JSON.parse(await data.text());setError(body.error?.message || body.message || 'Unable to export.');}catch{setError('Unable to export.');}}else setError(errorMessage(e));}finally{setBusy(false);}}
+  async function remove(row:DailyRow){if(!window.confirm('Are you sure for delete this Daily Sheet'))return;setBusy(true);setError('');try{const response=await apiClient.delete('/daily-sheets/'+row.id);setNotice(response.data.data.message);await client.invalidateQueries({queryKey:['daily-sheets']});await client.invalidateQueries({queryKey:['production-orders']});await client.invalidateQueries({queryKey:['production-order-details']});}catch(e){setError(errorMessage(e));}finally{setBusy(false);}}
+  return <main className="daily-sheet space-y-4"><LegacyPageHeader title="Daily Sheet"/><div className="bg-white border p-3"><form className="daily-filters" onSubmit={e=>{e.preventDefault();setFilters({...draft});setPage(1);setError('');}}>
+    <label>PO No.<input className={inputClass} value={draft.po_id} placeholder="PO No." onChange={e=>setDraft({...draft,po_id:e.target.value})}/></label>
+    <label>Contract Name<Lookup kind="contracts" value={draft.contractname} id={draft.contract_id} onChange={(contractname,contract_id)=>setDraft({...draft,contractname,contract_id})}/></label>
+    <label>Product Name<Lookup kind="products" value={draft.item_name} id={draft.item_id} onChange={(item_name,item_id)=>setDraft({...draft,item_name,item_id})}/></label>
+    <label>Machine Name<Lookup kind="machines" value={draft.machine_name} id={draft.machines_id} onChange={(machine_name,machines_id)=>setDraft({...draft,machine_name,machines_id})}/></label>
+    <label>Process Name<select className={inputClass} value={draft.productprocess_id} onChange={e=>setDraft({...draft,productprocess_id:e.target.value})}><option value="">-- Select Process --</option>{meta.data?.processes.map(p=><option key={p.id} value={p.id}>{p.process_name}</option>)}</select></label>
+    <label>Start Date<DatePicker className={inputClass} value={draft.datefrom} placeholder="Start Date" onChange={e=>setDraft({...draft,datefrom:e.target.value})}/></label>
+    <label>End Date<DatePicker className={inputClass} value={draft.dateto} placeholder="End Date" onChange={e=>setDraft({...draft,dateto:e.target.value})}/></label>
+    <div className="daily-search-actions"><button className="legacy-button" disabled={query.isFetching}>Search</button><button className="legacy-button" type="button" onClick={()=>{setDraft(initial);setFilters(initial);setPage(1);setError('');setNotice('');}}>Reset</button></div>
+    <div className="daily-actions">{can('production','add_datewise_dailysheet') && <DailySheetLink href="/dashboard/production/sheet/datewise/add">+ Add Date Wise</DailySheetLink>}<button aria-label="Export Excel" title="Export Excel" type="button" disabled={busy || query.isLoading} onClick={()=>void download()}><FileSpreadsheet size={28}/>{busy && <span>Processing...</span>}</button>{can('production','add') && <DailySheetLink href="/dashboard/production/sheet/add">+ Add</DailySheetLink>}</div>
+  </form>{notice && <p role="status" className="my-3 text-green-700">{notice}</p>}{(error || query.isError || meta.isError) && <p role="alert" className="my-3 text-red-700">{error || errorMessage(query.error || meta.error)}</p>}
+  <div className="daily-results"><table className="daily-table"><colgroup>{[28,80,45,150,150,160,100,50,45,45,45,50,50,80,65,65].slice(0,actions?16:15).map((weight,index,all)=><col key={index} style={{width:(100*weight/all.reduce((sum,value)=>sum+value,0))+"%"}}/>)}</colgroup><thead><tr><th rowSpan={2}>No.</th><th rowSpan={2}>Date</th><th rowSpan={2}>PO No.</th><th rowSpan={2}>Contract Name</th><th rowSpan={2}>Machine Name</th><th rowSpan={2}>Product</th><th rowSpan={2}>Process Name</th><th rowSpan={2}>Plan Qty (KM)</th><th colSpan={3}>Production (KM.)</th><th colSpan={2}>Reading</th><th rowSpan={2}>Next Day 08.00 AM</th><th rowSpan={2}>Total Man Power</th>{actions && <th rowSpan={2}>Action</th>}</tr><tr>{['Shift A','Shift B','Total','08.00 AM','08.00 PM'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>
+    {query.data?.items.map((r,i)=><tr key={r.id}><td>{(page-1)*50+i+1}.</td><td>{can('production','edit_datewise_dailysheet') && r.production_date?<Link href={'/dashboard/production/sheet/datewise/'+r.production_date.slice(0,10)}>{date(r.production_date)}</Link>:date(r.production_date)}</td><td><button className="text-cyan-700 underline" onClick={()=>setPo(String(r.po_id))}>{r.po_id}</button></td><td>{can('production','viewcontractdetail')?<button className="text-cyan-700 text-left" onClick={()=>setContract(Number(r.contract_id))}>{r.title}({r.workorder})</button>:<>{r.title}({r.workorder})</>}</td><td>{r.machine_name}</td><td>{r.item_name ? r.item_name.charAt(0).toUpperCase()+r.item_name.slice(1) : ''}</td><td>{r.process_name}</td><td>{r.plan_qty}</td><td>{r.production_shift_a}</td><td>{r.production_shift_b}</td><td>{r.total_production}</td><td>{r.reading8am}</td><td>{r.reading8pm}</td><td>{r.nextday8am}</td><td>{r.total_manpower}</td>{actions && <td><div className="flex gap-2">{can('production','deletedailysheet') && <button aria-label={'Delete Daily Sheet '+r.id} disabled={busy} onClick={()=>void remove(r)}><Trash2 size={17} className="text-red-700"/></button>}{can('production','edit') && <Link aria-label={'Edit Daily Sheet '+r.id} href={'/dashboard/production/sheet/edit/'+r.id}><Pencil size={17}/></Link>}</div></td>}</tr>)}
+    {!query.data?.items.length && <tr><td colSpan={actions?16:15} className="text-center">{query.isLoading?'Loading...':'No Record Found'}</td></tr>}
+  </tbody></table></div><ListPagination page={page} limit={50} total={query.data?.total || 0} busy={query.isFetching || busy} onPageChange={setPage}/></div>{po && <DailyOrderDetails poId={po} onClose={()=>setPo('')}/>} {!!contract && <ContractDetailsModal contractId={contract} onClose={()=>setContract(0)}/>}</main>;
 }

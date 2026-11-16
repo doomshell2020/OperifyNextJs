@@ -54,8 +54,6 @@ export const DashboardTopbar: React.FC = () => {
     { title: 'Production', icon: <img src="/legacy/headericons/productionproductionorders.png" alt="" width={33} height={26}/>, path: '/dashboard/production/entry' },
     { title: 'Daily Sheet', icon: <img src="/legacy/headericons/productionindex.png" alt="" width={33} height={26}/>, path: '/dashboard/production/sheet' },
     { title: 'Maintenance', icon: <img src="/legacy/headericons/maintenanceindex.png" alt="" width={33} height={26}/>, path: '/dashboard/maintenance/breakdowns' },
-    { title: 'Stock', icon: <img src="/legacy/headericons/stockregisterindex.png" alt="" width={33} height={26}/>, path: '/dashboard/inventory/stock' },
-    { title: 'Daily Stock', icon: <img src="/legacy/headericons/stockregisterdailystock.png" alt="" width={33} height={26}/>, path: '/dashboard/inventory/daily' }
   ];
 
   // PHP headernew.ctp deliberately renders these three navigation links
@@ -76,6 +74,15 @@ export const DashboardTopbar: React.FC = () => {
   ].filter(item => !('allowed' in item) || item.allowed);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [reportsOpen, setReportsOpen] = useState(false);
+  const reportMenu = [
+    { title: 'JC Material Report', path: '/dashboard/reports/jc-material', allowed: true },
+    { title: 'Category-wise Raw Material Tracking Report', path: '/dashboard/reports/raw-material-tracking', allowed: true },
+    { title: 'PO-Wise Raw Material Pending Order List', path: '/dashboard/reports/po-raw-material-pending', allowed: hasPermission('legacy:admin/purchaseorder/index') || hasPermission('legacy:admin/purchaseorder/posummaryreport') },
+    { title: 'Stock', path: '/dashboard/inventory/stock', allowed: hasPermission('stock:view') || hasPermission('legacy:admin/stockregister/index') },
+    { title: 'Monthly Stock', path: '/dashboard/inventory/stock/monthly', allowed: hasPermission('legacy:admin/stockregister/index') },
+    { title: 'Daily Stock', path: '/dashboard/inventory/daily', allowed: hasPermission('legacy:admin/stockregister/dailystock') },
+  ].filter(item => item.allowed);
 
   const formatTenant = (dbName?: string) => {
     if (!dbName) return 'Central';
@@ -150,6 +157,18 @@ export const DashboardTopbar: React.FC = () => {
 
       {/* 7. Right Section */}
       <div className="flex items-center gap-[6px] shrink-0 justify-end h-full relative">
+        {!!reportMenu.length && <div className="relative flex items-center h-full shrink-0">
+          <button aria-label="Report" aria-expanded={reportsOpen} onClick={() => { setReportsOpen(!reportsOpen); setSettingsOpen(false); }}
+            className={`legacy-header-item legacy-header-settings border-b-[2px] transition-colors [&>*]:pointer-events-none ${pathname.includes('/reports/') || pathname.includes('/inventory/') ? 'border-[#1683D8] text-[#1683D8]' : 'border-transparent text-[#222] hover:bg-[#f5f5f5]'}`}>
+            <img src="/legacy/headericons/stockregisterindex.png" alt="" width={33} height={26}/>
+            <span className="text-[9px] font-normal text-center whitespace-nowrap leading-none">Report</span>
+            <ChevronDown className="legacy-header-settings-caret" aria-hidden="true" />
+          </button>
+          {reportsOpen && <><div className="fixed inset-0 z-40" onClick={() => setReportsOpen(false)} />
+            <div className="absolute right-0 top-[55px] w-[280px] bg-white border border-[#ccc] shadow-[0_2px_8px_rgba(0,0,0,0.1)] rounded-sm py-1 z-50">
+              {reportMenu.map(item => <Link key={item.path} href={item.path} onClick={() => setReportsOpen(false)} className="flex items-center px-3 py-1.5 text-[10px] text-[#222] hover:bg-[#f5f5f5] transition-colors font-medium">{item.title}</Link>)}
+            </div></>}
+        </div>}
         {/* Superadmin specific links or Settings */}
         {user?.role_id === 101 ? (
           <>

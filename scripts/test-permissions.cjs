@@ -159,7 +159,7 @@ async function permissionLoadingTests() {
     return [{url:'admin/contracts/edit_other'},{url:'admin/designsheet/edit'}];
   }}};
   vm.runInNewContext(fs.readFileSync(path.join(root,'backend/src/modules/auth/auth.repository.js'),'utf8'),
-    {module,exports:module.exports,require:name=>name==='./legacyReverseAccess'?require('../backend/src/modules/auth/legacyReverseAccess'):name==='./legacyJcAccess'?require('../backend/src/modules/auth/legacyJcAccess'):name==='./legacyStockAccess'?require('../backend/src/modules/auth/legacyStockAccess'):name==='./legacyGatepassAccess'?require('../backend/src/modules/auth/legacyGatepassAccess'):({centralModels:db}),console});
+    {module,exports:module.exports,require:name=>name==='./legacyMaintenanceAccess'?require('../backend/src/modules/auth/legacyMaintenanceAccess'):name==='./legacyDailySheetAccess'?require('../backend/src/modules/auth/legacyDailySheetAccess'):name==='./legacyReverseAccess'?require('../backend/src/modules/auth/legacyReverseAccess'):name==='./legacyJcAccess'?require('../backend/src/modules/auth/legacyJcAccess'):name==='./legacyStockAccess'?require('../backend/src/modules/auth/legacyStockAccess'):name==='./legacyGatepassAccess'?require('../backend/src/modules/auth/legacyGatepassAccess'):({centralModels:db}),console});
   const result=await module.exports.getUserPermissions('fixture-role');
   assert(!result.includes('contracts:edit'),'A similarly named URL must not grant Edit');
   assert(result.includes('designsheet:edit'));
