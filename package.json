@@ -6,6 +6,7 @@
     "check:backend": "node scripts/check-backend.cjs",
     "check:permissions": "node scripts/test-permissions.cjs",
     "check": "npm run check:backend && npm --prefix frontend run build",
+    "deploy:frontend": "node scripts/deploy-frontend-local.cjs",
     "ship": "node scripts/ship.cjs"
   }
 }

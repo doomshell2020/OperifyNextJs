@@ -1,0 +1,72 @@
+name: Build and Deploy Operify
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL || 'https://api.operify.in' }}
+      NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL || 'https://new.operify.in' }}
+      SSH_HOST: ${{ secrets.SSH_HOST || vars.SSH_HOST || '13.206.225.226' }}
+      SSH_USER: ${{ secrets.SSH_USER || vars.SSH_USER || 'ubuntu' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        run: npm ci --prefix frontend
+
+      - name: Build Next.js Frontend (Off-Server in GitHub Cloud)
+        run: npm run build --prefix frontend
+
+      - name: Compress Pre-built Assets
+        run: |
+          cd frontend
+          tar --exclude='.next/cache' --exclude='.next/dev' -czf next-bundle.tar.gz .next
+
+      - name: Configure SSH Key
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY || secrets.AWS_SSH_PRIVATE_KEY }}
+        run: |
+          if [ -z "$SSH_KEY" ]; then
+            echo "::error::SSH_PRIVATE_KEY is missing! Please add it in GitHub Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Transfer Pre-built Bundle to Server
+        run: |
+          scp -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes frontend/next-bundle.tar.gz "$SSH_USER@$SSH_HOST:/tmp/operify-frontend-next.tar.gz"
+
+      - name: Execute Zero-Downtime Deployment on Server
+        run: |
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" 'bash -s' < deploy/deploy-frontend.sh
+
+      - name: Cleanup SSH Key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
