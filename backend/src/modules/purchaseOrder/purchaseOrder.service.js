@@ -107,6 +107,18 @@ class PurchaseOrderService {
       throw error;
     }
   }
+
+  async closePurchaseOrder(dbPool, id, data, user) {
+    const transaction = await dbPool.transaction();
+    try {
+      const result = await purchaseOrderRepository.closePurchaseOrder(dbPool, id, data, user, transaction);
+      await transaction.commit();
+      return result;
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  }
 }
 
 module.exports = new PurchaseOrderService();

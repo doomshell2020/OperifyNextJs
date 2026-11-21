@@ -4,10 +4,11 @@ import { formatQty } from '@/utils/formatters';
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import purchaseOrderService from '../../services/purchaseOrder.service';
-import { Loader, X } from 'lucide-react';
+import { Loader, X, Printer } from 'lucide-react';
 import { openPurchaseOrderPdf } from '../../services/purchaseOrderPdf.service';
 import toast from 'react-hot-toast';
 import { useLegacyActionAccess } from '../ui/useLegacyActionAccess';
+import { formatContractDate } from '../../utils/dateFormatter';
 
 interface PurchaseOrderDetailsModalProps {
   poId: number;
@@ -33,7 +34,7 @@ export function PurchaseOrderDetailsModal({ poId, onClose }: PurchaseOrderDetail
 
   const uniqueSchedules = useMemo(() => {
     if (!details?.schedules) return [];
-    return Array.from(new Set(details.schedules.map((s: any) => s.delivery_date)));
+    return Array.from(new Set(details.schedules.map((s: any) => s.delivery_date).filter(Boolean)));
   }, [details]);
 
   if (isError || (!isLoading && !details)) {
@@ -55,9 +56,10 @@ export function PurchaseOrderDetailsModal({ poId, onClose }: PurchaseOrderDetail
 
   const checkgrn = grns && grns.length > 0;
   const getDeliverydates = uniqueSchedules.length > 0;
+  const canPrint = canAction('purchaseorder', 'viewpodetailspdf') || canAction('purchaseorder', 'viewpodetail') || canAction('purchaseorder', 'index') || canAction('purchaseorder', 'view') || canAction('goodsreceived', 'index') || canAction('goodsreceived', 'grninspection');
 
   return (
-    <div className="fixed inset-0 z-[10000] flex justify-center items-start overflow-y-auto bg-black/40 pt-10 pb-10 font-sans text-[14px]">
+    <div className="fixed inset-0 z-[10000] flex justify-center items-start overflow-y-auto bg-black/40 pt-10 pb-10 font-sans text-[14px]" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="bg-white rounded w-[95%] max-w-[900px] shadow-lg relative p-4 pb-8">
         
         <button onClick={onClose} className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 bg-gray-100 rounded p-1">
@@ -66,11 +68,11 @@ export function PurchaseOrderDetailsModal({ poId, onClose }: PurchaseOrderDetail
 
         <div className="tableContainer" style={{ border: '1px solid #ccc', padding: '15px' }}>
           
-          {canAction('purchaseorder','view') && <button type="button"
-             onClick={() => { void openPurchaseOrderPdf(po.id).catch(() => toast.error('Unable to open purchase order PDF. Please retry and allow popups.')); }}
-             className="float-right bg-[#00a65a] hover:bg-[#008d4c] text-white px-[20px] py-[6px] rounded text-[14px] flex items-center gap-1 mt-2"
+          {canPrint && <button type="button"
+             onClick={() => { void openPurchaseOrderPdf(po.id, 'details').catch(() => toast.error('Unable to open purchase order PDF. Please retry and allow popups.')); }}
+             className="float-right bg-[#00a65a] hover:bg-[#008d4c] text-white px-[20px] py-[6px] rounded text-[14px] flex items-center gap-1.5 mt-2"
              style={{ textDecoration: 'none' }}>
-            <i className="fa fa-file-pdf-o"></i> Print
+            <Printer className="w-4 h-4" /> Print
           </button>}
 
           <div className="tableHeader">
@@ -78,12 +80,12 @@ export function PurchaseOrderDetailsModal({ poId, onClose }: PurchaseOrderDetail
             <table className="w-full mb-4">
               <tbody>
                 <tr>
-                  <td className="py-1"><b>Purchase Order No. :-</b> {po.po_number}</td>
-                  <td className="py-1"><b>Amendment No :-</b> {po.amendment_no > 0 ? `${po.amendment_no} (Date : ${new Date(po.amendment_date).toLocaleDateString('en-GB').replace(/\//g, '-')})` : '---'}</td>
+                  <td className="py-1"><b>Purchase Order No. :-</b> {po.display_po_number || po.po_number}</td>
+                  <td className="py-1"><b>Amendment No :-</b> {po.amendment_no > 0 ? `${po.amendment_no} (Date : ${formatContractDate(po.amendment_date)})` : '---'}</td>
                 </tr>
                 <tr>
-                  <td className="py-1"><b>Purchase Order Date :-</b> {new Date(po.po_date).toLocaleDateString('en-GB').replace(/\//g, '-')}</td>
-                  <td className="py-1"><b>Delivery Date :-</b> {new Date(po.delivery_date).toLocaleDateString('en-GB').replace(/\//g, '-')}</td>
+                  <td className="py-1"><b>Purchase Order Date :-</b> {formatContractDate(po.po_date)}</td>
+                  <td className="py-1"><b>Delivery Date :-</b> {formatContractDate(po.delivery_date) || '-'}</td>
                 </tr>
                 <tr>
                   <td className="py-1"><b>GSTIN NO. :-</b> {po.gst_number}</td>
@@ -164,8 +166,8 @@ export function PurchaseOrderDetailsModal({ poId, onClose }: PurchaseOrderDetail
                           <td colSpan={5} className="border border-gray-300"><b>Bill No :-</b> {grn.bill_no}</td>
                         </tr>
                         <tr>
-                          <td colSpan={4} className="border border-gray-300"><b>Inward Date :-</b> {new Date(grn.inward_date).toLocaleDateString('en-GB').replace(/\//g, '-')}</td>
-                          <td colSpan={5} className="border border-gray-300"><b>Bill Date :-</b> {new Date(grn.bill_date).toLocaleDateString('en-GB').replace(/\//g, '-')}</td>
+                          <td colSpan={4} className="border border-gray-300"><b>Inward Date :-</b> {formatContractDate(grn.inward_date)}</td>
+                          <td colSpan={5} className="border border-gray-300"><b>Bill Date :-</b> {formatContractDate(grn.bill_date)}</td>
                         </tr>
                         <tr>
                           <th className="border border-gray-300 w-[4%]">S.No.</th>
@@ -239,7 +241,7 @@ export function PurchaseOrderDetailsModal({ poId, onClose }: PurchaseOrderDetail
                           const qty = scheduleItem ? scheduleItem.item_qty : 0;
                           return (
                             <React.Fragment key={i}>
-                              <td className="border border-gray-300">{new Date(date).toLocaleDateString('en-GB').replace(/\//g, '-')}</td>
+                              <td className="border border-gray-300">{formatContractDate(date)}</td>
                               <td className="border border-gray-300">{formatQty(qty)} {item.uom}</td>
                             </React.Fragment>
                           )

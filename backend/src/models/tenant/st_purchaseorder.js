@@ -121,6 +121,14 @@ module.exports = function(sequelize, DataTypes) {
     revised_date: {
       type: DataTypes.DATE,
       allowNull: true
+    },
+    close_remarks: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    closed_by: {
+      type: DataTypes.STRING(255),
+      allowNull: true
     }
   }, {
     sequelize,

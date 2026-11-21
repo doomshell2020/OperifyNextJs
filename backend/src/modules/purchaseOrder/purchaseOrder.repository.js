@@ -717,6 +717,146 @@ class PurchaseOrderRepository {
     
     return { poprimary_id, purchaseorder_id: poData.purchaseorder_id };
   }
+
+  async closePurchaseOrder(dbPool, id, data, user, transaction) {
+    let rows = await dbPool.query(
+      `SELECT *, DATE(added_time) as po_date_str, DATE(delivery_date) as delivery_date_str 
+       FROM st_purchaseorder 
+       WHERE id = :id LIMIT 1`,
+      { replacements: { id }, type: QueryTypes.SELECT, transaction }
+    );
+    if (!rows || rows.length === 0) {
+      rows = await dbPool.query(
+        `SELECT *, DATE(added_time) as po_date_str, DATE(delivery_date) as delivery_date_str 
+         FROM st_purchaseorder 
+         WHERE purchaseorder_id = :id ORDER BY id DESC LIMIT 1`,
+        { replacements: { id }, type: QueryTypes.SELECT, transaction }
+      );
+    }
+    const po = rows ? rows[0] : null;
+    if (!po) {
+      const error = new Error('Purchase Order not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const userId = user?.id || null;
+    const closedBy = data.closed_by ? data.closed_by.trim() : '';
+    const closeRemarks = data.close_remarks ? data.close_remarks.trim() : '';
+
+    // 1. Update PO Status in st_purchaseorder for all revisions matching purchaseorder_id
+    await dbPool.query(
+      `UPDATE st_purchaseorder
+       SET 
+         postatus = 'C',
+         close_remarks = :close_remarks,
+         closed_by = :closed_by,
+         updated_time = CURRENT_TIMESTAMP,
+         updated_by = :updated_by
+       WHERE purchaseorder_id = :purchaseorder_id`,
+      {
+        replacements: {
+          close_remarks: closeRemarks,
+          closed_by: closedBy,
+          updated_by: userId,
+          purchaseorder_id: po.purchaseorder_id
+        },
+        type: QueryTypes.UPDATE,
+        transaction
+      }
+    );
+
+    // 2. Calculate received quantity from st_stock_register
+    const grnRows = await dbPool.query(
+      `SELECT COALESCE(SUM(quantity), 0) as received_qty
+       FROM st_stock_register
+       WHERE po_id = :po_id AND purchaseorder_id = :poprimary_id AND store_type = '1'`,
+      {
+        replacements: {
+          po_id: po.purchaseorder_id,
+          poprimary_id: po.id
+        },
+        type: QueryTypes.SELECT,
+        transaction
+      }
+    );
+    const receivedQty = Number(grnRows[0]?.received_qty) || 0;
+    const orderQty = Number(po.total_qty) || 0;
+    const pendingQty = Math.max(0, orderQty - receivedQty);
+
+    // 3. Fetch vendor name
+    let vendorName = '';
+    if (po.vendor_id) {
+      const vendorRows = await dbPool.query(
+        `SELECT name FROM vendors WHERE id = :vendor_id LIMIT 1`,
+        { replacements: { vendor_id: po.vendor_id }, type: QueryTypes.SELECT, transaction }
+      );
+      if (vendorRows && vendorRows[0]) {
+        vendorName = vendorRows[0].name || '';
+      }
+    }
+
+    // 4. Record History in st_purchaseorder_close_history
+    await dbPool.query(
+      `INSERT INTO st_purchaseorder_close_history (
+         purchaseorder_id,
+         poprimary_id,
+         vendor_id,
+         vendor_name,
+         po_date,
+         delivery_date,
+         order_qty,
+         received_qty,
+         pending_qty,
+         total_amt,
+         is_revised,
+         closed_by,
+         closed_by_name,
+         closed_time,
+         remarks,
+         status
+       ) VALUES (
+         :purchaseorder_id,
+         :poprimary_id,
+         :vendor_id,
+         :vendor_name,
+         :po_date,
+         :delivery_date,
+         :order_qty,
+         :received_qty,
+         :pending_qty,
+         :total_amt,
+         :is_revised,
+         :closed_by,
+         :closed_by_name,
+         CURRENT_TIMESTAMP,
+         :remarks,
+         'Closed'
+       )`,
+      {
+        replacements: {
+          purchaseorder_id: po.purchaseorder_id,
+          poprimary_id: po.id,
+          vendor_id: po.vendor_id || null,
+          vendor_name: vendorName || null,
+          po_date: po.po_date_str || null,
+          delivery_date: po.delivery_date_str || null,
+          order_qty: orderQty,
+          received_qty: receivedQty,
+          pending_qty: pendingQty,
+          total_amt: Number(po.total_amt) || 0,
+          is_revised: Number(po.is_revised) || 0,
+          closed_by: userId,
+          closed_by_name: closedBy,
+          remarks: closeRemarks
+        },
+        type: QueryTypes.INSERT,
+        transaction
+      }
+    );
+
+    return { purchaseorder_id: po.purchaseorder_id, id: po.id };
+  }
 }
 
 module.exports = new PurchaseOrderRepository();

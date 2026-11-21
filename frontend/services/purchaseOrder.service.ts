@@ -186,6 +186,11 @@ class PurchaseOrderService {
     const response = await apiClient.post('/purchase-orders', data);
     return response.data;
   }
+
+  async closePurchaseOrder(id: number | string, data: { closed_by: string; close_remarks: string }): Promise<{ success: boolean; message: string }> {
+    const response = await apiClient.post(`/purchase-orders/${id}/close`, { id, ...data });
+    return response.data;
+  }
 }
 
 export default new PurchaseOrderService();

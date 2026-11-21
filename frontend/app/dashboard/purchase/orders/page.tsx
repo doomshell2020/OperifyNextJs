@@ -9,13 +9,14 @@ import { createPortal } from 'react-dom';
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import indentService from '@/services/indent.service';
-import purchaseOrderService from '../../../../services/purchaseOrder.service';
+import purchaseOrderService, { PurchaseOrderListItem } from '../../../../services/purchaseOrder.service';
 import apiClient from '../../../../services/apiClient';
 import { openPurchaseOrderPdf } from '../../../../services/purchaseOrderPdf.service';
 import { PurchaseOrderDetailsModal } from '../../../../components/dashboard/PurchaseOrderDetailsModal';
 import { PurchaseOrderFormModal } from '../../../../components/dashboard/PurchaseOrderFormModal';
 import { DeliveryNoteModal } from '../../../../components/dashboard/DeliveryNoteModal';
 import { VendorDetailsModal } from '../../../../components/dashboard/VendorDetailsModal';
+import { ClosePurchaseOrderModal } from '../../../../components/dashboard/ClosePurchaseOrderModal';
 import { PrintPurchaseOrder } from '../../../../components/dashboard/PrintPurchaseOrder';
 import { Loader, AlertCircle, RefreshCw, MoreVertical, Search, FileText, X, Edit, Trash2, Box, Printer, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -64,6 +65,7 @@ export default function PurchaseOrdersPage() {
   const [deliveryPoId, setDeliveryPoId] = useState<number | null>(null);
   const [viewVendorId, setViewVendorId] = useState<number | null>(null);
   const [printPoId, setPrintPoId] = useState<number | null>(null);
+  const [closePo, setClosePo] = useState<PurchaseOrderListItem | null>(null);
 
   // Action Dropdown state
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
@@ -165,7 +167,11 @@ export default function PurchaseOrdersPage() {
               {data?.items && data.items.length > 0 ? (
                 data.items.map((po) => (
                   <tr key={po.id} className="border-b border-slate-100 hover:bg-slate-50 transition">
-                    <td className="p-4 font-medium text-cyan-700 cursor-pointer hover:underline" onClick={() => {if(canAction('purchaseorder','viewpodetail'))setViewPoId(po.id);}}>
+                    <td className="p-4 font-medium text-cyan-700 cursor-pointer hover:underline" onClick={() => {
+                      if (canAction('purchaseorder', 'viewpodetail') || canAction('purchaseorder', 'index') || hasPermission('purchaseorder:view')) {
+                        setViewPoId(po.id);
+                      }
+                    }}>
                       {po.display_po_number || po.po_number}
                     </td>
                     <td className="p-4 text-slate-600">{formatContractDate(po.po_date)}</td>
@@ -184,7 +190,7 @@ export default function PurchaseOrdersPage() {
                     </td>
                     <td className="p-4 text-slate-600">{formatContractDate(po.delivery_date) || '-'}</td>
                     <td className="p-4 text-center relative">
-                      {((po.is_latest_revision === 1 && (canRevise || canDelete || canDeliveryNote)) || canPrint || (po.amendment_no > 0 && (canAction('purchaseorder','index') || canAction('purchaseorder','printallpo'))) || (Number(po.delivery_notes_count || 0) > 0 && (canAction('purchaseorder','index') || canAction('purchaseorder','printdeliveryschedule')))) && <button
+                      {(po.postatus !== 'C' || (po.is_latest_revision === 1 && (canRevise || canDelete || canDeliveryNote)) || canPrint || (po.amendment_no > 0 && (canAction('purchaseorder','index') || canAction('purchaseorder','printallpo'))) || (Number(po.delivery_notes_count || 0) > 0 && (canAction('purchaseorder','index') || canAction('purchaseorder','printdeliveryschedule')))) && <button
                         onClick={event => {
                           const rect = event.currentTarget.getBoundingClientRect();
                           setDropdownPosition({ top: Math.max(8, Math.min(rect.bottom + 4, window.innerHeight - 220)), left: Math.max(8, Math.min(rect.right - 224, window.innerWidth - 232)) });
@@ -197,6 +203,19 @@ export default function PurchaseOrdersPage() {
 
                       {openDropdownId === po.id && createPortal(
                         <div style={dropdownPosition} className="fixed bg-white border border-slate-200 shadow-xl rounded-md py-2 w-56 z-50 animate-in fade-in zoom-in-95 duration-100">
+                          {po.postatus !== 'C' && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setClosePo(po);
+                                setOpenDropdownId(null);
+                              }}
+                              className="w-full text-left px-4 py-1.5 text-sm font-bold text-red-600 hover:bg-red-50"
+                              style={{ color: 'red' }}
+                            >
+                              Close PO without GRN
+                            </button>
+                          )}
                           {po.is_latest_revision === 1 && canRevise && (
                             <button onClick={() => { setRevisePoId(po.id); setOpenDropdownId(null); }} className="w-full text-left px-4 py-1.5 text-sm font-bold text-slate-900 hover:bg-slate-50 hover:text-cyan-700">
                               Revise PO
@@ -240,6 +259,7 @@ export default function PurchaseOrdersPage() {
       {revisePoId && <PurchaseOrderFormModal poId={revisePoId} onClose={() => setRevisePoId(null)} />}
       {deliveryPoId && <DeliveryNoteModal poId={deliveryPoId} onClose={() => setDeliveryPoId(null)} />}
       {viewVendorId && <VendorDetailsModal vendorId={viewVendorId} onClose={() => setViewVendorId(null)} />}
+      {closePo && <ClosePurchaseOrderModal po={closePo} onClose={() => setClosePo(null)} />}
       {/* printPoId modal removed because it opens in a new tab */}
 
       {/* Global Click outside to close dropdown */}

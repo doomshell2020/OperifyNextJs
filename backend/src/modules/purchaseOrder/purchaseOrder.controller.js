@@ -212,6 +212,47 @@ class PurchaseOrderController {
       if (browser) await browser.close();
     }
   }
+
+  async closePurchaseOrder(req, res, next) {
+    try {
+      const id = req.params.id || req.body.id;
+      const { closed_by, close_remarks } = req.body;
+
+      if (!id) {
+        return res.status(400).json({
+          success: false,
+          message: 'Purchase Order ID is required.'
+        });
+      }
+
+      if (!closed_by || typeof closed_by !== 'string' || !closed_by.trim() || !close_remarks || typeof close_remarks !== 'string' || !close_remarks.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Both Closed By and Close Remarks are mandatory fields.'
+        });
+      }
+
+      const result = await purchaseOrderService.closePurchaseOrder(
+        req.dbPool,
+        id,
+        {
+          closed_by: closed_by.trim(),
+          close_remarks: close_remarks.trim()
+        },
+        req.user
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: `Purchase Order (${result.purchaseorder_id}) closed without GRN successfully.`
+      });
+    } catch (error) {
+      if (error.message === 'Purchase Order not found') {
+        return res.status(404).json({ success: false, message: error.message });
+      }
+      next(error);
+    }
+  }
 }
 
 module.exports = new PurchaseOrderController();

@@ -5,6 +5,7 @@ const { legacyReversePermissions } = require('./legacyReverseAccess');
 const { legacyGatepassPermissions } = require('./legacyGatepassAccess');
 const { legacyDailySheetPermissions } = require('./legacyDailySheetAccess');
 const { legacyMaintenancePermissions } = require('./legacyMaintenanceAccess');
+const { legacyPurchaseOrderPermissions } = require('./legacyPurchaseOrderAccess');
 
 /**
  * AuthRepository executes database operations for authentication
@@ -188,7 +189,7 @@ class AuthRepository {
       const configuredLabels = await centralModels.permission_label.findAll({
         attributes: ['url'], raw: true
       });
-      return legacyMaintenancePermissions(configuredLabels, legacyDailySheetPermissions(configuredLabels, legacyReversePermissions(configuredLabels, legacyGatepassPermissions(configuredLabels, legacyStockPermissions(configuredLabels, legacyJcPermissions(configuredLabels, permissions))))));
+      return legacyPurchaseOrderPermissions(configuredLabels, legacyMaintenancePermissions(configuredLabels, legacyDailySheetPermissions(configuredLabels, legacyReversePermissions(configuredLabels, legacyGatepassPermissions(configuredLabels, legacyStockPermissions(configuredLabels, legacyJcPermissions(configuredLabels, permissions)))))));
     } catch (err) {
       console.error('Error fetching user permissions:', err);
       return [];

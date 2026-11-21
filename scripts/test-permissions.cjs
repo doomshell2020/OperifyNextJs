@@ -159,7 +159,7 @@ async function permissionLoadingTests() {
     return [{url:'admin/contracts/edit_other'},{url:'admin/designsheet/edit'}];
   }}};
   vm.runInNewContext(fs.readFileSync(path.join(root,'backend/src/modules/auth/auth.repository.js'),'utf8'),
-    {module,exports:module.exports,require:name=>name==='./legacyMaintenanceAccess'?require('../backend/src/modules/auth/legacyMaintenanceAccess'):name==='./legacyDailySheetAccess'?require('../backend/src/modules/auth/legacyDailySheetAccess'):name==='./legacyReverseAccess'?require('../backend/src/modules/auth/legacyReverseAccess'):name==='./legacyJcAccess'?require('../backend/src/modules/auth/legacyJcAccess'):name==='./legacyStockAccess'?require('../backend/src/modules/auth/legacyStockAccess'):name==='./legacyGatepassAccess'?require('../backend/src/modules/auth/legacyGatepassAccess'):({centralModels:db}),console});
+    {module,exports:module.exports,require:name=>name==='./legacyMaintenanceAccess'?require('../backend/src/modules/auth/legacyMaintenanceAccess'):name==='./legacyDailySheetAccess'?require('../backend/src/modules/auth/legacyDailySheetAccess'):name==='./legacyReverseAccess'?require('../backend/src/modules/auth/legacyReverseAccess'):name==='./legacyJcAccess'?require('../backend/src/modules/auth/legacyJcAccess'):name==='./legacyStockAccess'?require('../backend/src/modules/auth/legacyStockAccess'):name==='./legacyGatepassAccess'?require('../backend/src/modules/auth/legacyGatepassAccess'):name==='./legacyPurchaseOrderAccess'?require('../backend/src/modules/auth/legacyPurchaseOrderAccess'):({centralModels:db}),console});
   const result=await module.exports.getUserPermissions('fixture-role');
   assert(!result.includes('contracts:edit'),'A similarly named URL must not grant Edit');
   assert(result.includes('designsheet:edit'));
@@ -173,6 +173,10 @@ async function permissionLoadingTests() {
   assert.deepEqual(legacyStockPermissions([],['legacy:admin/stockregister/dailystock']),['legacy:admin/stockregister/dailystock']);
   assert.deepEqual(legacyStockPermissions([{url:' Admin/Stockregister/Summaryexcel '}],[stockIndex]),[stockIndex]);
   assert.deepEqual(legacyStockPermissions([{url:'admin/stockregister/summaryexcel'}],[stockIndex,stockExport]),[stockIndex,stockExport]);
+  const {legacyPurchaseOrderPermissions}=require('../backend/src/modules/auth/legacyPurchaseOrderAccess');
+  const poIndex='legacy:admin/purchaseorder/index',poDetail='legacy:admin/purchaseorder/viewpodetail';
+  assert(legacyPurchaseOrderPermissions([],[poIndex]).includes(poDetail));
+  assert(!legacyPurchaseOrderPermissions([{url:'admin/purchaseorder/viewpodetail'}],[poIndex]).includes(poDetail));
   const labels=actions.map(action=>({url:`admin/jobchallan/${action}`}));
   assert.deepEqual(legacyJcPermissions(labels,[]),[],'Configured but ungranted JC actions must remain denied');
   for(const action of actions) {

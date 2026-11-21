@@ -27,13 +27,16 @@ const printPermission = (req,res,next) => requireAnyPermission([
 ])(req,res,next);
 router.get('/:id/print-data', printPermission, purchaseOrderController.getPrintData);
 router.get('/:id/pdf', printPermission, purchaseOrderController.generatePdf);
-router.get('/:id/hover', permission('purchaseorder','viewpodetail'), purchaseOrderController.getHoverDetails);
+router.get('/:id/hover', requireAnyPermission(detailGrants), purchaseOrderController.getHoverDetails);
 // Form reads require the same action permission as their corresponding writes.
 router.get('/:id/revision-data', permission('purchaseorder','revised'), purchaseOrderController.getDetails);
 router.get('/:id/delivery-data', permission('purchaseorder','deliverynote'), purchaseOrderController.getDetails);
 router.get('/:id/details', requireAnyPermission(detailGrants), purchaseOrderController.getDetails);
 router.put('/:id', permission('purchaseorder','revised'), purchaseOrderController.revisePurchaseOrder);
 router.delete('/:id', permission('purchaseorder','delete'), purchaseOrderController.deletePurchaseOrder);
+router.post('/closepo', purchaseOrderController.closePurchaseOrder);
+router.post('/:id/close', purchaseOrderController.closePurchaseOrder);
+router.post('/:id/closepo', purchaseOrderController.closePurchaseOrder);
 router.post('/:id/delivery-note', permission('purchaseorder','deliverynote'), purchaseOrderController.addDeliveryNote);
 
 module.exports = router;
