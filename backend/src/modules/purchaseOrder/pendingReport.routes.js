@@ -9,8 +9,12 @@ router.get('/options', async (req, res, next) => {
   try {
     const { QueryTypes } = require('sequelize');
     const [items, suppliers] = await Promise.all([
-      req.dbPool.query("SELECT id,item_name name FROM st_additem WHERE itemtype='RawMaterial' ORDER BY item_name,id", { type: QueryTypes.SELECT }),
-      req.dbPool.query('SELECT id,name FROM vendors ORDER BY name,id', { type: QueryTypes.SELECT }),
+      req.dbPool.query(`SELECT id, item_name AS name FROM st_additem
+        WHERE itemtype IN ('RawMaterial', 'Raw Material')
+          AND status = 'Y'
+          AND (category_id NOT IN (25, 26, 40, 134, 137, 138, 139, 141, 147, 157) OR category_id IS NULL)
+        ORDER BY item_name ASC, id ASC`, { type: QueryTypes.SELECT }),
+      req.dbPool.query('SELECT id, name FROM vendors ORDER BY name ASC, id ASC', { type: QueryTypes.SELECT }),
     ]);
     res.json({ success: true, data: { items, suppliers } });
   } catch (error) { next(error); }

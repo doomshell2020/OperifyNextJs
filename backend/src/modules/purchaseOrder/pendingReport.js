@@ -8,21 +8,64 @@ function validate(input = {}) {
   const result = {};
   for (const key of ['item_id', 'vendor_id']) {
     const value = input[key];
-    if (value !== undefined && value !== '') {
-      if (!/^[1-9]\d{0,9}$/.test(String(value)) || typeof value === 'object') throw invalid(`Invalid ${key}`);
-      result[key] = String(value);
+    if (value !== undefined && value !== null && value !== '') {
+      let ids = [];
+      if (Array.isArray(value)) {
+        if (value.length === 0) throw invalid(`Invalid ${key}`);
+        for (const v of value) {
+          const s = String(v).trim();
+          if (!/^[1-9]\d{0,9}$/.test(s)) throw invalid(`Invalid ${key}`);
+          ids.push(s);
+        }
+      } else if (typeof value === 'string' || typeof value === 'number') {
+        const raw = String(value).trim();
+        if (raw !== '') {
+          const parts = raw.split(',');
+          for (const p of parts) {
+            const s = p.trim();
+            if (!/^[1-9]\d{0,9}$/.test(s)) throw invalid(`Invalid ${key}`);
+            ids.push(s);
+          }
+        }
+      } else {
+        throw invalid(`Invalid ${key}`);
+      }
+      ids = [...new Set(ids)];
+      if (ids.length > 0) {
+        result[key] = ids.length === 1 ? ids[0] : ids;
+      }
     }
   }
   for (const key of ['datefrom', 'dateto']) {
     const value = input[key];
-    if (value !== undefined && value !== '') {
-      if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value) || value < '1000-01-01' || value > '9998-12-31') throw invalid(`Invalid ${key}`);
-      const date = new Date(`${value}T00:00:00Z`);
-      if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== value) throw invalid(`Invalid ${key}`);
-      result[key] = value;
+    if (value !== undefined && value !== null && value !== '') {
+      if (typeof value !== 'string') throw invalid(`Invalid ${key}`);
+      const trimmed = value.trim();
+      let iso = trimmed;
+      if (/^\d{2}-\d{2}-\d{4}$/.test(trimmed)) {
+        const [d, m, y] = trimmed.split('-');
+        iso = `${y}-${m}-${d}`;
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(iso) || iso < '1000-01-01' || iso > '9998-12-31') throw invalid(`Invalid ${key}`);
+      const date = new Date(`${iso}T00:00:00Z`);
+      if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== iso) throw invalid(`Invalid ${key}`);
+      result[key] = iso;
     }
   }
   if (result.datefrom && result.dateto && result.datefrom > result.dateto) throw invalid('Date From cannot be later than Date To.');
+
+  const postatusInput = input.postatus !== undefined ? input.postatus : input.status;
+  if (postatusInput !== undefined && postatusInput !== null && postatusInput !== '') {
+    if (typeof postatusInput !== 'string') throw invalid('Invalid postatus');
+    const upper = postatusInput.trim().toUpperCase();
+    let val = '';
+    if (upper === 'O' || upper === 'OPEN') val = 'O';
+    else if (upper === 'C' || upper === 'CLOSE' || upper === 'CLOSED') val = 'C';
+    else if (upper === 'ALL' || upper === '') val = '';
+    else throw invalid('Invalid postatus');
+    if (val) result.postatus = val;
+  }
+
   for (const key of ['page', 'limit']) {
     if (input[key] !== undefined && (typeof input[key] === 'object' || !/^[1-9]\d*$/.test(String(input[key])) || !Number.isSafeInteger(Number(input[key])))) throw invalid(`Invalid ${key}`);
   }
@@ -33,10 +76,15 @@ function validate(input = {}) {
 // individual PO lines: this schema has no receipt-to-detail foreign key.
 function query(filters) {
   const where = ["po.status IN ('Y','R')"];
-  if (filters.item_id) where.push('d.item_id=:item_id');
-  if (filters.vendor_id) where.push('po.vendor_id=:vendor_id');
+  if (filters.item_id) {
+    where.push(Array.isArray(filters.item_id) ? 'd.item_id IN (:item_id)' : 'd.item_id=:item_id');
+  }
+  if (filters.vendor_id) {
+    where.push(Array.isArray(filters.vendor_id) ? 'po.vendor_id IN (:vendor_id)' : 'po.vendor_id=:vendor_id');
+  }
   if (filters.datefrom) where.push('po.added_time>=:datefrom');
   if (filters.dateto) where.push('po.added_time<DATE_ADD(:dateto, INTERVAL 1 DAY)');
+  if (filters.postatus) where.push('po.postatus=:postatus');
   return `WITH latest AS (
     SELECT purchaseorder_id,MAX(id) id FROM st_purchaseorder GROUP BY purchaseorder_id
   ), po_lines AS (
@@ -46,7 +94,7 @@ function query(filters) {
       CAST(d.item_qty AS DECIMAL(30,3)) qty,CAST(d.item_amt AS DECIMAL(30,2)) rate
     FROM latest l JOIN st_purchaseorder po ON po.id=l.id
     JOIN st_purchaseorderDetails d ON d.poprimary_id=po.id
-    JOIN st_additem i ON i.id=d.item_id AND i.itemtype='RawMaterial'
+    JOIN st_additem i ON i.id=d.item_id AND i.itemtype IN ('RawMaterial', 'Raw Material')
     LEFT JOIN st_measurementunits u ON u.id=i.uom LEFT JOIN vendors v ON v.id=po.vendor_id
     WHERE ${where.join(' AND ')}
   ), unit_lines AS (
