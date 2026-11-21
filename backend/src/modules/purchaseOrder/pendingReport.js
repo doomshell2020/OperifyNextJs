@@ -112,7 +112,7 @@ function query(filters) {
     FROM st_stock_register s
     WHERE s.status IN ('Y','R') AND (
       (s.store_type='1' AND EXISTS (SELECT 1 FROM st_goodsreceive g
-        WHERE g.id=s.goods_id AND CAST(g.id AS CHAR)=s.goods_id AND g.purchaseorder_id=s.po_id AND g.status IN ('O','C')))
+        WHERE g.id=s.goods_id AND CONVERT(g.id USING utf8mb4) COLLATE utf8mb4_unicode_ci = CONVERT(s.goods_id USING utf8mb4) COLLATE utf8mb4_unicode_ci AND CONVERT(g.purchaseorder_id USING utf8mb4) COLLATE utf8mb4_unicode_ci = CONVERT(s.po_id USING utf8mb4) COLLATE utf8mb4_unicode_ci AND g.status IN ('O','C')))
       OR (s.store_type='4' AND NULLIF(s.po_id,'') IS NOT NULL))
     GROUP BY s.po_id,s.item_id
   ), historical_units AS (
@@ -122,7 +122,7 @@ function query(filters) {
     WHERE p.status IN ('Y','R') GROUP BY p.purchaseorder_id,d.item_id
   ), incomplete_returns AS (
     SELECT r.purchaseorder_id,COUNT(*) n FROM st_purchasereturn r
-    WHERE NOT EXISTS (SELECT 1 FROM st_stock_register s WHERE s.store_type='4' AND s.return_id=CAST(r.id AS CHAR))
+    WHERE NOT EXISTS (SELECT 1 FROM st_stock_register s WHERE s.store_type='4' AND CONVERT(s.return_id USING utf8mb4) COLLATE utf8mb4_unicode_ci = CONVERT(r.id USING utf8mb4) COLLATE utf8mb4_unicode_ci)
     GROUP BY r.purchaseorder_id
   ), report AS (
     SELECT o.*,COALESCE(m.received,0) received,
@@ -130,9 +130,9 @@ function query(filters) {
       (o.unit_count>1 OR (m.po_id IS NOT NULL AND (h.unit_count>1 OR o.unit=''))) unit_conflict,
       COALESCE(r.n,0) incomplete_returns
     FROM orders o
-    LEFT JOIN movements m ON m.po_id=o.purchaseorder_id AND m.item_id=o.item_id
-    LEFT JOIN historical_units h ON h.purchaseorder_id=o.purchaseorder_id AND h.item_id=o.item_id
-    LEFT JOIN incomplete_returns r ON r.purchaseorder_id=o.purchaseorder_id
+    LEFT JOIN movements m ON CONVERT(m.po_id USING utf8mb4) COLLATE utf8mb4_unicode_ci = CONVERT(o.purchaseorder_id USING utf8mb4) COLLATE utf8mb4_unicode_ci AND m.item_id=o.item_id
+    LEFT JOIN historical_units h ON CONVERT(h.purchaseorder_id USING utf8mb4) COLLATE utf8mb4_unicode_ci = CONVERT(o.purchaseorder_id USING utf8mb4) COLLATE utf8mb4_unicode_ci AND h.item_id=o.item_id
+    LEFT JOIN incomplete_returns r ON CONVERT(r.purchaseorder_id USING utf8mb4) COLLATE utf8mb4_unicode_ci = CONVERT(o.purchaseorder_id USING utf8mb4) COLLATE utf8mb4_unicode_ci
   ) `;
 }
 

@@ -12,7 +12,12 @@ const dbConfig = {
     max: 10,
     min: 0,
     acquire: 30000,
-    idle: 10000
+    idle: 10000,
+    afterConnect: (conn, done) => {
+      conn.query("SET NAMES 'utf8mb4' COLLATE 'utf8mb4_unicode_ci'", (err) => {
+        done(err, conn);
+      });
+    }
   },
   define: {
     timestamps: false,
